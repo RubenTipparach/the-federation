@@ -306,7 +306,8 @@ The fitting screen is the most-used screen in the game. It must be excellent.
 **Must have:**
 - Live budget bars (space / power / mass / crew) with **projected** values as you hover a
   component, before you commit.
-- The **arc rose**: damage-by-angle overlay, updating live.
+- The **arc wheel**: 12 sectors, angle is bearing, radius is effective range, one wedge
+  per mount, updating live. Blind bearing shown as a derived stat.
 - A **derived-stats panel**: alpha strike, sustained DPS, effective HP per facing, time to
   turn 180°, max speed, sensor range, boarding strength.
 - **Compare mode**: two designs side by side with a stat delta.

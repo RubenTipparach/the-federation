@@ -6,7 +6,8 @@ The battle layer. This is the part that must be fun before anything else is buil
 
 ## 1. Framing
 
-- **View:** top-down, 2D plane, fixed-angle camera with zoom. Ships are readable
+- **View:** **rendered in 3D**, with an orbitable camera, in the manner of Starfleet
+  Command. Ships are 3D models. A plan-view tactical inset is always present. Ships are readable
   silhouettes with visible shield arcs and damage state.
 - **Scale:** capital ships are slow and heavy. A heavy cruiser takes ~8 seconds to come
   about 90°. Engagements are decided over minutes, not seconds.
@@ -17,11 +18,41 @@ The battle layer. This is the part that must be fun before anything else is buil
 - **Sides:** up to 6 capital ships per player squadron; instance target cap 24 capital
   hulls plus fighters/drones/platforms.
 
-### Why 2D
+### 3D presentation, 2D simulation
 
-Shield facings, weapon arcs, and "crossing the T" only communicate legibly in 2D. A 3D
-plane makes arc management unreadable and turns positioning into guesswork. This is the
-single most important inherited constraint from the reference and it is not negotiable.
+**Combat renders in 3D. This is a hard requirement.** Ships are 3D models, the camera
+orbits, and the engagement is presented the way Starfleet Command presented it.
+
+**Ships move on a single plane.** The simulation is 2D: a position, a heading, and a
+velocity. There is no pitch, no roll as a manoeuvre, no altitude, and no vertical
+separation between contacts. This is the same split the reference used, and it is what
+makes the two halves compatible rather than contradictory.
+
+Why the plane stays 2D:
+
+- Shield facings, weapon arcs, and crossing the T are only legible when every contact
+  shares one plane. Full 3D movement turns arc management into guesswork, which would
+  gut the fitting screen's entire purpose.
+- Six facings is a *planar* partition. In free 3D you need a solid angle partition, and
+  the tabletop lineage this design comes from does not have one.
+- The sim state stays tiny. A ship is `x, z, heading`, so netcode payload, interest
+  management, and the authoritative tick are unaffected by the 3D presentation. See
+  [06-technical-architecture.md](06-technical-architecture.md) §4.
+
+**How arcs stay readable in 3D:** every tactical overlay is painted **on the plane**, not
+in screen space. Shield facings are arc segments on the plane around each hull, firing
+envelopes are fans on the plane, and range rings are circles on the plane that read as
+ellipses under perspective. Because they live on the plane, the perspective that makes the
+scene look 3D also tells you where things are.
+
+Two consequences that must be designed for, not discovered:
+
+- **A low camera foreshortens the plane** until arcs collapse into slivers. There is a
+  **camera pitch floor**, and the UI warns when the pitch is low enough that arc geometry
+  is no longer trustworthy from the 3D view alone.
+- **A plan-view inset is mandatory, not a nicety.** Whatever the 3D camera is doing, one
+  always-top-down view of arcs and positions must be on screen. It is the guarantee that
+  cinematic framing can never cost the player tactical information.
 
 ---
 

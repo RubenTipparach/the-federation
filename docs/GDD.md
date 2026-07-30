@@ -184,8 +184,9 @@ Full detail in [04-galaxy-and-territory.md](04-galaxy-and-territory.md) and
 
 Full detail in [01-tactical-combat.md](01-tactical-combat.md).
 
-- 2D plane, top-down, Newtonian-*ish* (momentum + turn rate, but with a speed cap so
-  fights stay readable). Slow, weighty capital ship movement.
+- **Rendered in 3D** with an orbitable camera; ships manoeuvre on a single plane.
+  Newtonian-*ish* (momentum + turn rate, with a speed cap so fights stay readable).
+  Slow, weighty capital ship movement.
 - Up to **6 capital ships per side** per player squadron; multi-player battles support
   multiple squadrons up to an instance cap (target: 24 capital ships + escorts).
 - Direct control of your **flagship**; the rest of the squadron takes standing orders and
@@ -277,9 +278,12 @@ Explicit anti-goals, to keep scope honest:
   with distance from home and with the value of what you're doing.
 - **Not seamless single-shard space.** Combat is instanced. Accept it; it's what makes
   the tactical layer possible.
-- **Not a 3D-space game.** Combat is on a 2D plane. This is a deliberate design choice
-  inherited from the reference, not a limitation. Shield facings, arcs, and crossing
-  the T are only legible in 2D.
+- **Not a 6DOF space game.** Combat **renders in 3D** (a hard requirement, in the manner
+  of Starfleet Command), but ships manoeuvre on a single plane. The anti-goal is 3D
+  *movement*, not 3D presentation. Shield facings and arcs are only legible when every
+  contact shares one plane, and overlays are painted on that plane so the 3D camera adds
+  atmosphere without costing information. See
+  [01-tactical-combat.md](01-tactical-combat.md) §1.
 - **Not skill-tree-based.** No character levels. See P1.
 - **Not a 100-ship RTS.** Squadron cap of 6 is a design constraint, not a placeholder.
   It exists so each ship can be individually deep.

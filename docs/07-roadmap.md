@@ -20,10 +20,17 @@ persistence last.
 - Hull, armor, and the internal damage table with real consequences.
 - One hardcoded enemy AI that manages its own power and shield rotation competently.
 - Tactical pause.
-- Runs locally in the Godot editor. **No server, no accounts, no database, no art.**
+- **Rendered in 3D** with an orbitable camera, ships on a plane, and tactical overlays
+  painted on the plane. Camera pitch floor plus the plan-view inset.
+- Runs locally in the Godot editor. **No server, no accounts, no database.**
+- **One placeholder hull model**, committed as `.gltf` per `CLAUDE.md` §2. 3D combat is a
+  hard requirement, so a runtime `BoxMesh` is not an option (§5.1 forbids generated
+  geometry). One grey untextured hull is enough; it is not an art milestone.
 
 **Exit criteria, hard gates:**
 - A fight between two evenly matched ships lasts 6-12 minutes and is *tense throughout*.
+- Arc and facing state is readable from the 3D view at the default camera pitch, and
+  from the plan-view inset at any pitch.
 - Five external playtesters, given no tutorial, discover shield rotation on their own.
 - Those testers ask to play again unprompted.
 - Every tester can articulate *why* they lost, in mechanical terms.
@@ -40,11 +47,13 @@ the assumption that M1 succeeded.
 
 - Hull definitions (4 hulls: frigate, destroyer, light cruiser, heavy cruiser).
 - The **four budgets** (space / power / mass / crew) with live validation.
-- Hardpoints with sizes and arcs; the **arc rose** overlay.
+- Mounts with sizes, permitted classes, and arc fields; the **12 sector arc wheel**
+  (angle is bearing, radius is range) with blind bearing as a derived stat.
 - ~30 components across the categories in [02](02-ship-construction.md) §5, at 2 tiers.
 - Derived stats panel, compare mode, named designs with revisions.
 - **Dry-dock simulation**: test a design against M1's AI immediately.
-- Shared `TheFederation.Sim` C# library used by both the fitting screen and the battle sim.
+- Shared `res://src/sim/` GDScript used by both the fitting screen and the battle sim, so
+  projected stats come from the code that resolves a real fight.
 
 **Process note:** this milestone is almost entirely UI, so `CLAUDE.md` §6 applies heavily.
 Each screen needs a mockup approved before implementation, per screen rather than one

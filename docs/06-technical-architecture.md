@@ -324,13 +324,52 @@ Three largely separate front-ends sharing an asset and data layer:
 
 | Scene tree | Responsibility |
 |---|---|
-| `ShipyardRoot` | Fitting UI, budget bars, arc rose, derived stats, dry-dock sim. Pure local + REST. |
+| `ShipyardRoot` | Fitting UI, budget bars, 12 sector arc wheel, derived stats, dry-dock sim. Pure local + REST. |
 | `GalaxyRoot` | Hex map, fleet orders, trade/colony/station management. REST + light WebSocket for push. |
-| `BattleRoot` | The tactical sim client. WebSocket to a battle Machine. |
+| `BattleRoot` | The tactical sim client, **rendered in 3D**. WebSocket to a battle Machine. |
 
 - **Shared:** `res://src/sim/` (rules, math, validation, in typed GDScript), a REST client,
   and the asset/data catalog. The same files load in the client and in the headless server
   export, which is what keeps one implementation of the sim. See section 2.
+
+### 9.1 3D combat, and what it costs
+
+Combat renders in 3D as a hard requirement (see
+[01-tactical-combat.md](01-tactical-combat.md) §1). Ships still manoeuvre on a plane, so
+this is a **rendering** decision, not a simulation one. Four consequences, and they are not
+all free.
+
+**The sim is untouched, which is the good news.** A ship's authoritative state stays
+`x, z, heading, velocity`. Payload sizes, interest management, tick cost, and the
+server-authoritative model in section 4 are all exactly as designed. The headless server
+export does not render at all, so it carries none of this.
+
+**The renderer is constrained by the Web target, and this is the real cost.**
+`project.godot` is set to `gl_compatibility` because Vulkan does not run in a browser
+(`docs/08` §6). So 3D combat runs on the OpenGL ES 3.0 / WebGL2 feature set, which means:
+
+- No SDFGI, no volumetric fog, and a reduced post-processing set.
+- Real-time shadows are limited and expensive. Plan for baked or faked shadows, which is
+  fine for ships on an open plane.
+- Fewer real-time lights before it costs frames.
+
+This is workable for the visual target, which is capital ships on an empty plane, not an
+atmospheric interior. But **the look has to be achieved with art direction rather than
+renderer features**: strong silhouettes, emissive hull panels and engine glow, a
+self-illuminated look, and a plane grid that carries the sense of space. Committing to
+Forward+ instead would buy better lighting and cost the browser build, which the project
+has already decided against.
+
+**3D ships mean real model assets, earlier than planned.** `CLAUDE.md` §2 requires every
+model to be a committed `.obj` or `.gltf`/`.glb`, and §5.1 forbids generating geometry in
+code. So the tactical prototype needs at least one authored placeholder hull file rather
+than a `BoxMesh` built at runtime. `docs/07` M1 is adjusted for this.
+
+**Overlays render on the plane, not in screen space.** Shield facings, firing envelopes,
+and range rings are geometry lying on the plane at y=0. This is what preserves arc
+legibility under perspective, and it also means they are ordinary meshes and materials,
+so the constrained renderer does not threaten them. The camera needs a **pitch floor**,
+and a plan-view inset is a hard UI requirement rather than a nicety.
 - **Hex rendering: unresolved, and blocked on a project rule.** A TileMap is unlikely to
   carry 3,000 hexes with several layered, frequently changing overlays, and the map needs
   smooth zoom from whole-galaxy down to a single hex. The obvious answer is a
@@ -388,6 +427,8 @@ Three largely separate front-ends sharing an asset and data layer:
 | Fly Machines API rate limits under contact storms | Medium | **Verify limits early.** Queue battle creation, warm pool absorbs bursts |
 | UDP unavailable / awkward on Fly | Low | Architecture deliberately requires only WebSocket/TCP (§4) |
 | Single Postgres primary becomes the ceiling | Medium | Read replicas; region sharding (§8) is the real answer and is already the plan |
+| 3D combat looks flat on the `gl_compatibility` feature set | Medium | Art direction carries the look (silhouettes, emissive hulls, engine glow), not renderer features. See §9.1. Reassess only if the browser build is dropped |
+| Low camera pitch makes arcs unreadable | Medium | Camera pitch floor, an on screen warning below the threshold, and a mandatory plan-view inset. Demonstrated in the approved mockup |
 | Web export limits (no threads, browser memory ceilings) bite later | Medium | Web is built and deployed from day one (`docs/08`), so regressions surface immediately rather than at M2 |
 | GDScript too slow on a hot sim path | Low | 15 Hz over 24 ships is little work. If profiling shows one, move that function to GDExtension rather than porting the project |
 | GDScript's weak typing lets a sim bug through | Medium | Typed GDScript mandatory in `src/sim/`; untyped declarations there are a review failure |
