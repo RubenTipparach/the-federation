@@ -16,6 +16,7 @@ const FitLib = preload("res://src/sim/fit.gd")
 const ShipLib = preload("res://src/sim/ship_state.gd")
 const BattleLib = preload("res://src/sim/battle.gd")
 const WeaponLib = preload("res://src/sim/weapon_model.gd")
+const YardLib = preload("res://src/sim/shipyard.gd")
 
 var checks: int = 0
 var failures: int = 0
@@ -48,12 +49,80 @@ func _initialize() -> void:
 	test_falloff()
 	test_movement_and_weapons()
 	test_battle_and_ai()
+	test_shipyard()
 	print("")
 	if failures == 0:
 		print("ALL TESTS PASSED  (%d checks)" % checks)
 	else:
 		print("%d OF %d CHECKS FAILED" % [failures, checks])
 	quit(0 if failures == 0 else 1)
+
+
+func test_shipyard() -> void:
+	print("\n== shipyard ==")
+	var yard = YardLib.create(FitLib.create_default("wayfarer"), 12400,
+		["lance", "photon", "ph1"], ["ph3"])
+	yard.adopt_fit()
+
+	eq(yard.cargo_capacity(), 30, "the wayfarer hold is 30 space")
+	eq(yard.list_price(yard.shop[0]), 3400, "the shop charges list")
+	eq(yard.sale_price(yard.cargo[0]), 252, "the yard pays 60 percent for fresh gear")
+	var hurt: Dictionary = yard._make("ph1", true, 0.5)
+	eq(yard.sale_price(hurt), 270, "damaged gear sells for its remaining fraction")
+
+	# Moving your own gear costs nothing, in either direction.
+	var fitted_m4: Dictionary = yard.fitted_in("M4")
+	ok(not fitted_m4.is_empty(), "the default fit is adopted into the transaction")
+	ok(bool(yard.move(String(fitted_m4["uid"]), YardLib.CARGO)["ok"]), "a mount can be stripped")
+	eq(int(yard.tally()["balance"]), 0, "stripping a mount into the hold is free")
+	ok(bool(yard.move(String(fitted_m4["uid"]), "mount", "M4")["ok"]), "and refitted")
+	eq(int(yard.tally()["balance"]), 0, "refitting your own gear is free")
+
+	# Buying and selling move the balance, and the two net off.
+	var lance_uid: String = String(yard.shop[0]["uid"])
+	ok(bool(yard.move(lance_uid, YardLib.CARGO)["ok"]), "a lance can be bought into the hold")
+	eq(int(yard.tally()["purchases"]), 3400, "the purchase is tallied")
+	eq(int(yard.tally()["credits_after"]), 12400 - 3400, "credits after reflects the purchase")
+	ok(bool(yard.move(String(fitted_m4["uid"]), YardLib.SHOP)["ok"]), "a fitted phaser can be sold")
+	eq(int(yard.tally()["sales"]), 540, "the sale is tallied at 60 percent")
+	eq(int(yard.tally()["balance"]), 540 - 3400, "balance is sales minus purchases")
+
+	# Nothing is charged until confirm.
+	eq(yard.credits, 12400, "credits are untouched before confirming")
+	ok(yard.can_confirm(), "a settleable transaction can be confirmed")
+	eq(yard.confirm(), 12400 - 3400 + 540, "confirm settles once")
+	eq(int(yard.tally()["balance"]), 0, "the tally is clear after settling")
+	ok(not yard.can_confirm(), "an empty transaction cannot be confirmed")
+
+	# The three refusals, each named.
+	var poor = YardLib.create(FitLib.create_default("wayfarer"), 500, ["lance"])
+	poor.adopt_fit()
+	poor.move(String(poor.shop[0]["uid"]), YardLib.CARGO)
+	ok(not poor.can_confirm(), "a captain cannot spend past zero")
+	ok(String(poor.blockers()[0]).contains("Short"), "and is told how short they are")
+
+	var stuffed = YardLib.create(FitLib.create_default("talon"), 99999,
+		["lance", "photon", "disruptor"])
+	stuffed.adopt_fit()
+	for entry in stuffed.shop.duplicate():
+		stuffed.move(String(entry["uid"]), YardLib.CARGO)
+	ok(stuffed.cargo_used() > stuffed.cargo_capacity(), "the frigate hold overflows")
+	ok(not stuffed.can_confirm(), "an overfull hold blocks confirming")
+	ok(String(stuffed.blockers()[0]).contains("over capacity"), "and says by how much")
+
+	var wrong = YardLib.create(FitLib.create_default("wayfarer"), 99999, ["photon"])
+	wrong.adopt_fit()
+	var refused: Dictionary = wrong.move(String(wrong.shop[0]["uid"]), "mount", "M2")
+	ok(not bool(refused["ok"]), "a torpedo is refused by a beam mount")
+	eq(wrong.shop.size(), 1, "a refused move leaves the item where it was")
+
+	# A weapon dropped onto an occupied mount unships the old one to the hold.
+	var swap = YardLib.create(FitLib.create_default("wayfarer"), 99999, ["ph1"])
+	swap.adopt_fit()
+	var held: int = swap.cargo.size()
+	swap.move(String(swap.shop[0]["uid"]), "mount", "M2")
+	eq(swap.cargo.size(), held + 1, "the displaced weapon lands in the hold")
+	eq(String(swap.fit.slots["M2"]), "ph1", "and the new one is fitted")
 
 
 func test_sectors() -> void:

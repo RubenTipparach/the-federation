@@ -71,5 +71,9 @@
   },
   "skirmish": {
     "command_tonnage": 240
+  },
+  "shipyard": {
+    "sell_back_frac": 0.6,
+    "start_credits": 12400
   }
 }

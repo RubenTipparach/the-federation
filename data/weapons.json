@@ -4,7 +4,7 @@
   "weapons": {
     "ph1": {
       "name": "PH-1 Beam", "short": "PH-1", "family": "beam", "size": "Medium",
-      "reload": 3.0,
+      "price": 900, "reload": 3.0,
       "falloff": [
         { "to": 2.0, "hit": 1.0, "damage": 8 },
         { "to": 4.0, "hit": 1.0, "damage": 7 },
@@ -16,7 +16,7 @@
     },
     "ph3": {
       "name": "PH-3 Beam", "short": "PH-3", "family": "beam", "size": "Light",
-      "reload": 2.0,
+      "price": 420, "reload": 2.0,
       "falloff": [
         { "to": 1.5, "hit": 1.0, "damage": 4 },
         { "to": 3.0, "hit": 1.0, "damage": 3 },
@@ -27,7 +27,7 @@
     },
     "photon": {
       "name": "Photon Torpedo", "short": "PHOT", "family": "torpedo", "size": "Heavy",
-      "reload": 9.0,
+      "price": 2100, "reload": 9.0,
       "falloff": [
         { "to": 4.0, "hit": 1.0, "damage": 16 },
         { "to": 8.0, "hit": 0.83, "damage": 16 },
@@ -39,7 +39,7 @@
     },
     "disruptor": {
       "name": "Disruptor Bank", "short": "DISR", "family": "disruptor", "size": "Medium",
-      "reload": 5.0,
+      "price": 1150, "reload": 5.0,
       "falloff": [
         { "to": 2.0, "hit": 1.0, "damage": 10 },
         { "to": 5.0, "hit": 0.85, "damage": 9 },
@@ -50,7 +50,7 @@
     },
     "lance": {
       "name": "Lance Battery", "short": "LNCE", "family": "lance", "size": "Heavy",
-      "reload": 12.0,
+      "price": 3400, "reload": 12.0,
       "falloff": [
         { "to": 6.0, "hit": 1.0, "damage": 20 },
         { "to": 12.0, "hit": 0.9, "damage": 18 },
@@ -61,7 +61,7 @@
     },
     "drone": {
       "name": "Drone Rack", "short": "DRN", "family": "drone", "size": "Light",
-      "reload": 6.0,
+      "price": 640, "reload": 6.0,
       "falloff": [
         { "to": 14.0, "hit": 1.0, "damage": 6 }
       ],
@@ -70,7 +70,7 @@
     "omni": {
       "name": "Omni Emitter", "short": "OMNI", "family": "special", "size": "Light",
       "special": true, "override_field": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
-      "reload": 3.0,
+      "price": 1500, "reload": 3.0,
       "falloff": [
         { "to": 3.0, "hit": 1.0, "damage": 5 },
         { "to": 5.0, "hit": 1.0, "damage": 4 },
