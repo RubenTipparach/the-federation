@@ -15,6 +15,10 @@ const PowerLib = preload("res://src/sim/power.gd")
 const FitLib = preload("res://src/sim/fit.gd")
 const ShipLib = preload("res://src/sim/ship_state.gd")
 const BattleLib = preload("res://src/sim/battle.gd")
+const WeaponLib = preload("res://src/sim/weapon_model.gd")
+const YardLib = preload("res://src/sim/shipyard.gd")
+const SeekerLib = preload("res://src/sim/seeker.gd")
+const LogLib = preload("res://src/sim/battle_log.gd")
 
 var checks: int = 0
 var failures: int = 0
@@ -43,14 +47,289 @@ func _initialize() -> void:
 	test_fit()
 	test_power()
 	test_damage()
+	test_sector_damage()
+	test_falloff()
 	test_movement_and_weapons()
 	test_battle_and_ai()
+	test_seekers()
+	test_shields()
+	test_shipyard()
+	test_replay()
 	print("")
 	if failures == 0:
 		print("ALL TESTS PASSED  (%d checks)" % checks)
 	else:
 		print("%d OF %d CHECKS FAILED" % [failures, checks])
 	quit(0 if failures == 0 else 1)
+
+
+func test_seekers() -> void:
+	print("\n== seeking weapons ==")
+	var tuning: Dictionary = CatalogLib.tuning()
+	var battle = BattleLib.create_duel(FitLib.create_default("ironhold"), "talon", 5)
+	var me = battle.player()
+	var foe = battle.enemy()
+	# Put them nose to nose so the drone rack bears and the flight is short.
+	me.pos = Vector2.ZERO
+	foe.pos = Vector2(0.0, 6.0)
+	me.heading = 0.0
+	for i in range(400):
+		me.step(1.0 / 15.0, tuning)
+
+	var drone_index: int = -1
+	for i in range(me.weapons_rt.size()):
+		if String(me.weapons_rt[i]["mount"]["id"]) == "M5":
+			drone_index = i
+	ok(drone_index >= 0, "the ironhold carries a drone rack aft")
+	me.heading = 180.0  # bring the aft mount to bear on a target dead astern
+	foe.pos = Vector2(0.0, 6.0)
+
+	var boxes_before: int = foe.total_boxes()
+	var shields_before: float = 0.0
+	for f in range(6):
+		shields_before += foe.shields[f]
+	ok(battle.try_fire(me, drone_index), "the rack launches")
+	eq(battle.seekers.size(), 1, "a launch puts a weapon in flight, not damage on the target")
+	eq(foe.total_boxes(), boxes_before, "nothing has been hit yet")
+
+	# Fly it home. The frigate has no point defense, so it arrives.
+	for i in range(240):
+		battle.step(1.0 / 15.0)
+		if battle.seekers.is_empty():
+			break
+	eq(battle.seekers.size(), 0, "the seeker resolves rather than orbiting forever")
+	var shields_after: float = 0.0
+	for f in range(6):
+		shields_after += foe.shields[f]
+	# The frigate's shield takes it, which is the point: a drone that lands is
+	# damage on the facing it arrived through, not a free hit on the internals.
+	ok(shields_after < shields_before or foe.total_boxes() < boxes_before,
+		"and it damages what it reaches")
+
+	# Point defense: the wayfarer's PH-3 shoots drones down.
+	var defended = BattleLib.create_duel(FitLib.create_default("wayfarer"), "bloodletter", 9)
+	var guard = defended.player()
+	guard.pos = Vector2.ZERO
+	near(guard.point_defense_dps(Vector2(0.0, 2.0)), 1.6, "a PH-3 defends at close range")
+	near(guard.point_defense_dps(Vector2(0.0, 40.0)), 0.0, "and not across the arena")
+	for sys in guard.systems:
+		if String(sys["mount_id"]) == "M5":
+			sys["boxes"] = 0
+	near(guard.point_defense_dps(Vector2(0.0, 2.0)), 0.0,
+		"a destroyed mount stops defending")
+
+	var hunted = BattleLib.create_duel(FitLib.create_default("wayfarer"), "bloodletter", 3)
+	hunted.player().pos = Vector2.ZERO
+	hunted.enemy().pos = Vector2(0.0, 5.0)
+	var drone: Dictionary = CatalogLib.weapon("drone")
+	var seeker = SeekerLib.launch(hunted.enemy(), hunted.player(), drone)
+	hunted.seekers.append(seeker)
+	var start_boxes: int = hunted.player().total_boxes()
+	for i in range(200):
+		hunted.step(1.0 / 15.0)
+		if hunted.seekers.is_empty():
+			break
+	ok(hunted.seekers.is_empty(), "the drone is resolved one way or the other")
+	eq(hunted.player().total_boxes(), start_boxes,
+		"point defense kills the drone before it lands")
+
+
+func test_shields() -> void:
+	print("\n== shields ==")
+	var tuning: Dictionary = CatalogLib.tuning()
+	var ship = _fresh_ship()
+
+	# Bias: the favoured facing regenerates faster than the rest, and the
+	# total handed out does not change.
+	ship.shields[0] = 0.0
+	ship.shields[1] = 0.0
+	ship.shield_bias = 0
+	for i in range(60):
+		ship.step(1.0 / 15.0, tuning)
+	ok(ship.shields[0] > ship.shields[1], "the biased facing recovers faster")
+	var unbiased = _fresh_ship()
+	unbiased.shields[0] = 0.0
+	unbiased.shields[1] = 0.0
+	for i in range(60):
+		unbiased.step(1.0 / 15.0, tuning)
+	near(unbiased.shields[0], unbiased.shields[1],
+		"with no bias the facings recover together", 0.001)
+
+	# Transfer, Federation Commander 3C3: adjacent only, never above full.
+	var mover = _fresh_ship()
+	mover.shields[1] = 10.0
+	ok(mover.transfer_shield(0, 1, tuning), "strength moves to an adjacent facing")
+	near(mover.shields[1], 15.0, "the neighbour gains the transfer amount")
+	near(mover.shields[0], mover.shield_max - 5.0, "and the donor loses it")
+	ok(not mover.transfer_shield(0, 3, tuning), "a facing two steps away is refused")
+	ok(not mover.transfer_shield(2, 2, tuning), "a facing cannot feed itself")
+	var full = _fresh_ship()
+	ok(not full.transfer_shield(0, 1, tuning), "nothing moves into an undamaged facing")
+	var drained = _fresh_ship()
+	drained.shields[0] = 0.0
+	drained.shields[1] = 0.0
+	ok(not drained.transfer_shield(0, 1, tuning), "an empty facing has nothing to give")
+	var partial = _fresh_ship()
+	partial.shields[1] = partial.shield_max - 2.0
+	ok(partial.transfer_shield(0, 1, tuning), "a nearly full facing takes what it can")
+	near(partial.shields[1], partial.shield_max, "and stops at full")
+	near(partial.shields[0], partial.shield_max - 2.0, "the donor gives only that much")
+
+
+func test_shipyard() -> void:
+	print("\n== shipyard ==")
+	var yard = YardLib.create(FitLib.create_default("wayfarer"), 12400,
+		["lance", "photon", "ph1"], ["ph3"])
+	yard.adopt_fit()
+
+	eq(yard.cargo_capacity(), 30, "the wayfarer hold is 30 space")
+	eq(yard.list_price(yard.shop[0]), 3400, "the shop charges list")
+	eq(yard.sale_price(yard.cargo[0]), 252, "the yard pays 60 percent for fresh gear")
+	var hurt: Dictionary = yard._make("ph1", true, 0.5)
+	eq(yard.sale_price(hurt), 270, "damaged gear sells for its remaining fraction")
+
+	# Moving your own gear costs nothing, in either direction.
+	var fitted_m4: Dictionary = yard.fitted_in("M4")
+	ok(not fitted_m4.is_empty(), "the default fit is adopted into the transaction")
+	ok(bool(yard.move(String(fitted_m4["uid"]), YardLib.CARGO)["ok"]), "a mount can be stripped")
+	eq(int(yard.tally()["balance"]), 0, "stripping a mount into the hold is free")
+	ok(bool(yard.move(String(fitted_m4["uid"]), "mount", "M4")["ok"]), "and refitted")
+	eq(int(yard.tally()["balance"]), 0, "refitting your own gear is free")
+
+	# Buying and selling move the balance, and the two net off.
+	var lance_uid: String = String(yard.shop[0]["uid"])
+	ok(bool(yard.move(lance_uid, YardLib.CARGO)["ok"]), "a lance can be bought into the hold")
+	eq(int(yard.tally()["purchases"]), 3400, "the purchase is tallied")
+	eq(int(yard.tally()["credits_after"]), 12400 - 3400, "credits after reflects the purchase")
+	ok(bool(yard.move(String(fitted_m4["uid"]), YardLib.SHOP)["ok"]), "a fitted phaser can be sold")
+	eq(int(yard.tally()["sales"]), 540, "the sale is tallied at 60 percent")
+	eq(int(yard.tally()["balance"]), 540 - 3400, "balance is sales minus purchases")
+
+	# Nothing is charged until confirm.
+	eq(yard.credits, 12400, "credits are untouched before confirming")
+	ok(yard.can_confirm(), "a settleable transaction can be confirmed")
+	eq(yard.confirm(), 12400 - 3400 + 540, "confirm settles once")
+	eq(int(yard.tally()["balance"]), 0, "the tally is clear after settling")
+	ok(not yard.can_confirm(), "an empty transaction cannot be confirmed")
+
+	# The three refusals, each named.
+	var poor = YardLib.create(FitLib.create_default("wayfarer"), 500, ["lance"])
+	poor.adopt_fit()
+	poor.move(String(poor.shop[0]["uid"]), YardLib.CARGO)
+	ok(not poor.can_confirm(), "a captain cannot spend past zero")
+	ok(String(poor.blockers()[0]).contains("Short"), "and is told how short they are")
+
+	var stuffed = YardLib.create(FitLib.create_default("talon"), 99999,
+		["lance", "photon", "disruptor"])
+	stuffed.adopt_fit()
+	for entry in stuffed.shop.duplicate():
+		stuffed.move(String(entry["uid"]), YardLib.CARGO)
+	ok(stuffed.cargo_used() > stuffed.cargo_capacity(), "the frigate hold overflows")
+	ok(not stuffed.can_confirm(), "an overfull hold blocks confirming")
+	ok(String(stuffed.blockers()[0]).contains("over capacity"), "and says by how much")
+
+	var wrong = YardLib.create(FitLib.create_default("wayfarer"), 99999, ["photon"])
+	wrong.adopt_fit()
+	var refused: Dictionary = wrong.move(String(wrong.shop[0]["uid"]), "mount", "M2")
+	ok(not bool(refused["ok"]), "a torpedo is refused by a beam mount")
+	eq(wrong.shop.size(), 1, "a refused move leaves the item where it was")
+
+	# A weapon dropped onto an occupied mount unships the old one to the hold.
+	var swap = YardLib.create(FitLib.create_default("wayfarer"), 99999, ["ph1"])
+	swap.adopt_fit()
+	var held: int = swap.cargo.size()
+	swap.move(String(swap.shop[0]["uid"]), "mount", "M2")
+	eq(swap.cargo.size(), held + 1, "the displaced weapon lands in the hold")
+	eq(String(swap.fit.slots["M2"]), "ph1", "and the new one is fitted")
+
+
+## A scripted battle: the same orders given at the same ticks every time, which
+## is what a replay has to reproduce exactly.
+func _scripted_battle(record: bool) -> Variant:
+	var fit = FitLib.create_default("wayfarer")
+	var battle = BattleLib.create_duel(fit, "bloodletter", 4242)
+	if record:
+		battle.log = LogLib.create(fit, "bloodletter", 4242, 1.0 / 30.0)
+	var script: Dictionary = {
+		0: [[0, "order", [45.0, 1.0]], [0, "power", ["weapons", 16.0]]],
+		20: [[0, "fire_family", ["beam"]]],
+		48: [[0, "order", [180.0, 0.6]], [0, "shield_bias", [3]]],
+		90: [[0, "fire_family", ["heavy"]], [0, "reinforce", [0]]],
+		140: [[0, "transfer_shield", [1, 2]], [0, "fire_family", ["beam"]]],
+		210: [[0, "order", [300.0, 1.0]]],
+	}
+	for i in range(420):
+		if script.has(battle.tick):
+			for c in script[battle.tick]:
+				battle.apply_command(int(c[0]), String(c[1]), c[2])
+		if battle.over:
+			break
+		battle.step(1.0 / 30.0)
+	if battle.log != null and battle.log.end_tick < 0:
+		battle.log.close(battle)
+	return battle
+
+
+func test_replay() -> void:
+	print("\n== battle log and replay ==")
+	var live = _scripted_battle(true)
+	var log = live.log
+	ok(log != null, "a battle can be recorded")
+	ok(log.commands.size() >= 9, "every command is written down")
+	eq(int(log.commands[0][0]), 0, "commands carry the tick they were given on")
+	eq(String(log.commands[0][2]), "order", "and the kind")
+
+	# The same run, twice, from the log alone.
+	var replayed = log.replay()
+	var live_print: Dictionary = LogLib.fingerprint(live)
+	var replay_print: Dictionary = LogLib.fingerprint(replayed)
+	eq(JSON.stringify(replay_print), JSON.stringify(live_print),
+		"a replay reproduces the battle exactly, box for box")
+
+	var again = log.replay()
+	eq(JSON.stringify(LogLib.fingerprint(again)), JSON.stringify(live_print),
+		"and does so every time")
+
+	# A second live run with the same seed and script matches too, which is
+	# what proves the determinism is in the simulation, not in the log.
+	var twin = _scripted_battle(false)
+	eq(JSON.stringify(LogLib.fingerprint(twin)), JSON.stringify(live_print),
+		"the same seed and the same orders give the same battle")
+
+	# A different seed must not, or the seed is being ignored somewhere.
+	var other_fit = FitLib.create_default("wayfarer")
+	var other = BattleLib.create_duel(other_fit, "bloodletter", 999)
+	for i in range(420):
+		if other.over:
+			break
+		other.step(1.0 / 30.0)
+	ok(JSON.stringify(LogLib.fingerprint(other)) != JSON.stringify(live_print),
+		"a different seed gives a different battle")
+
+	# Round trip through JSON, which is what a file is.
+	var text: String = JSON.stringify(log.to_dict())
+	var parsed = LogLib.from_dict(JSON.parse_string(text))
+	eq(parsed.seed_value, log.seed_value, "the seed survives the round trip")
+	eq(parsed.commands.size(), log.commands.size(), "so do the commands")
+	eq(JSON.stringify(LogLib.fingerprint(parsed.replay())), JSON.stringify(live_print),
+		"and a log read back from text replays identically")
+
+	# On disk, which is the point of the whole exercise.
+	var path: String = "user://test_replay.json"
+	ok(log.save(path), "a log writes to disk")
+	var loaded = LogLib.load_from(path)
+	ok(loaded != null, "and reads back")
+	eq(int(loaded.end_tick), int(log.end_tick), "including how long it ran")
+	eq(JSON.stringify(LogLib.fingerprint(loaded.replay())), JSON.stringify(live_print),
+		"a saved replay reproduces the battle it recorded")
+	eq(int(loaded.dt * 1000.0), int(log.dt * 1000.0), "the step size is part of the setup")
+	eq(String(loaded.player_hull), "wayfarer", "the design is part of the setup")
+	eq(String(loaded.enemy_hull), "bloodletter", "and so is the opponent")
+
+	# Replaying a log must never alter it.
+	var before: int = log.commands.size()
+	log.replay()
+	eq(log.commands.size(), before, "replaying a log does not append to it")
 
 
 func test_sectors() -> void:
@@ -78,6 +357,12 @@ func test_sectors() -> void:
 	var runs: Array = SectorsLib.contiguous_runs([9, 10, 11, 0, 1])
 	eq(runs.size(), 1, "wrap through zero groups into one run")
 	eq(int(runs[0][0]), 9, "wrapped run starts at its true beginning")
+
+	eq(SectorsLib.facing_name(0), "Bow", "facing 1 is the bow")
+	eq(SectorsLib.facing_name(3), "Stern", "facing 4 is the stern")
+	eq(SectorsLib.facing_arc_label(0), "330-030", "the bow arc straddles dead ahead")
+	eq(SectorsLib.facing_arc_label(1), "030-090", "the starboard bow arc")
+	eq(SectorsLib.facing_name(6), "Bow", "facing names wrap")
 
 
 func test_catalog() -> void:
@@ -168,7 +453,7 @@ func test_damage() -> void:
 
 	# Destroying a weapon's boxes disables its mount.
 	var hulk = _fresh_ship()
-	hulk.apply_internal(200.0)
+	hulk.apply_internal(200.0, 0)
 	eq(hulk.total_boxes(), 0, "massive internal damage empties the ship")
 	ok(not hulk.alive, "a ship with no boxes is destroyed")
 	ok(hulk.mount_disabled(0), "weapon mounts are disabled with their boxes gone")
@@ -178,16 +463,16 @@ func test_damage() -> void:
 	# stay exact. With amount 0.0 nothing may happen.
 	var frac_ship = _fresh_ship("wayfarer", 11)
 	var before: int = frac_ship.total_boxes()
-	frac_ship.apply_internal(0.0)
+	frac_ship.apply_internal(0.0, 0)
 	eq(frac_ship.total_boxes(), before, "zero bleed destroys nothing")
-	frac_ship.apply_internal(5.0)
+	frac_ship.apply_internal(5.0, 0)
 	eq(frac_ship.total_boxes(), before - 5, "integer bleed destroys exactly its amount")
 	var lo: int = 0
 	var hi: int = 0
 	for trial in range(40):
 		var t = _fresh_ship("wayfarer", 100 + trial)
 		var b0: int = t.total_boxes()
-		t.apply_internal(7.7)
+		t.apply_internal(7.7, 0)
 		var lost: int = b0 - t.total_boxes()
 		ok(lost == 7 or lost == 8, "fractional bleed 7.7 destroys 7 or 8 boxes")
 		if lost == 7:
@@ -203,6 +488,171 @@ func test_damage() -> void:
 	ok(def.reinforce(3, CatalogLib.tuning()), "reinforce fires with a charged battery")
 	near(def.shields[3], 8.0, "reinforce restores the tuned amount")
 	ok(not def.reinforce(3, CatalogLib.tuning()), "battery is spent after one reinforce")
+
+	# Target selection: the sim owns it, so the touch buttons and any future
+	# squadron UI cycle the same thing the shot resolves against.
+	var duel = BattleLib.create_duel(FitLib.create_default("wayfarer"), "talon", 77)
+	var me = duel.player()
+	eq(duel.foes_of(me).size(), 1, "a duel offers one target")
+	eq(duel.target_for(me), duel.enemy(), "the default target is the only hostile")
+	duel.set_target(me, duel.enemy())
+	eq(duel.target_for(me), duel.enemy(), "an explicit target is remembered")
+	duel.enemy().alive = false
+	eq(duel.foes_of(me).size(), 0, "a dead hostile leaves the target list")
+	ok(duel.target_for(me) != null, "target_for still answers with no hostiles left")
+
+
+func test_sector_damage() -> void:
+	print("\n== sector damage ==")
+	var ship = _fresh_ship()
+	eq(ship.boxes_in(0) + ship.boxes_in(1) + ship.boxes_in(2) + ship.boxes_in(3)
+		+ ship.boxes_in(4) + ship.boxes_in(5) + ship.boxes_in(ShipLib.CORE),
+		ship.total_boxes(), "every box belongs to exactly one sector or the core")
+	eq(ship.boxes_in(ShipLib.CORE), 16, "the wayfarer core is hull plus armor")
+
+	# A downed facing exposes its own sector and nothing else.
+	var flanked = _fresh_ship("wayfarer", 3)
+	var other_before: Array[int] = []
+	for f in range(6):
+		other_before.append(flanked.boxes_in(f))
+	var core_before: int = flanked.boxes_in(ShipLib.CORE)
+	flanked.shields[1] = 0.0
+	flanked.apply_internal(4.0, 1)
+	eq(flanked.boxes_in(1), other_before[1] - 4, "the struck sector loses exactly the bleed")
+	eq(flanked.boxes_in(ShipLib.CORE), core_before, "the core is untouched while the sector holds")
+	for f in [0, 2, 3, 4, 5]:
+		eq(flanked.boxes_in(f), other_before[f], "sector %d is untouched" % (f + 1))
+
+	# Strip a sector and the hull core takes the rest, in full.
+	var stripped = _fresh_ship("wayfarer", 5)
+	var sector_size: int = stripped.boxes_in(1)
+	stripped.apply_internal(float(sector_size) + 5.0, 1)
+	eq(stripped.boxes_in(1), 0, "the sector is stripped bare")
+	eq(stripped.boxes_in(ShipLib.CORE), 16 - 5, "the overflow lands on the hull core")
+	ok(stripped.alive, "a ship with a hollow sector is still fighting")
+
+	# Only when the core is gone too does damage carry to the neighbours.
+	var gutted = _fresh_ship("wayfarer", 9)
+	var spill: int = gutted.boxes_in(1) + gutted.boxes_in(ShipLib.CORE)
+	var neighbours_before: int = gutted.boxes_in(0) + gutted.boxes_in(2)
+	var far_before: int = gutted.boxes_in(3) + gutted.boxes_in(4) + gutted.boxes_in(5)
+	gutted.apply_internal(float(spill) + 3.0, 1)
+	eq(gutted.boxes_in(1), 0, "sector emptied")
+	eq(gutted.boxes_in(ShipLib.CORE), 0, "core emptied")
+	eq(gutted.boxes_in(0) + gutted.boxes_in(2), neighbours_before - 3,
+		"the adjacent facings take exactly what is left over")
+	eq(gutted.boxes_in(3) + gutted.boxes_in(4) + gutted.boxes_in(5), far_before,
+		"the far side of the ship is not touched while neighbours hold")
+	ok(gutted.alive, "neighbours still holding means the ship lives")
+
+	# A weapon dies with the sector it sits in.
+	var silenced = _fresh_ship("wayfarer", 21)
+	silenced.apply_internal(float(silenced.boxes_in(1)), 1)
+	var m2_index: int = -1
+	for i in range(silenced.weapons_rt.size()):
+		if String(silenced.weapons_rt[i]["mount"]["id"]) == "M2":
+			m2_index = i
+	ok(m2_index >= 0 and silenced.mount_disabled(m2_index),
+		"stripping the starboard bow silences the mount that lives there")
+
+	# The talon has empty sectors on purpose: bleed through goes straight to the
+	# core rather than vanishing.
+	var frigate = _fresh_ship("talon", 4)
+	eq(frigate.boxes_in(1), 0, "the talon carries nothing behind facing 2")
+	var frigate_core: int = frigate.boxes_in(ShipLib.CORE)
+	frigate.apply_internal(2.0, 1)
+	eq(frigate.boxes_in(ShipLib.CORE), frigate_core - 2, "an empty sector passes damage to the core")
+
+	# Every hull's totals survived the regrouping.
+	for id in CatalogLib.hulls().keys():
+		var s2 = ShipLib.create(FitLib.create_default(String(id)),
+			RandomNumberGenerator.new(), false)
+		ok(s2.total_boxes() > 0, "%s has internals" % [String(id)])
+		eq(s2.boxes_in(ShipLib.CORE) > 0, true, "%s has a hull core" % [String(id)])
+
+
+func test_falloff() -> void:
+	print("\n== range falloff ==")
+	var ph1: Dictionary = CatalogLib.weapon("ph1")
+	var photon: Dictionary = CatalogLib.weapon("photon")
+	var disr: Dictionary = CatalogLib.weapon("disruptor")
+
+	near(WeaponLib.max_range(ph1), 10.0, "reach is the outer edge of the last band")
+	eq(WeaponLib.max_damage(ph1), 8, "point blank damage is the first band")
+
+	# A band edge belongs to its own band: at exactly 2.0 the shot is still
+	# point blank, at a hair beyond it is not. Off by one here would silently
+	# change every weapon's profile.
+	eq(WeaponLib.damage_at(ph1, 2.0), 8, "the band edge is inside the band")
+	eq(WeaponLib.damage_at(ph1, 2.001), 7, "just past the edge is the next band")
+	eq(WeaponLib.damage_at(ph1, 0.0), 8, "muzzle contact is point blank")
+	eq(WeaponLib.damage_at(ph1, 10.0), 2, "the last band reaches the stated range")
+	eq(WeaponLib.damage_at(ph1, 10.5), 0, "beyond reach scores nothing")
+	near(WeaponLib.hit_chance_at(ph1, 10.5), 0.0, "beyond reach cannot connect")
+
+	# The three shapes from docs/09: beams lose damage and keep accuracy,
+	# torpedoes keep damage and lose accuracy, disruptors lose both.
+	near(WeaponLib.hit_chance_at(ph1, 9.0), 1.0, "a beam still connects at its edge")
+	ok(WeaponLib.damage_at(ph1, 9.0) < WeaponLib.max_damage(ph1), "a beam weakens with range")
+	eq(WeaponLib.damage_at(photon, 19.0), WeaponLib.max_damage(photon),
+		"a torpedo hits as hard at the edge as at the muzzle")
+	ok(WeaponLib.hit_chance_at(photon, 19.0) < 1.0, "a torpedo loses accuracy instead")
+	ok(WeaponLib.damage_at(disr, 11.0) < WeaponLib.max_damage(disr)
+		and WeaponLib.hit_chance_at(disr, 11.0) < 1.0, "a disruptor loses both")
+
+	# Expected damage must never rise with range, for every weapon in the
+	# catalog. A band typo that made a weapon better far away would pass every
+	# test above and be found by a player instead.
+	for id in CatalogLib.weapons().keys():
+		var w: Dictionary = CatalogLib.weapon(String(id))
+		var reach: float = WeaponLib.max_range(w)
+		var prev: float = WeaponLib.expected_damage_at(w, 0.0)
+		var monotonic: bool = true
+		var d: float = 0.0
+		while d <= reach:
+			var cur: float = WeaponLib.expected_damage_at(w, d)
+			if cur > prev + 0.0001:
+				monotonic = false
+			prev = cur
+			d += reach / 40.0
+		ok(monotonic, "%s never scores more at a longer range" % [String(id)])
+		near(WeaponLib.expected_damage_at(w, reach + 0.1), 0.0,
+			"%s scores nothing past its reach" % [String(id)])
+
+	# Rolling honours the band: a certain weapon always scores its band damage,
+	# and an uncertain one misses sometimes and scores full damage otherwise.
+	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
+	rng.seed = 99
+	var beam_rolls_low: bool = false
+	for i in range(200):
+		if WeaponLib.roll_damage(ph1, 5.0, rng) != 5:
+			beam_rolls_low = true
+	ok(not beam_rolls_low, "a certain beam always scores its band damage")
+
+	var misses: int = 0
+	var partials: int = 0
+	for i in range(400):
+		var scored: int = WeaponLib.roll_damage(photon, 18.0, rng)
+		if scored == 0:
+			misses += 1
+		elif scored != WeaponLib.max_damage(photon):
+			partials += 1
+	ok(misses > 0, "a long torpedo shot can miss")
+	eq(partials, 0, "a torpedo that connects scores in full")
+	near(float(misses) / 400.0, 1.0 - WeaponLib.hit_chance_at(photon, 18.0),
+		"miss rate tracks the band's hit chance", 0.08)
+
+	near(WeaponLib.longest_range(), 22.0, "the arc chart scale comes from the catalog")
+
+	# A shot resolved through a ship carries the same numbers.
+	var shooter = _fresh_ship()
+	var mark = _fresh_ship()
+	mark.pos = shooter.pos + Vector2(0.0, 3.0)
+	var fit: Variant = shooter.fit
+	near(fit.expected_into(0, 0.0), float(fit.alpha_into(0)),
+		"expected damage at point blank equals the projected alpha")
+	ok(fit.expected_into(0, 9.0) < float(fit.alpha_into(0)),
+		"the same broadside is worth less at range")
 
 
 func test_movement_and_weapons() -> void:

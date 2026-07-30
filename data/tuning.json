@@ -12,7 +12,9 @@
       "cinematic": 30.0,
       "plan": 90.0
     },
-    "plan_inset_size": 70.0
+    "plan_inset_size": 70.0,
+    "stick_turn_deg_per_sec": 90.0,
+    "stick_orbit_deg_per_sec": 70.0
   },
   "combat": {
     "arena_half_extent": 30.0,
@@ -25,7 +27,12 @@
     "engine_power_demand": 10.0,
     "overdrive_cap": 1.25,
     "min_accel_factor": 0.2,
-    "dead_ship_decel": 1.0
+    "dead_ship_decel": 1.0,
+    "seeker_hit_radius": 0.6,
+    "seeker_lifetime": 30.0,
+    "shield_bias_weight": 2.5,
+    "shield_transfer_amount": 5.0,
+    "replay_step": 0.03333333333333333
   },
   "power": {
     "sinks": [
@@ -69,5 +76,9 @@
   },
   "skirmish": {
     "command_tonnage": 240
+  },
+  "shipyard": {
+    "sell_back_frac": 0.6,
+    "start_credits": 12400
   }
 }

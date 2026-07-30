@@ -32,7 +32,7 @@ func setup(mount: Dictionary, fit: ShipFit) -> void:
 		var w: Dictionary = Catalog.weapon(_options[i])
 		var tag: String = "  [special]" if bool(w.get("special", false)) else ""
 		selector.add_item("%s  rng %d dmg %d%s" % [
-			String(w["name"]), int(w["range"]), int(w["damage"]), tag])
+			String(w["name"]), int(WeaponModel.max_range(w)), WeaponModel.max_damage(w), tag])
 		if _options[i] == current:
 			select_index = i + 1
 	selector.select(select_index)

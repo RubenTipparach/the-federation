@@ -139,6 +139,13 @@ states quickly. Presets are configured in the shipyard, per design.
 
 ## 4. Shields: six facings
 
+**Two controls beyond raw power.** The shield engineer can **bias** one facing,
+which weights that facing's share of regeneration toward the side being held,
+and can **transfer** strength to an adjacent facing, which is Federation
+Commander 3C3: only to an adjacent shield, only to replace what damage took,
+never above the original strength. Both live in `ShipState`, so the AI can use
+them the moment it is taught to.
+
 Every ship has six independent shield facings mapped to the hex-like arrangement around
 the hull:
 
@@ -179,12 +186,44 @@ Firing requires: target within range, target inside one of the mount's sectors, 
 capacitor charged. The **firing envelope** is therefore the mount's arc intersected with
 the weapon's range, which is exactly the wedge the fitting screen draws.
 
+
+### 5.0 Controls, and touch
+
+The game is built for a mouse and keyboard: click the plane to set a heading, drag to
+orbit, and use the action row. **Touch is a testing surface, not the primary one.** On a
+device with a touchscreen the combat view adds an overlay: a left stick that turns the
+ship, a right stick that moves the camera through the same clamp the mouse uses, and
+previous and next target buttons. Throttle and the power split stay on their sliders.
+
+Target selection lives in the simulation (`Battle.target_for`), not in the overlay, so the
+buttons cycle the same thing a shot resolves against and a squadron UI will reuse it
+unchanged.
+
 ### 5.1 Direct-fire energy
 
 | Family | Behavior |
 |---|---|
 | **Beam batteries** | Instant hit, damage falls off with range, wide arcs, cheap power. The reliable baseline. |
 | **Disruptor banks** | Punchy at medium range, narrow arc, higher power draw, can **overload** for ~2× damage at half range and a heavy capacitor cost. |
+
+**Range falloff is a table, not a curve.** Every weapon in `data/weapons.json` carries a
+`falloff` list: bands from point blank outward, each with the damage a hit scores and the
+chance the shot connects at all. `src/sim/weapon_model.gd` is the only code that reads it,
+so the fitting screen's projected alpha, the arc wheel's radius, and a real shot in a
+battle cannot disagree.
+
+The three shapes are inherited from Federation Commander, see
+`docs/09-reference-federation-commander.md`:
+
+| Shape | Accuracy with range | Damage with range | Feels like |
+|---|---|---|---|
+| Beams, phasers | Unchanged, they always connect | Falls steadily | Reliable, and worth closing for |
+| Torpedoes | Falls | Unchanged, a hit is a hit | All or nothing at long range |
+| Disruptors | Falls | Falls | Punishing to trade with at distance |
+
+Two consequences the fitting screen must state plainly: **alpha strike is a point blank
+figure**, the best case, and expected damage at a chosen range is the honest comparison
+between two designs. `ShipFit.expected_into(sector, distance)` is that number.
 | **Lance/spinal mounts** | Extreme damage, forward-only, very long charge, huge power. Battleship/dreadnought only. |
 | **Point defense** | Auto-firing, short range, only engages seeking weapons and fighters. |
 
@@ -194,6 +233,19 @@ the weapon's range, which is exactly the wedge the fitting screen draws.
 |---|---|
 | **Plasma torpedoes** | Slow-moving, enormous damage, degrades over flight distance, killable by point defense. Fired *ahead* of where the enemy will be. |
 | **Drone/missile racks** | Limited ammunition, pursue autonomously, can be shot down, can be **re-targeted** mid-flight. Ammo count is a fitting decision. |
+
+**Seeking weapons are launched, not fired.** A weapon with `seeking` in
+`data/weapons.json` puts a `Seeker` on the plane instead of resolving damage:
+it flies at its own speed toward wherever the target is now, and it carries hit
+points. Anything hostile with `point_defense` in range shoots it for free,
+without spending its own capacitor, which is what makes a light beam worth its
+space. A seeker that arrives resolves through the same `apply_damage` a beam
+does, on the facing it arrived through. One that is shot down or runs out of
+fuel says so in the comm log.
+
+This is the distinction Federation Commander draws in 4F: direct fire is a die
+roll, seeking weapons are counters on the map that move until they arrive or
+die. See `docs/09-reference-federation-commander.md`.
 | **Mines** | Deployed, area denial, invisible until triggered. Great for chokepoint and station defense. |
 
 Seeking weapons create the game's most interesting pressure: a plasma torpedo in the water

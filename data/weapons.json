@@ -1,40 +1,84 @@
 {
   "_comment": "Weapon catalog. All gameplay tuning lives here per CLAUDE.md 5.4. family: beam, disruptor, torpedo, lance, drone, special. size ranks Light < Medium < Heavy < Spinal. reload is seconds at full weapons power. costs feed the four fitting budgets. A weapon with special=true ignores the mount's permitted families and, if override_field is present, replaces the mount's arc field with its own sector list.",
+  "_seeking": "A weapon with seeking true is launched rather than fired: Battle spawns a Seeker that flies at seeker_speed and carries seeker_hp before point defense can kill it. A weapon with point_defense true also shoots at seekers within pd_range for pd_dps, without spending its own capacitor, which is what makes a light beam worth its space. See docs/01 section 5.2.",
+  "_falloff": "Range falloff, read only through src/sim/weapon_model.gd. Bands are ordered by 'to', the inclusive outer edge of the band in sim distance units, and the last 'to' is the weapon's reach. 'damage' is what a hit scores inside that band, 'hit' is the chance the shot connects at all. The three shapes come from Federation Commander, see docs/09: beams hold their accuracy and lose damage, torpedoes hold their damage and lose accuracy, disruptors lose both. The numbers are ours, tuned to our own ranges. The first band is point blank and its damage is what the fitting screen projects as alpha.",
   "weapons": {
     "ph1": {
       "name": "PH-1 Beam", "short": "PH-1", "family": "beam", "size": "Medium",
-      "range": 10.0, "damage": 8, "reload": 3.0,
+      "price": 900, "reload": 3.0,
+      "falloff": [
+        { "to": 2.0, "hit": 1.0, "damage": 8 },
+        { "to": 4.0, "hit": 1.0, "damage": 7 },
+        { "to": 6.0, "hit": 1.0, "damage": 5 },
+        { "to": 8.0, "hit": 1.0, "damage": 4 },
+        { "to": 10.0, "hit": 1.0, "damage": 2 }
+      ],
       "costs": { "space": 6, "mass": 5, "crew": 8, "power_draw": 3 }
     },
     "ph3": {
       "name": "PH-3 Beam", "short": "PH-3", "family": "beam", "size": "Light",
-      "range": 6.0, "damage": 4, "reload": 2.0,
+      "price": 420, "reload": 2.0,
+      "point_defense": true, "pd_range": 4.0, "pd_dps": 1.6,
+      "falloff": [
+        { "to": 1.5, "hit": 1.0, "damage": 4 },
+        { "to": 3.0, "hit": 1.0, "damage": 3 },
+        { "to": 4.5, "hit": 1.0, "damage": 2 },
+        { "to": 6.0, "hit": 1.0, "damage": 1 }
+      ],
       "costs": { "space": 3, "mass": 2, "crew": 4, "power_draw": 2 }
     },
     "photon": {
       "name": "Photon Torpedo", "short": "PHOT", "family": "torpedo", "size": "Heavy",
-      "range": 20.0, "damage": 16, "reload": 9.0,
+      "price": 2100, "reload": 9.0,
+      "falloff": [
+        { "to": 4.0, "hit": 1.0, "damage": 16 },
+        { "to": 8.0, "hit": 0.83, "damage": 16 },
+        { "to": 12.0, "hit": 0.67, "damage": 16 },
+        { "to": 16.0, "hit": 0.5, "damage": 16 },
+        { "to": 20.0, "hit": 0.33, "damage": 16 }
+      ],
       "costs": { "space": 12, "mass": 10, "crew": 14, "power_draw": 6 }
     },
     "disruptor": {
       "name": "Disruptor Bank", "short": "DISR", "family": "disruptor", "size": "Medium",
-      "range": 12.0, "damage": 10, "reload": 5.0,
+      "price": 1150, "reload": 5.0,
+      "falloff": [
+        { "to": 2.0, "hit": 1.0, "damage": 10 },
+        { "to": 5.0, "hit": 0.85, "damage": 9 },
+        { "to": 8.0, "hit": 0.7, "damage": 7 },
+        { "to": 12.0, "hit": 0.55, "damage": 5 }
+      ],
       "costs": { "space": 7, "mass": 6, "crew": 9, "power_draw": 4 }
     },
     "lance": {
       "name": "Lance Battery", "short": "LNCE", "family": "lance", "size": "Heavy",
-      "range": 22.0, "damage": 20, "reload": 12.0,
+      "price": 3400, "reload": 12.0,
+      "falloff": [
+        { "to": 6.0, "hit": 1.0, "damage": 20 },
+        { "to": 12.0, "hit": 0.9, "damage": 18 },
+        { "to": 17.0, "hit": 0.75, "damage": 15 },
+        { "to": 22.0, "hit": 0.6, "damage": 12 }
+      ],
       "costs": { "space": 16, "mass": 14, "crew": 18, "power_draw": 9 }
     },
     "drone": {
       "name": "Drone Rack", "short": "DRN", "family": "drone", "size": "Light",
-      "range": 14.0, "damage": 6, "reload": 6.0,
+      "price": 640, "reload": 6.0,
+      "seeking": true, "seeker_speed": 3.2, "seeker_hp": 2,
+      "falloff": [
+        { "to": 14.0, "hit": 1.0, "damage": 6 }
+      ],
       "costs": { "space": 5, "mass": 4, "crew": 5, "power_draw": 2 }
     },
     "omni": {
       "name": "Omni Emitter", "short": "OMNI", "family": "special", "size": "Light",
       "special": true, "override_field": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
-      "range": 7.0, "damage": 5, "reload": 3.0,
+      "price": 1500, "reload": 3.0,
+      "falloff": [
+        { "to": 3.0, "hit": 1.0, "damage": 5 },
+        { "to": 5.0, "hit": 1.0, "damage": 4 },
+        { "to": 7.0, "hit": 1.0, "damage": 3 }
+      ],
       "costs": { "space": 5, "mass": 4, "crew": 6, "power_draw": 3 }
     }
   }

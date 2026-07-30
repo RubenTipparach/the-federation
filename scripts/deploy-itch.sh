@@ -2,8 +2,12 @@
 # Push built artifacts to itch.io with butler.
 #
 # Usage:
-#   ./scripts/deploy-itch.sh                  # every target in ENABLED_TARGETS
-#   ./scripts/deploy-itch.sh linux            # one target
+#   ./scripts/deploy-itch.sh                  # every target in DEPLOY_TARGETS
+#   ./scripts/deploy-itch.sh linux            # one target, named explicitly
+#
+# DEPLOY_TARGETS is a subset of ENABLED_TARGETS: linux is built so that
+# scripts/verify-build.sh can boot it, but it is not published while the
+# desktop downloads are paused.
 #
 # Environment:
 #   BUTLER_API_KEY   required. An itch.io API key with upload rights.
@@ -64,7 +68,7 @@ push_target() {
 
 main() {
   # Validate arguments first, same reasoning as build.sh.
-  read_selected_targets "$@"
+  read_selected_targets "$DEPLOY_TARGETS" "$@"
   local targets=("${SELECTED_TARGETS[@]}") version
   version="$(build_version)"
 

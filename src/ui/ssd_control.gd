@@ -25,6 +25,17 @@ func _outer_radius() -> float:
 	return minf(size.x, size.y) * 0.48
 
 
+## The inner edge of the shield band. Anything belonging to the ship rather
+## than to a shield belongs inside this, which is what the sector panels and
+## the hull view are placed against, so nothing ever sits on top of a shield.
+func inner_radius() -> float:
+	return _outer_radius() * 0.82
+
+
+func centre() -> Vector2:
+	return size * 0.5
+
+
 func _draw() -> void:
 	if _shields.is_empty():
 		return

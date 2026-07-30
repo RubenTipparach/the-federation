@@ -10,13 +10,27 @@ var ships: Array[ShipState] = []
 var time: float = 0.0
 var over: bool = false
 var winner: int = -1
+var seekers: Array[Seeker] = []
+
+## Fixed step counter. Commands are stamped with it, never with wall clock
+## time, because that is what makes a log replayable (see BattleLog).
+var tick: int = 0
+
+## The seed this battle was created from, so a recording can reproduce it.
+var seed_value: int = 0
+
+## Set to record this battle. Every command routed through apply_command is
+## written down, so a recording cannot miss an input that changed the outcome.
+var log: BattleLog = null
 var _events: Array[Dictionary] = []
+var _targets: Dictionary = {}
 
 
 static func create_duel(player_fit: ShipFit, enemy_hull_id: String, seed_value: int) -> Battle:
 	var b: Battle = Battle.new()
 	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 	rng.seed = seed_value
+	b.seed_value = seed_value
 	var tuning: Dictionary = Catalog.tuning()["combat"]
 	var sep: float = float(tuning["start_separation"])
 
@@ -44,7 +58,32 @@ func enemy() -> ShipState:
 
 
 func foe_of(ship: ShipState) -> ShipState:
-	return ships[1] if ship == ships[0] else ships[0]
+	return target_for(ship)
+
+
+## Every hostile still flying, in a stable order so cycling targets is
+## predictable. A duel has one, a squadron battle will have several.
+func foes_of(ship: ShipState) -> Array[ShipState]:
+	var out: Array[ShipState] = []
+	for s in ships:
+		if s != ship and s.alive:
+			out.append(s)
+	return out
+
+
+## Who this ship is shooting at. Selection is remembered per attacker and
+## falls back to the first living hostile, so the AI needs no target logic and
+## the player's choice survives a step.
+func target_for(ship: ShipState) -> ShipState:
+	var chosen: ShipState = _targets.get(ship, null) as ShipState
+	if chosen != null and chosen.alive:
+		return chosen
+	var living: Array[ShipState] = foes_of(ship)
+	return living[0] if not living.is_empty() else (ships[1] if ship == ships[0] else ships[0])
+
+
+func set_target(ship: ShipState, target: ShipState) -> void:
+	_targets[ship] = target
 
 
 ## Advance the battle and return every event since the last step, including
@@ -60,6 +99,7 @@ func step(dt: float) -> Array[Dictionary]:
 	CombatAi.act(enemy(), player(), self)
 	for s in ships:
 		s.step(dt, tuning)
+	_step_seekers(dt, tuning)
 
 	_keep_in_arena(tuning)
 
@@ -70,7 +110,63 @@ func step(dt: float) -> Array[Dictionary]:
 			_events.append({ "type": "end", "winner": winner })
 			break
 	time += dt
+	tick += 1
+	if over and log != null and log.end_tick < 0:
+		log.close(self)
 	return _drain()
+
+
+## Weapons in flight: fly, then let point defense shoot at them, then land the
+## ones that arrived. Point defense fires for free, without spending the
+## defending weapon's capacitor, which is what makes a light beam worth its
+## space (docs/01 section 5.2).
+func _step_seekers(dt: float, tuning: Dictionary) -> void:
+	var combat: Dictionary = tuning["combat"]
+	var hit_radius: float = float(combat["seeker_hit_radius"])
+	var lifetime: float = float(combat["seeker_lifetime"])
+	var survivors: Array[Seeker] = []
+
+	for seeker in seekers:
+		if not seeker.alive():
+			continue
+		seeker.step(dt)
+
+		# Everything hostile to the seeker with point defense in range shoots.
+		for defender in ships:
+			if defender == seeker.owner or not defender.alive:
+				continue
+			var dps: float = defender.point_defense_dps(seeker.pos)
+			if dps <= 0.0:
+				continue
+			seeker.hp -= dps * dt
+			if seeker.hp <= 0.0:
+				_events.append({
+					"type": "seeker_killed",
+					"weapon": seeker.short,
+					"at": seeker.pos,
+					"log": ["%s shot down by point defense" % [seeker.short]],
+				})
+				break
+
+		if seeker.hp <= 0.0:
+			continue
+		if seeker.age > lifetime:
+			_events.append({ "type": "seeker_lost", "weapon": seeker.short,
+				"at": seeker.pos, "log": ["%s ran out of fuel" % [seeker.short]] })
+			continue
+		if seeker.distance_to_target() <= hit_radius:
+			var bearing: float = Sectors.bearing_between(seeker.target.pos, seeker.pos)
+			var lines: Array[String] = seeker.target.apply_damage(bearing, float(seeker.damage))
+			lines.insert(0, "%s impacts" % [seeker.short])
+			_events.append({
+				"type": "shot", "weapon": seeker.short, "damage": seeker.damage,
+				"hit": true, "range": 0.0, "from_pos": seeker.pos,
+				"to_pos": seeker.target.pos, "log": lines,
+			})
+			continue
+		survivors.append(seeker)
+
+	seekers = survivors
 
 
 func _drain() -> Array[Dictionary]:
@@ -79,15 +175,64 @@ func _drain() -> Array[Dictionary]:
 	return out
 
 
+## The one door into a battle. Every order, from a button, a stick, the AI, or
+## a replay, arrives here, which is why a log written from this point is
+## complete by construction (CLAUDE.md 4.1).
+##
+## record is false when a replay is feeding commands back in, so replaying a
+## log does not append to it.
+func apply_command(actor: int, kind: String, args: Array, record: bool = true) -> bool:
+	if actor < 0 or actor >= ships.size():
+		return false
+	var ship: ShipState = ships[actor]
+	var ok: bool = false
+	match kind:
+		"order":
+			ship.set_order(float(args[0]), float(args[1]))
+			ok = true
+		"fire":
+			ok = try_fire(ship, int(args[0]))
+		"fire_family":
+			ok = fire_family(ship, String(args[0])) > 0
+		"reinforce":
+			ok = ship.reinforce(int(args[0]), Catalog.tuning())
+		"shield_bias":
+			ship.shield_bias = int(args[0])
+			ok = true
+		"transfer_shield":
+			ok = ship.transfer_shield(int(args[0]), int(args[1]), Catalog.tuning())
+		"power":
+			ship.set_alloc_units(String(args[0]), float(args[1]))
+			ok = true
+		"target":
+			var index: int = int(args[0])
+			if index >= 0 and index < ships.size():
+				set_target(ship, ships[index])
+				ok = true
+	if record and log != null:
+		log.record(tick, actor, kind, args)
+	return ok
+
+
 ## Fire one weapon if its check passes. Both the player UI and the AI route
 ## through here so firing rules exist exactly once.
 func try_fire(attacker: ShipState, weapon_index: int) -> bool:
 	if over:
 		return false
-	var target: ShipState = foe_of(attacker)
+	var target: ShipState = target_for(attacker)
 	var check: Dictionary = attacker.fire_check(weapon_index, target.pos)
 	if not bool(check["ok"]):
 		return false
+	var weapon: Dictionary = attacker.weapons_rt[weapon_index]["weapon"]
+	if bool(weapon.get("seeking", false)):
+		attacker.weapons_rt[weapon_index]["charge"] = 0.0
+		seekers.append(Seeker.launch(attacker, target, weapon))
+		_events.append({
+			"type": "launch", "weapon": String(weapon["short"]),
+			"from_pos": attacker.pos, "to_pos": target.pos,
+			"log": ["%s launched" % [String(weapon["short"])]],
+		})
+		return true
 	_events.append(attacker.fire_at(weapon_index, target))
 	return true
 

@@ -8,7 +8,7 @@ extends Control
 
 var _fit: ShipFit
 var _isolated_mount: String = ""
-var _range_max: float = 22.0
+var _range_max: float = WeaponModel.longest_range()
 
 
 func show_fit(fit: ShipFit, isolated_mount: String) -> void:
@@ -93,7 +93,7 @@ func _draw() -> void:
 		var isolated: bool = _isolated_mount == String(m["id"])
 		var dimmed: bool = not _isolated_mount.is_empty() and not isolated
 		var field: Array[int] = _fit.effective_field(m)
-		var rr: float = _radius_for_range(float(w["range"]), r0, r_max)
+		var rr: float = _radius_for_range(WeaponModel.max_range(w), r0, r_max)
 		var fill_alpha: float = 0.07 if dimmed else (0.3 if isolated else 0.15)
 		var overridden: bool = bool(w.get("special", false)) and w.has("override_field")
 		var edge: Color = Palette.AMBER if overridden else Palette.MAGENTA

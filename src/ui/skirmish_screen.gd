@@ -6,6 +6,7 @@ extends HBoxContainer
 
 signal begin_battle
 signal design_selected(hull_id: String)
+signal replay_chosen(log: BattleLog)
 
 const SELECT_CARD := preload("res://scenes/ui/select_card.tscn")
 
@@ -23,6 +24,32 @@ func refresh() -> void:
 		return
 	_fill_yours()
 	_fill_foes()
+	_fill_replays()
+
+
+## Every battle this machine has recorded, newest first. Watching one is the
+## combat screen in replay mode, not a second view (docs/11).
+func _fill_replays() -> void:
+	var list: VBoxContainer = $Mid/ReplayScroll/ReplayList
+	for child in list.get_children():
+		child.queue_free()
+	var paths: Array[String] = ReplayStore.list_paths()
+	if paths.is_empty():
+		var empty: Label = Label.new()
+		empty.text = "No recordings yet. Every battle you fight is saved here."
+		empty.add_theme_font_size_override("font_size", 11)
+		empty.add_theme_color_override("font_color", Palette.DIM)
+		list.add_child(empty)
+		return
+	for path in paths:
+		var log: BattleLog = BattleLog.load_from(path)
+		if log == null:
+			continue
+		var card: Button = SELECT_CARD.instantiate()
+		list.add_child(card)
+		card.setup(path, path.get_file().get_basename(), ReplayStore.describe(log),
+			Palette.AMBER)
+		card.chosen.connect(func(_id: String) -> void: replay_chosen.emit(log))
 
 
 func _fill_yours() -> void:

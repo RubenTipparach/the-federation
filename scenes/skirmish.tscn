@@ -54,6 +54,21 @@ text = "FLEET ACTION / DEEP SPACE"
 layout_mode = 2
 text = "Begin skirmish"
 
+[node name="ReplayHead" type="Label" parent="Mid"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "RECORDED BATTLES"
+
+[node name="ReplayScroll" type="ScrollContainer" parent="Mid"]
+layout_mode = 2
+size_flags_vertical = 3
+custom_minimum_size = Vector2(0, 190)
+
+[node name="ReplayList" type="VBoxContainer" parent="Mid/ReplayScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
+
 [node name="Hint" type="Label" parent="Mid"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 10

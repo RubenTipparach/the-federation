@@ -1,8 +1,9 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://src/ui/combat_screen.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/combat_world.tscn" id="2"]
 [ext_resource type="PackedScene" path="res://scenes/ui/shield_bar.tscn" id="3"]
+[ext_resource type="PackedScene" path="res://scenes/ui/touch_controls.tscn" id="4"]
 
 [node name="Combat" type="HBoxContainer"]
 anchors_preset = 15
@@ -263,6 +264,10 @@ theme_override_font_sizes/font_size = 10
 horizontal_alignment = 2
 text = "TACTICAL"
 
+[node name="TouchControls" parent="Mid/ViewPanel/Stack" instance=ExtResource("4")]
+layout_mode = 1
+visible = false
+
 [node name="InsetFrame" type="PanelContainer" parent="Mid/ViewPanel/Stack"]
 layout_mode = 1
 anchors_preset = 3
@@ -362,6 +367,52 @@ visible = false
 layout_mode = 2
 theme_override_font_sizes/font_size = 10
 text = "PITCH FLOOR, LOOKING DOWN ONLY"
+
+[node name="ReplayBar" type="HBoxContainer" parent="Mid"]
+layout_mode = 2
+visible = false
+theme_override_constants/separation = 8
+
+[node name="Play" type="Button" parent="Mid/ReplayBar"]
+layout_mode = 2
+text = "Pause"
+
+[node name="Restart" type="Button" parent="Mid/ReplayBar"]
+layout_mode = 2
+text = "Restart"
+
+[node name="Speed1" type="Button" parent="Mid/ReplayBar"]
+layout_mode = 2
+toggle_mode = true
+button_pressed = true
+text = "1x"
+
+[node name="Speed2" type="Button" parent="Mid/ReplayBar"]
+layout_mode = 2
+toggle_mode = true
+text = "2x"
+
+[node name="Speed4" type="Button" parent="Mid/ReplayBar"]
+layout_mode = 2
+toggle_mode = true
+text = "4x"
+
+[node name="Scrub" type="HSlider" parent="Mid/ReplayBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+min_value = 0.0
+max_value = 100.0
+step = 1.0
+
+[node name="Where" type="Label" parent="Mid/ReplayBar"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "TICK 0 / 0"
+
+[node name="Leave" type="Button" parent="Mid/ReplayBar"]
+layout_mode = 2
+text = "Close"
 
 [node name="Actions" type="HBoxContainer" parent="Mid"]
 layout_mode = 2

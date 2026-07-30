@@ -1,19 +1,20 @@
-name: Deploy to itch.io
+name: Checks, build, deploy
 
-# Deploys on merge to main. Every step delegates to a script in scripts/ so
-# that CI and a developer's machine run the identical build, per CLAUDE.md
-# section 4.1. Do not inline build logic here.
+# One workflow per commit. Cheap checks run first, the build runs only if they
+# pass, and the itch.io upload runs only on main. Every step delegates to a
+# script in scripts/ so that CI and a developer's machine run the identical
+# build, per CLAUDE.md section 4.1. Do not inline build logic here.
+#
+# The triggers are deliberately disjoint so a single commit never starts two
+# runs: pull_request covers every feature branch, push covers main. A branch
+# push with a pull request open used to fire the push trigger here and the
+# pull_request trigger in a second workflow file, which produced two runs for
+# one commit, and a merge to main produced two more.
 
 on:
+  pull_request:
   push:
-    # main deploys. Feature branches build and verify without deploying, so
-    # a broken export is caught in the pull request rather than on merge.
-    branches: [main, "claude/**"]
-    # Documentation only changes do not need a build.
-    paths-ignore:
-      - "docs/**"
-      - "**/*.md"
-      - ".gitignore"
+    branches: [main]
   workflow_dispatch:
     inputs:
       targets:
@@ -26,18 +27,60 @@ on:
         required: false
         default: false
 
-# One deploy at a time. Cancelling a half finished upload would leave a
-# partial build on itch.io, so in progress runs are allowed to finish.
+# One run per ref. A superseded pull request run is cancelled because its
+# result no longer matters, but a main run is allowed to finish: cancelling a
+# half finished upload would leave a partial build on itch.io.
 concurrency:
-  group: deploy-itch
-  cancel-in-progress: false
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 permissions:
   contents: read
 
 jobs:
+  checks:
+    name: Style and scripts
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Enforces CLAUDE.md section 1. Until now the rule was a documented
+      # grep that nothing ran.
+      - name: Writing style (no em or en dashes)
+        run: ./scripts/check-style.sh
+
+      - name: Shell syntax
+        run: |
+          set -euo pipefail
+          fail=0
+          for f in scripts/*.sh scripts/lib/*.sh; do
+            if bash -n "$f"; then
+              echo "ok    $f"
+            else
+              echo "FAIL  $f"
+              fail=1
+            fi
+          done
+          exit "$fail"
+
+      - name: ShellCheck
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq shellcheck
+          shellcheck --severity=warning scripts/*.sh scripts/lib/*.sh
+
+      # Catches a target named in ENABLED_TARGETS that has no row in the
+      # TARGETS table, and a target whose preset is missing from
+      # export_presets.cfg. Both are silent misconfigurations otherwise.
+      - name: Validate build config against export presets
+        run: ./scripts/check-config.sh
+
   deploy:
     name: Build and deploy
+    needs: checks
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
@@ -117,7 +160,7 @@ jobs:
             echo "present=true" >> "$GITHUB_OUTPUT"
           fi
 
-      # Gated on main so a feature branch can never publish to itch.io.
+      # Gated on main so a pull request can never publish to itch.io.
       - name: Deploy to itch.io
         if: |
           steps.creds.outputs.present == 'true' &&

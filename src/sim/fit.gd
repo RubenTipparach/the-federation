@@ -100,13 +100,26 @@ func blind_sectors() -> Array[int]:
 	return out
 
 
-## Total damage that can bear into one sector: the alpha strike by bearing.
+## Total damage that can bear into one sector at point blank: the alpha strike
+## by bearing. Range falloff makes this the best case, which is the honest thing
+## to project on a fitting screen (see WeaponModel).
 func alpha_into(sector: int) -> int:
 	var total: int = 0
 	for m in mounts():
 		var w: Dictionary = weapon_in(String(m["id"]))
 		if not w.is_empty() and effective_field(m).has(sector):
-			total += int(w["damage"])
+			total += WeaponModel.max_damage(w)
+	return total
+
+
+## Damage per shot into one sector at a given distance, accuracy included.
+## This is what the fitting screen charts when it asks "and at range 8?".
+func expected_into(sector: int, distance: float) -> float:
+	var total: float = 0.0
+	for m in mounts():
+		var w: Dictionary = weapon_in(String(m["id"]))
+		if not w.is_empty() and effective_field(m).has(sector):
+			total += WeaponModel.expected_damage_at(w, distance)
 	return total
 
 
@@ -115,7 +128,7 @@ func max_range_into(sector: int) -> float:
 	for m in mounts():
 		var w: Dictionary = weapon_in(String(m["id"]))
 		if not w.is_empty() and effective_field(m).has(sector):
-			best = maxf(best, float(w["range"]))
+			best = maxf(best, WeaponModel.max_range(w))
 	return best
 
 

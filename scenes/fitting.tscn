@@ -1,8 +1,9 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://src/ui/fitting_screen.gd" id="1"]
 [ext_resource type="Script" path="res://src/ui/ssd_control.gd" id="2"]
 [ext_resource type="PackedScene" path="res://scenes/ui/budget_bar.tscn" id="3"]
+[ext_resource type="PackedScene" path="res://scenes/ui/hull_view.tscn" id="4"]
 
 [node name="Fitting" type="HBoxContainer"]
 anchors_preset = 15
@@ -67,31 +68,12 @@ text = "SHIP SYSTEM DISPLAY"
 [node name="Ring" type="Control" parent="Center/V"]
 layout_mode = 2
 size_flags_vertical = 3
-custom_minimum_size = Vector2(0, 300)
+custom_minimum_size = Vector2(0, 660)
 script = ExtResource("2")
 
-[node name="InternalsAnchor" type="Control" parent="Center/V/Ring"]
+[node name="HullView" parent="Center/V/Ring" instance=ExtResource("4")]
 layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-
-[node name="Internals" type="VBoxContainer" parent="Center/V/Ring/InternalsAnchor"]
-layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_constants/separation = 4
-mouse_filter = 2
+anchors_preset = 0
 
 [node name="Controls" type="HBoxContainer" parent="Center/V"]
 layout_mode = 2

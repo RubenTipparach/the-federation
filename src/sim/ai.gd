@@ -37,7 +37,7 @@ static func act(me: ShipState, foe: ShipState, battle) -> void:
 	for i in range(me.weapons_rt.size()):
 		var w: Dictionary = me.weapons_rt[i]["weapon"]
 		if not w.is_empty() and not me.mount_disabled(i):
-			best_range = maxf(best_range, float(w["range"]))
+			best_range = maxf(best_range, WeaponModel.max_range(w))
 	var throttle: float = float(tuning["hold_throttle"])
 	if dist > best_range * float(tuning["preferred_range_frac"]):
 		throttle = float(tuning["close_throttle"])

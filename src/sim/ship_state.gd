@@ -10,6 +10,10 @@ extends RefCounted
 ## +Z, clockwise seen from above. No Node dependencies: the sim must run and
 ## test headless without a scene tree (CLAUDE.md 5.2).
 
+## Sector index of the hull core: the shared volume behind every facing. It has
+## no shield and is only reachable once a struck sector has been stripped.
+const CORE: int = -1
+
 var fit: ShipFit
 var rng: RandomNumberGenerator
 
@@ -35,6 +39,22 @@ var battery: float = 0.0
 
 var alive: bool = true
 
+## The facing the shield engineer is favouring. Its regeneration is weighted,
+## which is the cheap version of Federation Commander's shield reinforcement
+## decision made continuously rather than once per impulse.
+var shield_bias: int = -1
+
+
+static func _make_system(entry: Array, sector: int) -> Dictionary:
+	return {
+		"code": String(entry[0]),
+		"boxes_max": int(entry[1]),
+		"boxes": int(entry[1]),
+		"family": String(entry[2]),
+		"mount_id": String(entry[3]) if entry.size() > 3 else "",
+		"sector": sector,
+	}
+
 
 static func create(p_fit: ShipFit, p_rng: RandomNumberGenerator, ai_ship: bool = false) -> ShipState:
 	var s: ShipState = ShipState.new()
@@ -44,18 +64,14 @@ static func create(p_fit: ShipFit, p_rng: RandomNumberGenerator, ai_ship: bool =
 	s.shield_max = float(h["shield_per_facing"])
 	for i in range(Sectors.FACING_COUNT):
 		s.shields.append(s.shield_max)
-	var row: int = 0
-	for row_data in h["internals"]:
-		for entry in row_data:
-			s.systems.append({
-				"code": String(entry[0]),
-				"boxes_max": int(entry[1]),
-				"boxes": int(entry[1]),
-				"family": String(entry[2]),
-				"mount_id": String(entry[3]) if entry.size() > 3 else "",
-				"row": row,
-			})
-		row += 1
+	var internals: Dictionary = h["internals"]
+	var facing: int = 0
+	for sector_rows in internals["sectors"]:
+		for entry in sector_rows:
+			s.systems.append(ShipState._make_system(entry, facing))
+		facing += 1
+	for entry in internals["core"]:
+		s.systems.append(ShipState._make_system(entry, ShipState.CORE))
 	for m in p_fit.mounts():
 		s.weapons_rt.append({
 			"mount": m,
@@ -105,6 +121,23 @@ func total_boxes_max() -> int:
 	var n: int = 0
 	for sys in systems:
 		n += int(sys["boxes_max"])
+	return n
+
+
+## Living systems in one sector, or in the core when asked for CORE.
+func systems_in(sector: int) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for sys in systems:
+		if int(sys["sector"]) == sector:
+			out.append(sys)
+	return out
+
+
+func boxes_in(sector: int) -> int:
+	var n: int = 0
+	for sys in systems:
+		if int(sys["sector"]) == sector:
+			n += int(sys["boxes"])
 	return n
 
 
@@ -171,9 +204,17 @@ func step(dt: float, tuning: Dictionary) -> void:
 	var shd_share: float = clampf(
 		alloc_units("shields") / float(combat["shield_power_demand"]), 0.0,
 		float(combat["overdrive_cap"]))
+	# Regeneration is shared out across the six facings, weighted toward the
+	# biased one if the engineer has picked a side to hold.
 	var regen: float = float(combat["shield_regen_per_sec"]) * shd_share * dt
+	var bias_weight: float = float(combat["shield_bias_weight"])
+	var weights: float = float(shields.size())
+	if shield_bias >= 0 and shield_bias < shields.size():
+		weights += bias_weight - 1.0
 	for i in range(shields.size()):
-		shields[i] = minf(shield_max, shields[i] + regen)
+		var share: float = bias_weight if i == shield_bias else 1.0
+		shields[i] = minf(shield_max, shields[i] + regen * float(shields.size())
+			* share / weights)
 
 	# Reserve power charges the battery that pays for shield reinforcement.
 	battery = minf(1.0, battery + dt * alloc_units("reserve")
@@ -191,7 +232,7 @@ func fire_check(index: int, target_pos: Vector2) -> Dictionary:
 		return { "ok": false, "reason": "destroyed" }
 	if float(w["charge"]) < 1.0:
 		return { "ok": false, "reason": "charging" }
-	if pos.distance_to(target_pos) > float(w["weapon"]["range"]):
+	if pos.distance_to(target_pos) > WeaponModel.max_range(w["weapon"]):
 		return { "ok": false, "reason": "range" }
 	var rel: float = Sectors.relative_bearing(Sectors.bearing_between(pos, target_pos), heading)
 	if not fit.effective_field(w["mount"]).has(Sectors.sector_of_bearing(rel)):
@@ -203,13 +244,23 @@ func fire_check(index: int, target_pos: Vector2) -> Dictionary:
 func fire_at(index: int, target: ShipState) -> Dictionary:
 	var w: Dictionary = weapons_rt[index]
 	w["charge"] = 0.0
-	var damage: int = int(w["weapon"]["damage"])
+	var distance: float = pos.distance_to(target.pos)
+	# Range decides both whether the shot connects and what it scores, so a
+	# weapon fired at its extreme edge is worth less than the same weapon
+	# fired point blank (WeaponModel).
+	var damage: int = WeaponModel.roll_damage(w["weapon"], distance, rng)
 	var arrive_bearing: float = Sectors.bearing_between(target.pos, pos)
-	var log_lines: Array[String] = target.apply_damage(arrive_bearing, float(damage))
+	var log_lines: Array[String] = []
+	if damage <= 0:
+		log_lines.append("%s misses at range %d" % [String(w["weapon"]["short"]), int(distance)])
+	else:
+		log_lines = target.apply_damage(arrive_bearing, float(damage))
 	return {
 		"type": "shot",
 		"weapon": String(w["weapon"]["short"]),
 		"damage": damage,
+		"hit": damage > 0,
+		"range": distance,
 		"from_pos": pos,
 		"to_pos": target.pos,
 		"log": log_lines,
@@ -236,27 +287,35 @@ func apply_damage(world_bearing: float, amount: float) -> Array[String]:
 	else:
 		lines.append("Facing #%d already down" % [facing + 1])
 	if remaining > 0.0:
-		lines.append_array(apply_internal(remaining))
+		lines.append_array(apply_internal(remaining, facing))
 	return lines
 
 
-## Weighted internal damage. Public so the SSD dry dock demo and tests can
-## exercise the bleed rule directly.
+## Internal damage from a hit that arrived through one facing. The struck
+## sector takes it first, the hull core takes what a stripped sector cannot,
+## and only when both are gone does damage carry into the neighbouring sectors
+## (docs/09, Federation Commander 3D and 5J). Public so the dry dock demo and
+## the tests exercise exactly the rule a battle uses.
 ##
 ## Boxes are integers and bleed through is often fractional (a shield holding
 ## 0.3 leaves 7.7 of an 8 damage shot). Rounding the fraction UP would make
 ## the shield's remnant worth nothing, so the fractional part becomes a
 ## proportional chance of one extra box: on average the boxes destroyed equal
 ## the damage dealt, and an integer amount destroys exactly that many.
-func apply_internal(amount: float) -> Array[String]:
+func apply_internal(amount: float, facing: int = 0) -> Array[String]:
 	var lines: Array[String] = []
 	var boxes_to_take: int = int(floorf(amount))
 	if rng.randf() < amount - float(boxes_to_take):
 		boxes_to_take += 1
 	while boxes_to_take > 0:
+		var source: int = _damage_source(facing)
+		if source == CORE and boxes_in(CORE) <= 0:
+			alive = false
+			lines.append("SHIP DESTROYED, no systems remain")
+			break
 		var living: Array[Dictionary] = []
 		var total: int = 0
-		for sys in systems:
+		for sys in systems_in(source):
 			if int(sys["boxes"]) > 0:
 				living.append(sys)
 				total += int(sys["boxes"])
@@ -277,11 +336,30 @@ func apply_internal(amount: float) -> Array[String]:
 		boxes_to_take -= take
 		if int(pick["boxes"]) <= 0:
 			lines.append("%s DESTROYED" % [String(pick["code"])])
+			if source == facing and boxes_in(facing) <= 0:
+				lines.append("SECTOR #%d STRIPPED, the hull core is exposed" % [facing + 1])
 		else:
 			lines.append("%s takes %d, %d left" % [String(pick["code"]), take, int(pick["boxes"])])
 	if total_boxes() <= 0:
 		alive = false
 	return lines
+
+
+## Where the next box comes from: struck sector, then the core, then the
+## nearest facing still holding anything. Federation Commander 3E only calls a
+## ship lost when every non-shield box is gone, so damage keeps landing until
+## that is true.
+func _damage_source(facing: int) -> int:
+	if boxes_in(facing) > 0:
+		return facing
+	if boxes_in(CORE) > 0:
+		return CORE
+	for step in range(1, 4):
+		for candidate in [posmod(facing + step, Sectors.FACING_COUNT),
+				posmod(facing - step, Sectors.FACING_COUNT)]:
+			if boxes_in(int(candidate)) > 0:
+				return int(candidate)
+	return CORE
 
 
 ## Spend the battery to restore one facing (docs/01 section 4 reinforcement).
@@ -290,6 +368,42 @@ func reinforce(facing: int, tuning: Dictionary) -> bool:
 		return false
 	battery = 0.0
 	shields[facing] = minf(shield_max, shields[facing] + float(tuning["combat"]["reinforce_amount"]))
+	return true
+
+
+## Point defense damage per second this ship can put on a point, from every
+## undamaged weapon that has it and reaches. Free: it does not spend the
+## weapon's capacitor, so a light beam defends while its crew reloads.
+func point_defense_dps(at: Vector2) -> float:
+	var total: float = 0.0
+	for i in range(weapons_rt.size()):
+		var w: Dictionary = weapons_rt[i]["weapon"]
+		if w.is_empty() or not bool(w.get("point_defense", false)):
+			continue
+		if mount_disabled(i):
+			continue
+		if pos.distance_to(at) <= float(w["pd_range"]):
+			total += float(w["pd_dps"])
+	return total
+
+
+## Move shield strength from one facing to a neighbour, which is Federation
+## Commander 3C3: five boxes may be transferred to an adjacent shield, and only
+## to replace what damage took, never to exceed the original strength.
+func transfer_shield(from_facing: int, to_facing: int, tuning: Dictionary) -> bool:
+	if from_facing == to_facing:
+		return false
+	var step: int = int(Sectors.turn_delta(
+		float(from_facing) * 60.0, float(to_facing) * 60.0))
+	if absi(step) != 60:
+		return false
+	var amount: float = float(tuning["combat"]["shield_transfer_amount"])
+	var missing: float = shield_max - shields[to_facing]
+	var moved: float = minf(minf(amount, shields[from_facing]), missing)
+	if moved <= 0.0:
+		return false
+	shields[from_facing] -= moved
+	shields[to_facing] += moved
 	return true
 
 
