@@ -136,7 +136,7 @@ func set_order(p_heading: float, p_throttle: float) -> void:
 
 func step(dt: float, tuning: Dictionary) -> void:
 	if not alive:
-		speed = maxf(0.0, speed - dt)
+		speed = maxf(0.0, speed - float(tuning["combat"]["dead_ship_decel"]) * dt)
 		pos += Vector2(sin(deg_to_rad(heading)), cos(deg_to_rad(heading))) * speed * dt
 		return
 	var combat: Dictionary = tuning["combat"]
@@ -148,15 +148,19 @@ func step(dt: float, tuning: Dictionary) -> void:
 
 	# Speed approaches ordered throttle times damaged max, engine power scales
 	# acceleration so a ship running silent genuinely cannot chase.
-	var eng_share: float = clampf(alloc_units("engines") / float(combat["engine_power_demand"]), 0.0, 1.25)
+	var overdrive: float = float(combat["overdrive_cap"])
+	var eng_share: float = clampf(
+		alloc_units("engines") / float(combat["engine_power_demand"]), 0.0, overdrive)
 	var target_speed: float = ordered_throttle * max_speed() * minf(eng_share, 1.0)
-	var accel: float = float(fit.hull()["accel"]) * maxf(eng_share, 0.2)
+	var accel: float = float(fit.hull()["accel"]) * maxf(
+		eng_share, float(combat["min_accel_factor"]))
 	speed = move_toward(speed, target_speed, accel * dt)
 	pos += Vector2(sin(deg_to_rad(heading)), cos(deg_to_rad(heading))) * speed * dt
 
 	# Weapon capacitors charge at a rate scaled by the weapons power share.
 	var draw: float = maxf(fit.total_weapon_draw(), 0.001)
-	var wpn_factor: float = clampf(alloc_units("weapons") / draw, 0.0, 1.25)
+	var wpn_factor: float = clampf(
+		alloc_units("weapons") / draw, 0.0, float(combat["overdrive_cap"]))
 	for w in weapons_rt:
 		if w["weapon"].is_empty():
 			continue
@@ -165,7 +169,8 @@ func step(dt: float, tuning: Dictionary) -> void:
 
 	# Shield regeneration split evenly across facings, scaled by shields power.
 	var shd_share: float = clampf(
-		alloc_units("shields") / float(combat["shield_power_demand"]), 0.0, 1.25)
+		alloc_units("shields") / float(combat["shield_power_demand"]), 0.0,
+		float(combat["overdrive_cap"]))
 	var regen: float = float(combat["shield_regen_per_sec"]) * shd_share * dt
 	for i in range(shields.size()):
 		shields[i] = minf(shield_max, shields[i] + regen)
@@ -237,10 +242,18 @@ func apply_damage(world_bearing: float, amount: float) -> Array[String]:
 
 ## Weighted internal damage. Public so the SSD dry dock demo and tests can
 ## exercise the bleed rule directly.
+##
+## Boxes are integers and bleed through is often fractional (a shield holding
+## 0.3 leaves 7.7 of an 8 damage shot). Rounding the fraction UP would make
+## the shield's remnant worth nothing, so the fractional part becomes a
+## proportional chance of one extra box: on average the boxes destroyed equal
+## the damage dealt, and an integer amount destroys exactly that many.
 func apply_internal(amount: float) -> Array[String]:
 	var lines: Array[String] = []
-	var remaining: float = amount
-	while remaining > 0.0:
+	var boxes_to_take: int = int(floorf(amount))
+	if rng.randf() < amount - float(boxes_to_take):
+		boxes_to_take += 1
+	while boxes_to_take > 0:
 		var living: Array[Dictionary] = []
 		var total: int = 0
 		for sys in systems:
@@ -258,10 +271,10 @@ func apply_internal(amount: float) -> Array[String]:
 			if roll <= 0.0:
 				pick = sys
 				break
-		var take: int = mini(int(pick["boxes"]), int(ceilf(remaining)))
+		var take: int = mini(int(pick["boxes"]), boxes_to_take)
 		take = maxi(take, 1)
 		pick["boxes"] = int(pick["boxes"]) - take
-		remaining -= float(take)
+		boxes_to_take -= take
 		if int(pick["boxes"]) <= 0:
 			lines.append("%s DESTROYED" % [String(pick["code"])])
 		else:

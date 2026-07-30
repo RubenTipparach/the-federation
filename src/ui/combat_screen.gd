@@ -53,7 +53,11 @@ func bind_session(p_session: Session) -> void:
 	# The plan inset renders the same world as the main view: one scene, two
 	# cameras, so the tactical picture cannot diverge from the pretty one.
 	var inset: SubViewport = $Mid/ViewPanel/Stack/InsetFrame/InsetContainer/Inset
-	inset.world_3d = ($Mid/ViewPanel/Stack/ViewContainer/View as SubViewport).world_3d
+	# find_world_3d(), not world_3d: an unassigned SubViewport's world_3d
+	# property is null (both viewports were silently falling back to the root
+	# window's world, which happened to work). find_world_3d resolves the world
+	# actually in use, so the sharing is explicit instead of coincidental.
+	inset.world_3d = ($Mid/ViewPanel/Stack/ViewContainer/View as SubViewport).find_world_3d()
 	var plan_cam: Camera3D = inset.get_node("PlanCamera")
 	plan_cam.size = float(cam["plan_inset_size"])
 	plan_cam.look_at_from_position(Vector3(0, 60, 0), Vector3.ZERO, Vector3(0, 0, 1))
@@ -117,7 +121,7 @@ func _on_view_input(event: InputEvent) -> void:
 			_dragging = true
 			_drag_moved = 0.0
 		else:
-			if _dragging and _drag_moved < 6.0:
+			if _dragging and _drag_moved < 6.0 and _can_command():
 				var p: Vector2 = world.plane_point(event.position)
 				if is_finite(p.x):
 					var me: ShipState = battle.player()
@@ -151,7 +155,16 @@ func _on_power_slider(value: float, sink: String) -> void:
 		battle.player().set_alloc_units(sink, value)
 
 
+## Sim mutating commands are gated on pause and battle end, matching the
+## step gate: firing into a frozen battle applied damage while time stood
+## still, which the review caught.
+func _can_command() -> bool:
+	return battle != null and not paused and not battle.over
+
+
 func _fire_beams() -> void:
+	if not _can_command():
+		return
 	var n: int = battle.fire_family(battle.player(), "beam")
 	n += battle.fire_family(battle.player(), "disruptor")
 	if n == 0:
@@ -159,6 +172,8 @@ func _fire_beams() -> void:
 
 
 func _fire_heavy() -> void:
+	if not _can_command():
+		return
 	var n: int = battle.fire_family(battle.player(), "torpedo")
 	n += battle.fire_family(battle.player(), "lance")
 	n += battle.fire_family(battle.player(), "drone")
@@ -167,6 +182,8 @@ func _fire_heavy() -> void:
 
 
 func _reinforce() -> void:
+	if not _can_command():
+		return
 	var me: ShipState = battle.player()
 	var facing: int = me.weakest_facing()
 	if me.reinforce(facing, Catalog.tuning()):
@@ -176,6 +193,8 @@ func _reinforce() -> void:
 
 
 func _come_about() -> void:
+	if not _can_command():
+		return
 	var me: ShipState = battle.player()
 	me.set_order(me.ordered_heading + 180.0, me.ordered_throttle)
 	_note("Helm: coming about")
@@ -242,6 +261,7 @@ func _refresh_hud() -> void:
 			dmg.append("%s  %d/%d" % [String(sys["code"]), int(sys["boxes"]),
 				int(sys["boxes_max"])])
 	$Left/DamagePanel/V/Body.text = "No damage." if dmg.is_empty() else "\n".join(dmg)
+	$Left/DamagePanel/V/CommLog.text = "\n".join(_report_lines.slice(-6))
 
 	var dist: float = me.pos.distance_to(foe.pos)
 	var bearing: float = Sectors.bearing_between(me.pos, foe.pos)

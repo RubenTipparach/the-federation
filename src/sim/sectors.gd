@@ -53,13 +53,12 @@ static func turn_delta(from_deg: float, to_deg: float) -> float:
 	return wrap_deg(to_deg - from_deg + 180.0) - 180.0
 
 
-## Human readable label for a sector set, e.g. [5, 6, 7] -> "150-240".
-## Runs that wrap through sector 0 are joined, matching the mockup.
-static func label_for_sectors(sectors: Array) -> String:
+## Group a sector set into contiguous runs, joining a run that wraps through
+## sector 0. The one implementation of this grouping: labels and the arc wheel
+## geometry both build on it (CLAUDE.md 4.1).
+static func contiguous_runs(sectors: Array) -> Array:
 	if sectors.is_empty():
-		return "none"
-	if sectors.size() >= COUNT:
-		return "000-360"
+		return []
 	var sorted: Array = sectors.duplicate()
 	sorted.sort()
 	var runs: Array = []
@@ -75,8 +74,17 @@ static func label_for_sectors(sectors: Array) -> String:
 		var tail: Array = runs.pop_back()
 		tail.append_array(runs[0])
 		runs[0] = tail
+	return runs
+
+
+## Human readable label for a sector set, e.g. [5, 6, 7] -> "150-240".
+static func label_for_sectors(sectors: Array) -> String:
+	if sectors.is_empty():
+		return "none"
+	if sectors.size() >= COUNT:
+		return "000-360"
 	var parts: Array[String] = []
-	for run in runs:
+	for run in contiguous_runs(sectors):
 		var a: int = int(run[0]) * int(SECTOR_DEG)
 		var b: int = (int(run[-1]) + 1) * int(SECTOR_DEG) % 360
 		parts.append("%03d-%03d" % [a % 360, b])

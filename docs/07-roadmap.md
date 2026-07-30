@@ -24,9 +24,17 @@ persistence last.
   painted on the plane. Camera elevation clamped to 25-90 degrees (downward only, one
   shared clamp for every input path), plus the mandatory plan-view inset.
 - Runs locally in the Godot editor. **No server, no accounts, no database.**
-- **One placeholder hull model**, committed as `.gltf` per `CLAUDE.md` §2. 3D combat is a
-  hard requirement, so a runtime `BoxMesh` is not an option (§5.1 forbids generated
-  geometry). One grey untextured hull is enough; it is not an art milestone.
+- **One placeholder hull model**, committed as `.obj` per `CLAUDE.md` §2 (which prefers
+  `.obj` for simple static geometry). 3D combat is a hard requirement, so a runtime
+  `BoxMesh` is not an option (§5.1 forbids generated geometry). One grey untextured hull
+  is enough; it is not an art milestone.
+
+**Status note (2026-07-30):** a first prototype implementing much of M1 and slices of M2
+is in the repository: the shared sim library with a 91 check headless suite, the fitting
+screen with live budgets and the SSD dry dock demo, the arc wheel, skirmish setup, and
+playable 1v1 3D combat against the AI. Not yet done from the M1 list: terrain, plasma
+torpedo seeking behavior, overload, tactical pause polish beyond a pause button, shield
+bias, and the external playtest gates, which remain the exit criteria.
 
 **Exit criteria, hard gates:**
 - A fight between two evenly matched ships lasts 6-12 minutes and is *tense throughout*.

@@ -25,10 +25,15 @@ static func act(me: ShipState, foe: ShipState, battle) -> void:
 		var offset: float = float(tuning["presenting_offset_deg"])
 		var left: int = posmod(exposed - 1, Sectors.FACING_COUNT)
 		var right: int = posmod(exposed + 1, Sectors.FACING_COUNT)
-		desired = to_foe + (offset if me.shields[right] >= me.shields[left] else -offset)
+		# Turning the heading CLOCKWISE (+offset) moves the foe's relative
+		# bearing counter clockwise, which presents the LEFT neighbor facing.
+		# So a positive offset is the move that shows the left shield. This
+		# sign was inverted once and the review caught the AI presenting its
+		# weaker side; the test suite now pins the direction.
+		desired = to_foe + (offset if me.shields[left] >= me.shields[right] else -offset)
 
 	# Hold the range the guns want.
-	var best_range: float = 8.0
+	var best_range: float = float(tuning["fallback_best_range"])
 	for i in range(me.weapons_rt.size()):
 		var w: Dictionary = me.weapons_rt[i]["weapon"]
 		if not w.is_empty() and not me.mount_disabled(i):

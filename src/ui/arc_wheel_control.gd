@@ -28,26 +28,10 @@ func _dir(bearing_deg: float) -> Vector2:
 
 func _sector_band(center: Vector2, sectors: Array[int], r0: float,
 		r1: float) -> Array[PackedVector2Array]:
-	# One polygon per contiguous run so a wrapped arc draws correctly.
-	var runs: Array = []
-	var sorted: Array = sectors.duplicate()
-	sorted.sort()
-	var current: Array = []
-	for s in sorted:
-		if current.is_empty() or int(s) == int(current[-1]) + 1:
-			current.append(s)
-		else:
-			runs.append(current)
-			current = [s]
-	if not current.is_empty():
-		runs.append(current)
-	if runs.size() > 1 and int(runs[0][0]) == 0 and int(runs[-1][-1]) == Sectors.COUNT - 1:
-		var tail: Array = runs.pop_back()
-		tail.append_array(runs[0])
-		runs[0] = tail
-
+	# One polygon per contiguous run so a wrapped arc draws correctly. The
+	# grouping itself lives in Sectors.contiguous_runs, shared with the labels.
 	var out: Array[PackedVector2Array] = []
-	for run in runs:
+	for run in Sectors.contiguous_runs(sectors):
 		var deg0: float = float(int(run[0])) * Sectors.SECTOR_DEG
 		var deg1: float = deg0 + float(run.size()) * Sectors.SECTOR_DEG
 		var steps: int = maxi(run.size() * 4, 4)

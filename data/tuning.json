@@ -6,8 +6,12 @@
     "default_pitch_deg": 55.0,
     "default_azimuth_deg": -35.0,
     "distance": 46.0,
-    "orbit_speed": 0.30,
-    "presets": { "tactical": 55.0, "cinematic": 30.0, "plan": 90.0 },
+    "orbit_speed": 0.3,
+    "presets": {
+      "tactical": 55.0,
+      "cinematic": 30.0,
+      "plan": 90.0
+    },
     "plan_inset_size": 70.0
   },
   "combat": {
@@ -18,12 +22,33 @@
     "battery_charge_per_reserve_unit": 0.02,
     "reinforce_amount": 6.0,
     "beam_fade_sec": 0.45,
-    "engine_power_demand": 10.0
+    "engine_power_demand": 10.0,
+    "overdrive_cap": 1.25,
+    "min_accel_factor": 0.2,
+    "dead_ship_decel": 1.0
   },
   "power": {
-    "sinks": ["weapons", "shields", "engines", "systems", "reserve"],
-    "default_split": { "weapons": 0.34, "shields": 0.28, "engines": 0.24, "systems": 0.09, "reserve": 0.05 },
-    "ai_split": { "weapons": 0.38, "shields": 0.30, "engines": 0.24, "systems": 0.05, "reserve": 0.03 }
+    "sinks": [
+      "weapons",
+      "shields",
+      "engines",
+      "systems",
+      "reserve"
+    ],
+    "default_split": {
+      "weapons": 0.34,
+      "shields": 0.28,
+      "engines": 0.24,
+      "systems": 0.09,
+      "reserve": 0.05
+    },
+    "ai_split": {
+      "weapons": 0.38,
+      "shields": 0.3,
+      "engines": 0.24,
+      "systems": 0.05,
+      "reserve": 0.03
+    }
   },
   "ai": {
     "preferred_range_frac": 0.65,
@@ -32,10 +57,15 @@
     "back_off_range_frac": 0.35,
     "back_off_throttle": 0.3,
     "weak_facing_frac": 0.3,
-    "presenting_offset_deg": 60.0
+    "presenting_offset_deg": 60.0,
+    "fallback_best_range": 8.0
   },
   "fitting_demo": {
-    "volleys": [8, 16, 32]
+    "volleys": [
+      8,
+      16,
+      32
+    ]
   },
   "skirmish": {
     "command_tonnage": 240

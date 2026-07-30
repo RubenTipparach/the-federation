@@ -28,7 +28,11 @@ func bind_ship(state: ShipState, friendly: bool) -> void:
 	var wedge_mat: Material = MAT_WEDGE_FRIEND if friendly else MAT_WEDGE_FOE
 	for i in range(12):
 		var w: MeshInstance3D = $Wedges.get_node("W%d" % i)
-		w.rotation.y = deg_to_rad(float(i) * Sectors.SECTOR_DEG)
+		# wedge30.obj is authored CENTERED on +Z (bearings -15 to +15), while
+		# sector i spans [i*30, i*30+30). The half sector offset aligns the
+		# rendered wedge with the arc fire_check enforces; without it every
+		# displayed arc edge is 15 degrees off, which the review reproduced.
+		w.rotation.y = deg_to_rad(float(i) * Sectors.SECTOR_DEG + Sectors.SECTOR_DEG * 0.5)
 		w.material_override = wedge_mat
 	for f in range(6):
 		var seg: MeshInstance3D = $Shields.get_node("S%d" % f)
@@ -75,16 +79,20 @@ func refresh() -> void:
 	if ring_range > 0.0:
 		$RangeRing.scale = Vector3(ring_range, 1, ring_range)
 
+	# Material by shield band. The thresholds live in Palette.shield_band,
+	# shared with every 2D shield readout, so the 3D ring can never disagree
+	# with the bars about what counts as weak.
 	for f in range(6):
 		var seg: MeshInstance3D = $Shields.get_node("S%d" % f)
 		var frac: float = _state.shields[f] / _state.shield_max
 		seg.visible = _state.alive
-		if frac <= 0.0:
-			seg.material_override = MAT_SHIELD_DOWN
-		elif frac < 0.4:
-			seg.material_override = MAT_SHIELD_WARN
-		else:
-			seg.material_override = MAT_SHIELD_OK
+		match Palette.shield_band(frac):
+			"down":
+				seg.material_override = MAT_SHIELD_DOWN
+			"warn":
+				seg.material_override = MAT_SHIELD_WARN
+			_:
+				seg.material_override = MAT_SHIELD_OK
 
 	$Hull.visible = true
 	if not _state.alive:

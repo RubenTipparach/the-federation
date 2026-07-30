@@ -232,6 +232,15 @@ The pipeline was exercised end to end on a real Godot install, not just written.
 4. **An `rm -rf` on a computed path** could have expanded to `./*`. Flagged by
    shellcheck; the path is now proven to sit inside `builds/` first.
 
+**Added when the prototype landed (2026-07-30):**
+- `scripts/run-tests.sh` runs the 91 check headless sim suite; CI runs it before any
+  export. The suite runs on a cold checkout, because the cold import priming now lives
+  in `lib/common.sh` and is shared by build and tests.
+- The Web build was driven in Chromium via Playwright: smoke marker observed in the
+  browser console, every screen screenshotted, a live battle ran, zero Godot script
+  errors. This is how the grid transparency sorting bug and the plan inset world
+  sharing bug were caught.
+
 **Still unverified:**
 - **The upload itself.** `butler push` has not run against itch.io from here,
   because the API key correctly lives only in repository secrets. The first

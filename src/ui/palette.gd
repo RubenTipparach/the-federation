@@ -33,13 +33,25 @@ static func family_color(family: String) -> Color:
 	return FAMILY_COLORS.get(family, SLATE)
 
 
+## Shield state band by remaining fraction. The one place the thresholds
+## live: colors and 3D material selection both derive from it.
+static func shield_band(frac: float) -> String:
+	if frac <= 0.0:
+		return "down"
+	if frac < 0.4:
+		return "warn"
+	return "ok"
+
+
 ## Shield readout color by remaining fraction, matching the mockup thresholds.
 static func shield_color(frac: float) -> Color:
-	if frac <= 0.0:
-		return CRIT
-	if frac < 0.4:
-		return AMBER
-	return CYAN
+	match shield_band(frac):
+		"down":
+			return CRIT
+		"warn":
+			return AMBER
+		_:
+			return CYAN
 
 
 static func with_alpha(c: Color, a: float) -> Color:

@@ -12,6 +12,7 @@ var session: Session
 var _isolated: String = ""
 var _swapped_mount: String = ""
 var _swapped_prev: String = ""
+var _swapped_hull: String = ""
 
 
 func bind_session(p_session: Session) -> void:
@@ -25,6 +26,14 @@ func bind_session(p_session: Session) -> void:
 func refresh() -> void:
 	if session == null:
 		return
+	# A hull change from another screen invalidates the override swap state:
+	# the remembered mount belongs to the old hull, and undoing onto the new
+	# hull would refit the wrong mount or fail legality.
+	if not _swapped_mount.is_empty() and _swapped_hull != session.fit.hull_id:
+		_swapped_mount = ""
+		_swapped_prev = ""
+	if _isolated != "" and not session.fit.slots.has(_isolated):
+		_isolated = ""
 	_rebuild_mounts()
 	_refresh_wheel()
 
@@ -85,6 +94,7 @@ func _on_swap() -> void:
 				_swapped_prev = String(session.fit.slots.get(mount_id, ""))
 				if session.fit.set_slot(mount_id, "omni"):
 					_swapped_mount = mount_id
+					_swapped_hull = session.fit.hull_id
 					break
 	design_changed.emit()
 	refresh()

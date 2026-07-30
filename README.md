@@ -34,15 +34,16 @@ Project rules live in [CLAUDE.md](CLAUDE.md) and are binding.
 
 ## Status
 
-Pre-production. No gameplay exists yet. What is in the repository:
+Pre-production, first playable prototype. What is in the repository:
 
 - The design documents above.
 - A **deploy pipeline** for itch.io, triggered on merge to `main`. See
   [docs/08-build-and-deploy.md](docs/08-build-and-deploy.md), including a plain
   account of which parts are verified and which are not.
-- A **minimal Godot project** (Godot 4.7.1, .NET flavor) whose only content is a
-  build pipeline smoke test: it reports engine version and platform on screen and
-  to stdout, so a deployed build can be verified. No gameplay. M1 replaces it.
+- A **playable prototype** (Godot 4.7.1, GDScript, web first): ship fitting with the
+  four budgets and a live SSD dry dock demo, the 12 sector arc wheel, skirmish setup,
+  and 1v1 3D tactical combat against an AI opponent. The simulation is a shared library
+  under `src/sim/` with a 91 check headless test suite (`./scripts/run-tests.sh`).
 
 Fly.io deployment is deliberately deferred until the prototype mechanics are
 understood. See [docs/08-build-and-deploy.md](docs/08-build-and-deploy.md) section 8.

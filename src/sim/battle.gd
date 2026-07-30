@@ -47,11 +47,14 @@ func foe_of(ship: ShipState) -> ShipState:
 	return ships[1] if ship == ships[0] else ships[0]
 
 
-## Advance the battle and return the events that happened this step.
+## Advance the battle and return every event since the last step, including
+## events appended between steps by player fire commands. The buffer is
+## drained at the END, never cleared at the start: clearing first silently
+## discarded player shots that arrived from UI signals between physics frames,
+## so their beams never flashed while identical AI shots did.
 func step(dt: float) -> Array[Dictionary]:
-	_events = []
 	if over:
-		return _events
+		return _drain()
 	var tuning: Dictionary = Catalog.tuning()
 
 	CombatAi.act(enemy(), player(), self)
@@ -67,7 +70,13 @@ func step(dt: float) -> Array[Dictionary]:
 			_events.append({ "type": "end", "winner": winner })
 			break
 	time += dt
-	return _events
+	return _drain()
+
+
+func _drain() -> Array[Dictionary]:
+	var out: Array[Dictionary] = _events
+	_events = []
+	return out
 
 
 ## Fire one weapon if its check passes. Both the player UI and the AI route

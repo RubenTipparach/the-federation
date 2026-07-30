@@ -75,6 +75,9 @@ func test_sectors() -> void:
 	eq(SectorsLib.label_for_sectors([11, 0]), "330-030", "wrapped run label")
 	eq(SectorsLib.label_for_sectors([]), "none", "empty label")
 	eq(SectorsLib.label_for_sectors(range(12)), "000-360", "full circle label")
+	var runs: Array = SectorsLib.contiguous_runs([9, 10, 11, 0, 1])
+	eq(runs.size(), 1, "wrap through zero groups into one run")
+	eq(int(runs[0][0]), 9, "wrapped run starts at its true beginning")
 
 
 func test_catalog() -> void:
@@ -170,6 +173,29 @@ func test_damage() -> void:
 	ok(not hulk.alive, "a ship with no boxes is destroyed")
 	ok(hulk.mount_disabled(0), "weapon mounts are disabled with their boxes gone")
 
+	# Fractional bleed through must not round up: the expected boxes destroyed
+	# equal the damage on average, and never exceed ceil while integer amounts
+	# stay exact. With amount 0.0 nothing may happen.
+	var frac_ship = _fresh_ship("wayfarer", 11)
+	var before: int = frac_ship.total_boxes()
+	frac_ship.apply_internal(0.0)
+	eq(frac_ship.total_boxes(), before, "zero bleed destroys nothing")
+	frac_ship.apply_internal(5.0)
+	eq(frac_ship.total_boxes(), before - 5, "integer bleed destroys exactly its amount")
+	var lo: int = 0
+	var hi: int = 0
+	for trial in range(40):
+		var t = _fresh_ship("wayfarer", 100 + trial)
+		var b0: int = t.total_boxes()
+		t.apply_internal(7.7)
+		var lost: int = b0 - t.total_boxes()
+		ok(lost == 7 or lost == 8, "fractional bleed 7.7 destroys 7 or 8 boxes")
+		if lost == 7:
+			lo += 1
+		else:
+			hi += 1
+	ok(lo > 0 and hi > 0, "fractional bleed is a chance, not a constant ceil")
+
 	# Reinforcement spends the battery, once.
 	var def = _fresh_ship()
 	def.battery = 1.0
@@ -257,3 +283,31 @@ func test_battle_and_ai() -> void:
 	var fired: int = duel.fire_family(duel.player(), "beam")
 	ok(fired >= 1, "fire_family fires the beams that bear")
 	ok(duel.enemy().shields[3] < duel.enemy().shield_max, "shots strike the facing toward the attacker")
+
+	# Events fired between steps must be returned by the NEXT step, never lost:
+	# player fire buttons run from UI signals between physics frames.
+	var shot_events: int = 0
+	for e in duel.step(1.0 / 15.0):
+		if String(e["type"]) == "shot":
+			shot_events += 1
+	ok(shot_events >= fired, "between step fire events survive into the next step")
+
+	# The AI presents a STRONGER neighbor when its exposed facing is weak.
+	# Turning the heading clockwise moves the foe's relative bearing counter
+	# clockwise, so +offset presents the left facing; the sign was once
+	# inverted and the AI showed its weaker side.
+	var rot = BattleLib.create_duel(FitLib.create_default("wayfarer"), "bloodletter", 42)
+	var ai_ship = rot.enemy()
+	ai_ship.pos = Vector2.ZERO
+	ai_ship.heading = 0.0
+	rot.player().pos = Vector2(0, 10)
+	rot.player().heading = 180.0
+	ai_ship.shields[0] = 0.5           # exposed fore facing is nearly gone
+	ai_ship.shields[1] = ai_ship.shield_max
+	ai_ship.shields[5] = 1.0           # left neighbor is nearly gone too
+	var AiLib = preload("res://src/sim/ai.gd")
+	AiLib.act(ai_ship, rot.player(), rot)
+	# Right (facing 1) is the strong side; presenting it means turning the
+	# heading counter clockwise, an ordered heading left of the foe bearing.
+	near(SectorsLib.turn_delta(0.0, ai_ship.ordered_heading), -60.0,
+		"ai turns to present the stronger neighbor facing", 0.5)

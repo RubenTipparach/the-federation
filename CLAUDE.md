@@ -178,7 +178,18 @@ approval for the whole system.
 Exceptions to the rules above live here, with the reason. Nothing may be treated as an
 exception until it is listed in this section and agreed.
 
-- **None yet.**
+- **Data driven 2D chart controls may paint via `Control._draw()`.** The SSD shield
+  ring and the 12 sector arc wheel are live data visualizations; their content cannot be
+  statically authored because it IS the data. The nodes are authored in their scenes, the
+  scripts only paint sim state and report clicks, and no node trees or meshes are
+  constructed. Agreed via the approved mockups and the instruction to build them
+  (2026-07-30).
+- **Tactical overlays compose committed unit meshes, placed by code.** The 3D combat
+  view's arc wedges, shield segments, range rings, and beams are instances of committed
+  `.obj` files (written by `tools/gen_meshes.py` per section 2), statically authored as
+  scene children, with code doing rotation in 30 degree steps, scaling, and authored
+  material selection only. This is the placement pattern section 7 anticipated and it
+  keeps section 5.1 intact rather than excepting it.
 
 **One candidate is pending a decision.** Rendering roughly 3,000 hexes with smooth zoom and
 several frequently changing per hex overlays is hard to do with statically authored nodes
@@ -192,11 +203,12 @@ starts.
 
 ## 8. Repository Context
 
-No gameplay code exists yet. The repository holds the design documents, the itch.io
-deploy pipeline (`scripts/`, `.github/workflows/`, `build.config`), and a minimal Godot
-project shell so the pipeline has something to export. See `README.md` for the document
-index, `docs/08-build-and-deploy.md` for the pipeline, and `docs/07-roadmap.md` for the
-intended build order.
+The repository holds the design documents, the itch.io deploy pipeline (`scripts/`,
+`.github/workflows/`, `build.config`), and the first playable prototype: a shared
+simulation library under `src/sim/` (headless tests in `tests/`), UI screens under
+`scenes/` and `src/ui/`, committed mesh and data assets under `assets/` and `data/`.
+See `README.md` for the document index, `docs/08-build-and-deploy.md` for the pipeline,
+and `docs/07-roadmap.md` for the build order and current status.
 
 Two conventions the pipeline establishes, worth keeping:
 

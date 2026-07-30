@@ -5,12 +5,12 @@ extends HBoxContainer
 ## disagree with the rule that gates the shot.
 
 const CHIP_COLORS: Dictionary = {
-	"bears": Color("57c98a"),
-	"charging": Color("e8a54a"),
-	"range": Color("6d8296"),
-	"no arc": Color("e2564f"),
-	"destroyed": Color("e2564f"),
-	"empty": Color("4d5762"),
+	"bears": Palette.OK,
+	"charging": Palette.AMBER,
+	"range": Palette.DIM,
+	"no arc": Palette.CRIT,
+	"destroyed": Palette.CRIT,
+	"empty": Palette.LINE_HOT,
 }
 
 
