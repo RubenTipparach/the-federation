@@ -10,6 +10,11 @@ signal design_changed
 
 const SELECT_CARD := preload("res://scenes/ui/select_card.tscn")
 const SECTOR_PANEL := preload("res://scenes/ui/sector_panel.tscn")
+
+## How far out along a facing's bearing a sector panel sits, as a fraction of
+## the shield band's inner radius. Presentation, so it lives here rather than
+## in tuning.json, but it is the one place the number appears.
+const PLATE_RING_FRAC: float = 0.62
 const MOUNT_ITEM := preload("res://scenes/ui/mount_fit_item.tscn")
 
 var session: Session
@@ -36,6 +41,7 @@ func bind_session(p_session: Session) -> void:
 	$Center/V/Controls/Reset.pressed.connect(_reset_demo)
 	$Center/V/Ring.facing_selected.connect(func(f: int) -> void: _log(
 		"Attack facing #%d selected" % (f + 1), Palette.CYAN))
+	$Center/V/Ring.resized.connect(_layout_plate)
 
 
 func refresh_from_session() -> void:
@@ -96,17 +102,15 @@ func _rebuild_internals() -> void:
 	# ship's own geometry, plus the hull core in the middle. Panels are
 	# instances of a committed scene dropped into anchors authored in
 	# fitting.tscn, so nothing here builds a node tree (CLAUDE.md 5.1).
+	var ring: Control = $Center/V/Ring
+	for panel in _panels:
+		panel.queue_free()
 	_panels = []
 	for sector in range(Sectors.FACING_COUNT + 1):
 		var is_core: bool = sector == Sectors.FACING_COUNT
-		var anchor: Control = $Center/V/Ring.get_node(
-			"Core" if is_core else "Sector%d" % sector)
-		for child in anchor.get_children():
-			child.queue_free()
 		var panel: PanelContainer = SECTOR_PANEL.instantiate()
-		anchor.add_child(panel)
-		# Centre the panel on its anchor point once it has been sized.
-		panel.set_anchors_preset(Control.PRESET_CENTER)
+		ring.add_child(panel)
+		panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
 		var key: int = ShipState.CORE if is_core else sector
 		panel.build(
 			"CORE" if is_core else str(sector + 1),
@@ -115,6 +119,36 @@ func _rebuild_internals() -> void:
 			_demo.systems_in(key))
 		_panels.append(panel)
 	$Center/V/Ring/HullView.show_hull(session.fit.hull())
+	_layout_plate.call_deferred()
+
+
+## Place each sector panel on the part of the ship it describes: at its
+## facing's centre bearing, inside the shield band, using the ring's own
+## geometry so a panel can never overlap a shield. The core sits amidships.
+## Called on every resize because the ring's radius follows the control.
+func _layout_plate() -> void:
+	if _panels.is_empty():
+		return
+	var ring: Control = $Center/V/Ring
+	var centre: Vector2 = ring.centre()
+	var r: float = ring.inner_radius()
+	var hull_view: Control = ring.get_node("HullView")
+	# The ship fills the space inside the shields.
+	hull_view.size = Vector2(r * 2.0, r * 2.0)
+	hull_view.position = centre - hull_view.size * 0.5
+	for sector in range(_panels.size()):
+		var panel: Control = _panels[sector]
+		panel.size = panel.get_combined_minimum_size()
+		var offset: Vector2 = Vector2.ZERO
+		if sector < Sectors.FACING_COUNT:
+			var bearing: float = Sectors.facing_center_bearing(sector)
+			var dir: Vector2 = Vector2(sin(deg_to_rad(bearing)), -cos(deg_to_rad(bearing)))
+			offset = dir * r * PLATE_RING_FRAC
+		panel.position = centre + offset - panel.size * 0.5
+
+
+func _on_ring_resized() -> void:
+	_layout_plate()
 
 
 func _refresh_state_views() -> void:

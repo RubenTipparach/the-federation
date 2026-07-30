@@ -16,9 +16,12 @@ func show_hull(hull: Dictionary) -> void:
 		return
 	mesh_node.visible = true
 	mesh_node.mesh = load(path)
+	# The mesh is drawn to fill the frame it is given: hulls differ in length by
+	# more than three to one, so a fixed camera size would leave a frigate as a
+	# speck. Tonnage only nudges it, so a battlecruiser still reads as bigger.
 	var tonnage: float = float(hull.get("tonnage", 100))
 	var cam: Camera3D = $View/Rig/Camera
-	cam.size = clampf(10.5 + tonnage / 200.0 * 3.5, 10.5, 15.0)
+	cam.size = clampf(7.0 + tonnage / 200.0 * 2.2, 7.0, 9.5)
 	# Straight down with the bow up the screen, the same framing the combat
 	# plan inset uses, so the plate and the tactical view agree on which way
 	# the ship is pointing.
