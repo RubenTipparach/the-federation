@@ -1,15 +1,15 @@
-# 07 — Roadmap
+# 07. Roadmap
 
 The organizing principle: **prove the fun before building the MMO.** Everything in this
 design is expensive, and almost all of it is worthless if a two-ship fight isn't gripping.
-So the build order is deliberately backwards from the feature list — tactical layer first,
+So the build order is deliberately backwards from the feature list: tactical layer first,
 persistence last.
 
 ---
 
-## M1 — Tactical Prototype *(no networking, no MMO)*
+## M1. Tactical Prototype *(no networking, no MMO)*
 
-**Goal:** answer the only question that matters — is the combat fun?
+**Goal:** answer the only question that matters: is the combat fun?
 
 **Scope:**
 - One scene: two ships, deep space, no terrain.
@@ -22,8 +22,8 @@ persistence last.
 - Tactical pause.
 - Runs locally in the Godot editor. **No server, no accounts, no database, no art.**
 
-**Exit criteria — hard gates:**
-- A fight between two evenly matched ships lasts 6–12 minutes and is *tense throughout*.
+**Exit criteria, hard gates:**
+- A fight between two evenly matched ships lasts 6-12 minutes and is *tense throughout*.
 - Five external playtesters, given no tutorial, discover shield rotation on their own.
 - Those testers ask to play again unprompted.
 - Every tester can articulate *why* they lost, in mechanical terms.
@@ -34,7 +34,7 @@ the assumption that M1 succeeded.
 
 ---
 
-## M2 — The Shipyard
+## M2. The Shipyard
 
 **Goal:** prove that building ships is a game in itself.
 
@@ -43,8 +43,12 @@ the assumption that M1 succeeded.
 - Hardpoints with sizes and arcs; the **arc rose** overlay.
 - ~30 components across the categories in [02](02-ship-construction.md) §5, at 2 tiers.
 - Derived stats panel, compare mode, named designs with revisions.
-- **Dry-dock simulation** — test a design against M1's AI immediately.
+- **Dry-dock simulation**: test a design against M1's AI immediately.
 - Shared `TheFederation.Sim` C# library used by both the fitting screen and the battle sim.
+
+**Process note:** this milestone is almost entirely UI, so `CLAUDE.md` §6 applies heavily.
+Each screen needs a mockup approved before implementation, per screen rather than one
+blanket approval for the whole shipyard.
 
 **Exit criteria:**
 - Testers voluntarily iterate a design 5+ times in one session.
@@ -54,13 +58,13 @@ the assumption that M1 succeeded.
 
 ---
 
-## M3 — Squadron & Scenarios
+## M3. Squadron & Scenarios
 
 **Goal:** scale combat from a duel to a battle.
 
 - 6-ship squadrons with **command tonnage** budget.
 - Consort standing orders; officer-rating-driven consort AI.
-- Hot-swap control (with transfer lag) — resolves GDD §11.1 by testing it.
+- Hot-swap control (with transfer lag), resolving GDD §11.1 by testing it.
 - Officers and crew: 6 posts, ratings, traits, crew quality, marines.
 - **Boarding and capture**, end to end, including prize retention at scenario end.
 - Terrain types and their combat effects.
@@ -74,7 +78,7 @@ the assumption that M1 succeeded.
 
 ---
 
-## M4 — Netcode & Battle Instances
+## M4. Netcode & Battle Instances
 
 **Goal:** the tactical layer, multiplayer, on Fly.io.
 
@@ -86,24 +90,24 @@ the assumption that M1 succeeded.
 - Accounts and auth; minimal persistence for ships and designs.
 
 **Exit criteria:**
-- 8 real players in one battle, cross-continent, with acceptable feel at 150–250ms.
+- 8 real players in one battle, cross-continent, with acceptable feel at 150-250ms.
 - Battle Machine boot p95 under 10 seconds.
 - Zero authoritative-state divergence in a 50-battle soak test.
 - A killed or hung Machine never corrupts a result or double-awards salvage.
 
 ---
 
-## M5 — The Galaxy
+## M5. The Galaxy
 
 **Goal:** a persistent map worth fighting over.
 
-- 300-hex map (**not** 3,000 — validate the systems at small scale first).
+- 300-hex map (**not** 3,000; validate the systems at small scale first).
 - Hex ownership, control pressure, supply propagation.
 - Squadron movement, real-time, with the reinforcement window.
 - Fog of war / stale intelligence on the strategic map.
 - Battle results writing back to hex pressure.
 - The tick service, with idempotency and resumability from day one.
-- 2 factions only (Terran, Kthaari) — enough to have a war.
+- 2 factions only (Terran, Kthaari), enough to have a war.
 
 **Exit criteria:**
 - A front visibly forms, moves, and stabilizes over a week of tester play without
@@ -113,7 +117,7 @@ the assumption that M1 succeeded.
 
 ---
 
-## M6 — Economy & Expansion
+## M6. Economy & Expansion
 
 **Goal:** the builder career, and the reason to fight over specific hexes.
 
@@ -135,7 +139,7 @@ the assumption that M1 succeeded.
 
 ---
 
-## M7 — Closed Alpha
+## M7. Closed Alpha
 
 - All 6 factions; full 3,000-hex map.
 - Bloom as an active NPC faction with autonomous expansion.
@@ -148,10 +152,10 @@ the assumption that M1 succeeded.
 
 ---
 
-## M8 — Beta → Season 1
+## M8. Beta → Season 1
 
 - Balance passes driven by telemetry, especially build diversity (the health metric that
-  matters most — if the top 5 fits are 60%+ of ships, [02](02-ship-construction.md) §10 has
+  matters most. If the top 5 fits are 60%+ of ships, [02](02-ship-construction.md) §10 has
   failed and needs work).
 - Season structure, scoring, and the soft territory reset.
 - Load testing to the §7 targets in [06](06-technical-architecture.md).
@@ -198,12 +202,12 @@ Technical risks are in [06](06-technical-architecture.md) §11. Design risks:
 
 ## Team Shape (rough)
 
-For M1–M3, a very small team is correct and sufficient:
+For M1-M3, a very small team is correct and sufficient:
 
 - 1 gameplay programmer (C#, the sim)
 - 1 UI/UX programmer (the shipyard is a UI-heavy product in its own right)
 - 1 designer (systems + balance + scenario authoring)
-- Placeholder art throughout M1–M3
+- Placeholder art throughout M1-M3
 
 Backend, art, and ops staffing begins at M4, not before. Hiring infrastructure engineers to
 support combat that hasn't been proven fun yet is the most common way projects like this die.

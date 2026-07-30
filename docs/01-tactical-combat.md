@@ -1,4 +1,4 @@
-# 01 — Tactical Combat
+# 01. Tactical Combat
 
 The battle layer. This is the part that must be fun before anything else is built.
 
@@ -12,7 +12,7 @@ The battle layer. This is the part that must be fun before anything else is buil
   about 90°. Engagements are decided over minutes, not seconds.
 - **Pacing:** real-time. Single-player and co-op PvE support **tactical pause**. PvP runs
   unpaused at the same base timescale (see GDD §11.2).
-- **Duration target:** 10–25 minutes. Hard scenario timer at 30 minutes, after which
+- **Duration target:** 10-25 minutes. Hard scenario timer at 30 minutes, after which
   a withdrawal is forced and the result is scored on damage dealt.
 - **Sides:** up to 6 capital ships per player squadron; instance target cap 24 capital
   hulls plus fighters/drones/platforms.
@@ -37,7 +37,7 @@ Momentum-based but bounded, so ships feel massive without becoming unmanageable.
 | **Lateral thrust** | Optional subsystem; enables strafing/slipping without turning |
 
 Player issues **heading + throttle**; the ship obeys as fast as its mass and current
-engine power allow. There is no reverse — you turn, or you don't get there.
+engine power allow. There is no reverse: you turn, or you don't get there.
 
 **Terrain effects** (inherited from the hex the battle spawned in):
 
@@ -55,7 +55,7 @@ layer real texture. See [04-galaxy-and-territory.md](04-galaxy-and-territory.md)
 
 ---
 
-## 3. Energy Allocation — the core mechanic
+## 3. Energy Allocation: the core mechanic
 
 Each ship produces **Power** per second from its reactors. The player continuously splits
 it across five sinks. This panel is the primary interface during combat.
@@ -74,16 +74,16 @@ it across five sinks. This panel is the primary interface during combat.
 Rules that make this interesting:
 
 1. **Total is fixed and always fully spent.** Adding to one sink takes from another. No
-   "just add more" — you spend the whole time robbing Peter to pay Paul.
-2. **Reallocation is not instant.** Moving power has a ramp (≈0.5–1.5s depending on your
+   "just add more". You spend the whole time robbing Peter to pay Paul.
+2. **Reallocation is not instant.** Moving power has a ramp (≈0.5-1.5s depending on your
    engineering officer and power-conduit tier). You must commit *slightly early*, which is
    where skill lives.
-3. **Batteries** store a small reserve for one burst — a single overload shot, an
+3. **Batteries** store a small reserve for one burst: a single overload shot, an
    emergency shield reinforce, or a full-power turn. Recharging costs sustained allocation.
 4. **Damaged reactors reduce total output.** Losing a reactor mid-fight forces a complete
    rethink, not a small stat loss. This is the most impactful internal hit in the game.
 5. **Weapons only fire from charged capacitors.** Rerouting away from weapons doesn't
-   dump the charge you already have — it stops you getting the *next* shot.
+   dump the charge you already have. It stops you getting the *next* shot.
 
 **Doctrine presets** (one-key allocation profiles: Alpha Strike / Brawl / Run Silent /
 Flank / Withdraw) exist so newer players aren't drowning, and so veterans can snap between
@@ -91,7 +91,7 @@ states quickly. Presets are configured in the shipyard, per design.
 
 ---
 
-## 4. Shields — six facings
+## 4. Shields: six facings
 
 Every ship has six independent shield facings mapped to the hex-like arrangement around
 the hull:
@@ -110,13 +110,13 @@ the hull:
 - **Reinforcement:** dump battery power into one facing for a short, large temporary boost.
   The classic panic button; costs your burst reserve.
 - When a facing hits 0, further hits on that arc go to **hull and internals**. Facings
-  don't "break" permanently — they regen, if you can buy time by turning a fresh face to
+  don't "break" permanently. They regen, if you can buy time by turning a fresh face to
   the enemy.
 
 **"Shield tanking" by rotation** is the intended core defensive skill: constantly turning
 so your strong facing eats fire while a spent one recovers. That is the fight.
 
-Most hulls also mount **armor** on specific facings — flat damage reduction that applies
+Most hulls also mount **armor** on specific facings: flat damage reduction that applies
 after shields collapse, doesn't regenerate, and is repaired at a yard. Armor is how heavy
 hulls survive; it costs mass, which costs speed.
 
@@ -146,19 +146,19 @@ range, target within arc, and capacitor charged.
 | **Mines** | Deployed, area denial, invisible until triggered. Great for chokepoint and station defense. |
 
 Seeking weapons create the game's most interesting pressure: a plasma torpedo in the water
-forces the target to *spend* something — thrust to evade, point defense power, or a shield
+forces the target to *spend* something: thrust to evade, point defense power, or a shield
 facing. Damage is almost secondary to the tempo it steals.
 
 ### 5.3 Special mounts
 
-- **Tractor beam** — lock a target, drag it, prevent it fleeing, hold it for boarding.
+- **Tractor beam**: lock a target, drag it, prevent it fleeing, hold it for boarding.
   Contestable: the target can fight the lock with their own tractor or engine power.
-- **Transporters** — deliver marines, snatch cargo, or run **hit-and-run raids** (beam a
+- **Transporters**: deliver marines, snatch cargo, or run **hit-and-run raids** (beam a
   small team aboard to sabotage one subsystem, then recall). Requires the target's facing
   shield to be down.
-- **Shuttle/fighter hangars** — launch small craft; screening, alpha strike, or point
+- **Shuttle/fighter hangars**: launch small craft; screening, alpha strike, or point
   defense soak. Sarn Concordance doctrine centerpiece.
-- **Cloaking device** — near-invisibility at heavy sustained power cost, cannot fire while
+- **Cloaking device**: near-invisibility at heavy sustained power cost, cannot fire while
   cloaked, brief vulnerable window on decloak. Vaelith Ascendancy centerpiece.
 
 ---
@@ -198,7 +198,7 @@ Damage resolves in a strict order:
 ### Internals
 
 Every ship has an **internal allocation table** derived from what's actually fitted.
-A ship that fitted four reactors is *more likely* to take reactor hits — your build
+A ship that fitted four reactors is *more likely* to take reactor hits. Your build
 determines your own vulnerability profile, which is an elegant, emergent consequence.
 
 Damageable internals: reactors, power conduits, each weapon mount, each shield generator,
@@ -227,7 +227,7 @@ generator or the weapon?
 
 ### Crippled and destroyed
 
-- At low hull, a ship becomes **crippled** — severe penalties, effectively combat-
+- At low hull, a ship becomes **crippled**: severe penalties, effectively combat-
   ineffective, still alive, still capturable, still able to run.
 - **Destruction** is the explicit end state; hulls destroyed in battle are gone.
 - **Escape pods** launch on destruction. Recovered pods save your officers and part of
@@ -241,7 +241,7 @@ The full loop, since capture is a design pillar (GDD §7).
 
 ### Preconditions
 1. Target's shield facing on your approach vector is at **0**.
-2. Target within **transporter range** (short — you must commit to being close).
+2. Target within **transporter range** (short, so you must commit to being close).
 3. Maintain **transporter lock** through their ECM.
 4. Optionally hold them with a **tractor beam** so they can't break range.
 
@@ -258,7 +258,7 @@ Boarding is an attritional contest resolved in rounds while conditions hold:
 - Defender wins → attacking marines are lost. Marines are a **finite, expensive resource**
   that must be replaced at a station.
 - Control of engineering disables the target's power. Control of the bridge **strikes their
-  colors** — the ship is yours.
+  colors**: the ship is yours.
 
 ### Defender counterplay
 Break range · reinforce that facing · ECM the lock · counter-tractor · commit their own
@@ -267,7 +267,7 @@ the prize, and is often the correct call).
 
 ### Aftermath
 1. **Hold the prize** to the end of the scenario, with enough surviving crew to sail it.
-2. **Tow** it across the galaxy layer to a friendly yard — slow, visible, contestable.
+2. **Tow** it across the galaxy layer to a friendly yard: slow, visible, contestable.
    This is deliberately dangerous; retaking a prize is premium emergent content.
 3. **Disposition** at the yard: fly it (foreign-tech upkeep penalty) · strip it for
    components · **study it to unlock the blueprint**.
@@ -284,7 +284,7 @@ and the reason transporters are worth mass on a small hull.
 You bring up to 6 capital ships. You are one captain.
 
 - **Flagship:** directly controlled.
-- **Consorts:** operate on **standing orders** — formation station, engagement range,
+- **Consorts:** operate on **standing orders**: formation station, engagement range,
   target priority, energy doctrine preset, withdrawal threshold.
 - **Command interface:** a squadron bar; select a ship to inspect or re-order. In PvE you
   pause to do this; in PvP you do it live, which is the real pressure.
@@ -297,7 +297,7 @@ You bring up to 6 capital ships. You are one captain.
 
 **Multi-player battles:** each player brings their own squadron, subject to the instance
 cap. A fleet commander role can issue *advisory* objectives (marks, focus targets, hold
-lines) that players may follow or ignore — never forced control of another player's ships.
+lines) that players may follow or ignore. There is never forced control of another player's ships.
 
 ---
 
@@ -319,7 +319,7 @@ encounter happened on the galaxy layer.
 
 Objective-based scenarios are what keep the tactical layer from staling. "Escort four
 freighters off the east edge while a Kthaari raider group hunts them" is a fundamentally
-different fitting and power-management problem than a straight fleet fight — and *that*
+different fitting and power-management problem than a straight fleet fight, and *that*
 variety is what makes the shipyard worth revisiting.
 
 ---
@@ -333,11 +333,11 @@ Every scenario emits an authoritative result to the galaxy layer:
 - Marines expended
 - Ammunition and consumables spent
 - Salvage recovered (components, alloys, intel, blueprint fragments)
-- **Prestige** awarded — weighted by objective completion and *tonnage disadvantage*, so
+- **Prestige** awarded, weighted by objective completion and *tonnage disadvantage*, so
   winning while outmatched pays far better than curb-stomping
 - **Hex pressure** applied toward control of the contested hex
 - Trade-route damage, station damage, colony status changes
 
 Withdrawal is always a legitimate, supported outcome. A squadron that disengages early
 keeps its hulls and concedes pressure. **Making retreat viable is what makes the strategic
-layer breathe** — if every contact is to the death, nobody ever leaves home.
+layer breathe**. If every contact is to the death, nobody ever leaves home.

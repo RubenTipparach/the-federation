@@ -1,4 +1,4 @@
-# 03 — Officers & Crew
+# 03. Officers & Crew
 
 Ships don't fight. Crews fight. This system exists to make a hull you've flown for a month
 feel different from an identical hull off the slip.
@@ -20,17 +20,17 @@ NPCs that the player recruits, trains, and can lose.
 | **Marine CO** | Boarding attack strength, boarding defense, hit-and-run success |
 
 ### Officer attributes
-Each officer has a **rating (1–100)** in their specialty plus:
+Each officer has a **rating (1-100)** in their specialty plus:
 
-- **Traits** (1–3) — qualitative modifiers, not just numbers:
+- **Traits** (1-3): qualitative modifiers, not just numbers:
   `Cool Under Fire` (no penalty while hull critical) · `Reckless` (+overload damage,
   +reactor damage risk) · `Nebula-Born` (ignores nebula sensor penalty) ·
   `Boarder` (+marine morale) · `Meticulous` (faster damage control, slower reload) ·
   `Loyal` (won't defect; survives capture) · `Green` (rating grows faster).
-- **Fatigue** — accumulates over consecutive deployments; degrades performance until the
+- **Fatigue**: accumulates over consecutive deployments; degrades performance until the
   officer gets shore leave. This is the mechanism that makes deep raiding expensive and
   gives players a reason to rotate personnel rather than fielding one god-crew forever.
-- **Experience** — grows through use, faster in the situations they were actually tested in.
+- **Experience**: grows through use, faster in the situations they were actually tested in.
   A gunnery officer who fights a lot of close brawls develops differently from one who
   spends a year on long-range escort duty.
 
@@ -42,11 +42,11 @@ allocation well. This makes officer investment across the whole squadron a real 
 spend rather than a stat tax on the flagship only.
 
 ### Recruitment
-- **Academy** (faction station) — reliable, mid-rated, costs credits + time.
-- **Contracts** — high-rated specialists on the open market; expensive, sometimes disloyal.
-- **Promotion from crew** — a long-service crew complement produces officer candidates.
+- **Academy** (faction station): reliable, mid-rated, costs credits + time.
+- **Contracts**: high-rated specialists on the open market; expensive, sometimes disloyal.
+- **Promotion from crew**: a long-service crew complement produces officer candidates.
   Slow, cheap, produces `Loyal` officers. The sentimental path, and mechanically good.
-- **Captured officers** — enemy officers taken in a boarding action can, occasionally, be
+- **Captured officers**: enemy officers taken in a boarding action can, occasionally, be
   turned. Rare, flavorful, and a great reason to board rather than destroy.
 
 ---
@@ -64,7 +64,7 @@ Crew is a **pool with a quality level**, not individuals.
 - Quality improves through **survived combat** and through **paid training** at a station.
   Training is the fast path; survival is the cheap path.
 - Crew casualties come from internal hits (crew quarters), boarding defense, and hull
-  breaches. Replacements are Green, so a badly mauled Elite crew is **diluted** — a real
+  breaches. Replacements are Green, so a badly mauled Elite crew is **diluted**: a real
   and painful loss even when the ship survives. This is one of the best sources of
   "that fight cost me" feeling in the design.
 
@@ -93,7 +93,7 @@ Per GDD §11.4, the default position:
 
 | Event | Officer outcome |
 |---|---|
-| Ship survives, bridge hit | **Injured** — out of action for a recovery period, may gain a scar trait |
+| Ship survives, bridge hit | **Injured**: out of action for a recovery period, may gain a scar trait |
 | Ship crippled, withdrawn | Officers survive |
 | Ship destroyed, pods recovered | Officers survive, heavy fatigue, crew mostly lost |
 | Ship destroyed, pods denied/not recovered | **Permanent loss** of officers aboard |
@@ -103,7 +103,7 @@ This makes **escape pod recovery** a live objective in the closing moments of a 
 fight, and gives a winning player a genuine choice: hunt the pods for a permanent kill on a
 rival's veteran crew, or let them go and take the salvage instead.
 
-Officers are never *unrecoverably* central — losing your best engineer hurts for a few
+Officers are never *unrecoverably* central. Losing your best engineer hurts for a few
 weeks, not forever. Pillar P4 holds.
 
 ---
@@ -120,6 +120,6 @@ weeks, not forever. Pillar P4 holds.
 ```
 
 Note what this progression *isn't*: raw combat power inflation. An Elite crew is roughly
-**15–25% more effective** than Green — decisive between equals, not insurmountable. The
+**15-25% more effective** than Green: decisive between equals, not insurmountable. The
 veteran's real advantage is **depth of bench**: they can field six well-crewed ships and
 rotate them, where a new player can field one.

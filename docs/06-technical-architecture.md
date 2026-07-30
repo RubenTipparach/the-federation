@@ -1,8 +1,8 @@
-# 06 — Technical Architecture (Godot 4 + Fly.io)
+# 06. Technical Architecture (Godot 4 + Fly.io)
 
 > **Note on scope:** this is a pre-production architecture proposal. Version numbers,
 > platform limits, and pricing below are starting assumptions to be **verified against
-> current Fly.io and Godot documentation before committing** — several are flagged inline.
+> current Fly.io and Godot documentation before committing**. Several are flagged inline.
 
 ---
 
@@ -13,11 +13,11 @@ follows.
 
 1. **Combat is slow.** Capital ships take seconds to turn. There is no twitch aiming, no
    headshot, no sub-100ms decision. **This is enormous.** It means we do not need rollback
-   netcode, client-side prediction of other players, or UDP heroics. A 10–15 Hz
+   netcode, client-side prediction of other players, or UDP heroics. A 10-15 Hz
    server-authoritative tick with client-side interpolation is *fully sufficient*, and that
    single fact removes most of the hard problems from a normally-hard genre.
 2. **Combat is instanced and bounded.** ≤24 capital ships, ≤30 minutes, fixed participant
-   list. Battles are **ephemeral, isolated, horizontally scalable compute** — the single
+   list. Battles are **ephemeral, isolated, horizontally scalable compute**, the single
    best fit imaginable for Fly Machines' start-on-demand model.
 3. **The galaxy is slow.** Hex movement is minutes. Trade ticks are minutes. Colony growth
    is hours. The persistent layer is a **database with a scheduler**, not a realtime sim.
@@ -34,7 +34,7 @@ second part.
 
 **Recommendation: Godot 4 with C# (.NET), and .NET for the backend services.**
 
-Rationale — the decisive factor is **sharing the simulation code**:
+Rationale: the decisive factor is **sharing the simulation code**:
 
 - The combat sim, the fitting validator, and the damage model must produce *identical*
   results in the client (for prediction, dry-dock simulation, and the fitting UI's derived
@@ -47,14 +47,14 @@ Rationale — the decisive factor is **sharing the simulation code**:
 - C# also handles this game's data-heavy math (four-budget validation, internal damage
   tables, arc geometry) with far better performance and refactoring safety than GDScript.
 
-Use **GDScript for UI glue and scene scripting** where it's faster to write — the shipyard's
+Use **GDScript for UI glue and scene scripting** where it's faster to write: the shipyard's
 interaction layer, menus, effects. Keep all rules in C#.
 
 **Alternative considered:** GDScript client + Elixir/Phoenix meta server. Elixir is
 genuinely the better tool for tens of thousands of persistent connections and supervised
 world processes. **Rejected for the first two years** because it adds a third language, and
 because the shared-sim-code benefit above outweighs Elixir's concurrency edge at our
-expected scale (§7). Revisit if the meta server becomes the bottleneck — it probably won't.
+expected scale (§7). Revisit if the meta server becomes the bottleneck, and it probably won't.
 
 ---
 
@@ -92,7 +92,7 @@ expected scale (§7). Revisit if the meta server becomes the bottleneck — it p
 
 ### Why this shape
 - The **meta services** are stateless HTTP + Postgres. Boring, cheap, easy to scale, easy to
-  reason about. Deploy as one Fly app per service (or one app with internal routing early on —
+  reason about. Deploy as one Fly app per service (or one app with internal routing early on;
   don't split prematurely).
 - The **battle instances** are the only realtime component, and they are *perfectly*
   ephemeral: created on contact, destroyed on result write-back. This is exactly what
@@ -102,7 +102,7 @@ expected scale (§7). Revisit if the meta server becomes the bottleneck — it p
 
 ---
 
-## 4. Battle Instances — the interesting part
+## 4. Battle Instances: the interesting part
 
 ### Lifecycle
 ```
@@ -130,7 +130,7 @@ expected scale (§7). Revisit if the meta server becomes the bottleneck — it p
 **Key properties:**
 - **One Machine per battle** gives complete blast-radius isolation. A crashed battle can't
   touch anything else, and a hung one can be killed by TTL without consequence.
-- Fly Machines boot in **single-digit seconds** from a warm image — well within the 60–90s
+- Fly Machines boot in **single-digit seconds** from a warm image, well within the 60-90s
   reinforcement window ([04](04-galaxy-and-territory.md) §3), which conveniently *is* the
   boot budget. The strategic design and the infrastructure line up here by luck; keep it.
 - Keep a **small warm pool** in each active region so peak contact rates never wait on boot.
@@ -138,7 +138,7 @@ expected scale (§7). Revisit if the meta server becomes the bottleneck — it p
 
 ### Netcode
 - **Transport: WebSocket over TLS** (`WebSocketMultiplayerPeer` in Godot 4). Not UDP.
-  - Justified entirely by §1.1: at 15 Hz with 200–400ms of interpolation buffer, TCP
+  - Justified entirely by §1.1: at 15 Hz with 200-400ms of interpolation buffer, TCP
     head-of-line blocking is invisible in a game where ships take seconds to turn.
   - Massive operational win: works through every corporate firewall, needs no dedicated
     IPv4, no UDP handler configuration, and no NAT traversal.
@@ -160,7 +160,7 @@ expected scale (§7). Revisit if the meta server becomes the bottleneck — it p
 
 ### Anti-cheat
 - Server owns all state. Clients send intents only.
-- **Fog of war is enforced server-side** — a client is never sent state for a cloaked or
+- **Fog of war is enforced server-side**: a client is never sent state for a cloaked or
   out-of-sensor-range ship. This is the one place where "just send everything and let the
   client hide it" would be fatal, so interest management is a *security* requirement, not an
   optimization.
@@ -172,7 +172,7 @@ expected scale (§7). Revisit if the meta server becomes the bottleneck — it p
 
 ## 5. Persistence
 
-**Postgres** (Fly Managed Postgres, or self-managed on Fly volumes — *verify current
+**Postgres** (Fly Managed Postgres, or self-managed on Fly volumes, *verify current
 offering and pricing*), single logical primary with read replicas in active regions.
 
 Rough schema domains:
@@ -188,14 +188,14 @@ Rough schema domains:
 | History | `battles`, `battle_participants`, `battle_results`, `kill_log` |
 
 **Design notes:**
-- `resource_stores` is **location-scoped by design** — there is no global balance. This
+- `resource_stores` is **location-scoped by design**: there is no global balance. This
   enforces [05](05-economy-and-expansion.md) §1 at the schema level, which is where it
   belongs.
 - **Ships are rows, not blobs.** A ship is a hull row + fitted-component rows + assigned
   officers. Damage state persists between battles.
 - `designs` are immutable per revision; ships reference the revision they were built from,
   so a design edit never retroactively changes existing hulls.
-- **Battle write-back is idempotent** on `battle_id` — a retried result post must never
+- **Battle write-back is idempotent** on `battle_id`: a retried result post must never
   double-award salvage. This is the most dangerous consistency boundary in the system and
   deserves explicit tests.
 
@@ -219,8 +219,8 @@ A single scheduler app (leader-elected, one active instance) advancing world tim
 | Season | daily | Objectives, Bloom expansion, seasonal scoring |
 
 All ticks are **idempotent and resumable** from a `world_tick` cursor, so a restart or
-redeploy mid-tick cannot double-produce resources. **Write this property in from day one** —
-retrofitting it into an economy that's already live is close to impossible.
+redeploy mid-tick cannot double-produce resources. **Write this property in from day one**.
+Retrofitting it into an economy that's already live is close to impossible.
 
 ---
 
@@ -234,13 +234,13 @@ Starting assumptions to design against (revise with real data):
 | Peak concurrent players | 3,000 |
 | Peak concurrent battles | 150 |
 | Avg players per battle | 4 |
-| Battle Machine | 1 shared CPU, 512 MB–1 GB |
-| Meta service instances | 4–8 shared CPUs across services |
-| Database | Single primary, 4–8 GB RAM, + replicas |
+| Battle Machine | 1 shared CPU, 512 MB-1 GB |
+| Meta service instances | 4-8 shared CPUs across services |
+| Database | Single primary, 4-8 GB RAM, + replicas |
 
 **Rough monthly infrastructure estimate at that scale: low four figures USD**, dominated by
 battle-instance CPU-seconds and the database. **This is a rough order-of-magnitude figure,
-not a quote** — model it properly against current Fly pricing before it goes in a budget.
+not a quote**. Model it properly against current Fly pricing before it goes in a budget.
 
 The economics are favorable because battle Machines only exist while battles do. At 150
 concurrent battles averaging 18 minutes, that's a genuinely small amount of compute-time,
@@ -248,13 +248,13 @@ and it costs nothing at 4am.
 
 ---
 
-## 8. Regions & Sharding (open — GDD §11.6)
+## 8. Regions & Sharding (open, see GDD §11.6)
 
 The unresolved question: one galaxy globally, or one per region?
 
 - **Meta services are latency-tolerant** (nobody notices 200ms on a build queue), so they can
   be global with regional read replicas. Not the problem.
-- **Battle instances are latency-sensitive**, but only mildly (§1.1) — a 15 Hz slow-paced
+- **Battle instances are latency-sensitive**, but only mildly (§1.1): a 15 Hz slow-paced
   sim tolerates 150ms fine, and 250ms acceptably.
 - The real problem is **cross-region battles**: a Sydney player and a Frankfurt player in one
   instance means someone gets 300ms+.
@@ -263,7 +263,7 @@ The unresolved question: one galaxy globally, or one per region?
 independent shard with its own Postgres and its own map. Rationale:
 
 - A single global galaxy makes some fleet battles unplayable for someone, always.
-- A hex-based territorial war is fundamentally a *timezone-local* activity — a front only
+- A hex-based territorial war is fundamentally a *timezone-local* activity: a front only
   works if the people fighting over it are awake at the same time. Splitting by region splits
   along the grain of the design rather than against it.
 - Each shard needs a healthy population; three shards at 1,000 concurrent each is a
@@ -285,12 +285,25 @@ Three largely separate front-ends sharing an asset and data layer:
 | `GalaxyRoot` | Hex map, fleet orders, trade/colony/station management. REST + light WebSocket for push. |
 | `BattleRoot` | The tactical sim client. WebSocket to a battle Machine. |
 
-- **Shared:** `TheFederation.Sim` (C# class library — rules, math, validation),
+- **Shared:** `TheFederation.Sim` (C# class library: rules, math, validation),
   a REST client, and the asset/data catalog.
-- **Hex rendering:** don't use a TileMap for 3,000 hexes with layered overlays. Use a custom
-  `MultiMeshInstance2D` or a shader-driven mesh with data supplied via texture — the map needs
-  smooth zoom from whole-galaxy to single-hex, and per-hex ownership/supply/pressure overlays
-  that change often.
+- **Hex rendering: unresolved, and blocked on a project rule.** A TileMap is unlikely to
+  carry 3,000 hexes with several layered, frequently changing overlays, and the map needs
+  smooth zoom from whole-galaxy down to a single hex. The obvious answer is a
+  `MultiMeshInstance2D` or a shader driven mesh fed by a data texture.
+
+  **That answer conflicts with `CLAUDE.md` §5.1, which forbids procedurally generated meshes
+  and scenes.** It is therefore *not adopted*. The hex map needs an explicit decision before
+  any rendering work starts, and the options are:
+  1. A statically authored hex tile scene, instanced per hex, with overlays as child nodes.
+     Fully rule compliant. Needs a load test at 3,000 hexes before it can be trusted.
+  2. A statically authored hex *mesh file* (per §2, committed as `.obj`/`.gltf`) drawn many
+     times via instancing. The geometry is authored, not generated, so only the
+     *placement* is programmatic. This is the most likely reconciliation.
+  3. A documented exception in `CLAUDE.md` §7 for map rendering specifically.
+
+  Option 2 looks like the right reading of the rule: author the geometry as a file, and let
+  code place instances of it. Confirm before building.
 - **Dedicated server export:** the headless combat server is a **dedicated server export
   preset** of the same project, stripped of rendering, audio, and client-only scenes. Same
   repo, same sim code, no duplicated logic. This is the payoff for choosing Godot on the
@@ -301,7 +314,7 @@ Three largely separate front-ends sharing an asset and data layer:
 ## 10. Deployment
 
 - **One Fly app per service.** `tf-gateway`, `tf-world`, `tf-yard`, `tf-market`, `tf-tick`,
-  `tf-battle`. Early on, collapse world/yard/market into one app and split later — premature
+  `tf-battle`. Early on, collapse world/yard/market into one app and split later. Premature
   service splitting is the most common way to make a small team slow.
 - `tf-battle` is **not** a normal always-on app: its Machines are created and destroyed
   programmatically via the Machines API by `tf-world`.
@@ -309,8 +322,8 @@ Three largely separate front-ends sharing an asset and data layer:
   The Godot export step needs export templates in the build container; cache them.
 - **Migrations** run as a release command, gated, with an explicit rollback path. Once the
   economy is live, a bad migration is the worst incident available to us.
-- **Secrets** via `fly secrets`. Battle Machines receive only a short-lived scoped token —
-  they must not hold database credentials. A battle instance is the most exposed component in
+- **Secrets** via `fly secrets`. Battle Machines receive only a short-lived scoped token.
+  They must not hold database credentials. A battle instance is the most exposed component in
   the system (clients connect to it directly); it should be able to do nothing except report
   a result to `tf-world`.
 - **Observability:** structured logs shipped off-platform, per-battle trace IDs, and a metrics
