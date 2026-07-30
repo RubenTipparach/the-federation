@@ -154,8 +154,9 @@ Where players spend a surprising amount of their playtime, and by design. Full d
 [02-ship-construction.md](02-ship-construction.md) and
 [03-officers-and-crew.md](03-officers-and-crew.md).
 
-- Buy/unlock **hulls** (the chassis: mass, space, hardpoints, base power, berths).
-- Fit **weapons** into hardpoints, each with a firing **arc**.
+- Buy/unlock **hulls** (the chassis: mass, space, mounts, base power, berths).
+- Fit **weapons** into **mounts**, which own the firing **arc**. A mount's arc is fixed by
+  the hull, so where a ship can shoot is a consequence of hull choice, not of loadout.
 - Fit **subsystems**: shield generators, engines, reactors, computers/fire control,
   ECM/ECCM, tractors, transporters, cloaks, hangars, marine barracks, cargo.
 - Assign **bridge officers** (helm, gunnery, engineering, tactical, science, marine CO)
@@ -207,7 +208,7 @@ what their component families are good at, which forces different fitting decisi
 | **Kthaari Dominion** | Aggressive attrition, heavy hulls | Disruptor banks + drone racks, huge marine complements | Poor sensors, slow turn rate, weak rear arcs |
 | **Vaelith Ascendancy** | Ambush and alpha strike | Cloaking, plasma torpedoes, high burst | Fragile hulls, poor sustain, terrible if caught decloaked |
 | **Sarn Concordance** | Swarm and control | Fighter hangars, tractor webs, area denial | Weak individual hulls, hangar dependency |
-| **Helion Combine** | Modular mercantile industry | Cheapest hulls, most hardpoint flexibility, best cargo/trade | Lowest ceiling per hull; needs numbers or economy |
+| **Helion Combine** | Modular mercantile industry | Cheapest hulls, most mount flexibility, best cargo/trade | Lowest ceiling per hull; needs numbers or economy |
 | **The Bloom** *(NPC/PvE)* | Non-negotiating hostile force | Regenerating organic hulls, no salvageable tech | n/a |
 
 **Faction is chosen at account creation and is semi-permanent** (a costly, cooldowned

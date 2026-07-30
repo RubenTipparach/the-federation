@@ -22,7 +22,7 @@ hulls to board, capture, and refit into your own.
 |---|---|
 | [docs/GDD.md](docs/GDD.md) | **Master design document**: vision, pillars, player fantasy, loops, factions |
 | [docs/01-tactical-combat.md](docs/01-tactical-combat.md) | Battle scenarios, energy allocation, shield arcs, damage, boarding & capture |
-| [docs/02-ship-construction.md](docs/02-ship-construction.md) | Hulls, budgets, hardpoints, subsystems, refit economy, blueprints |
+| [docs/02-ship-construction.md](docs/02-ship-construction.md) | Hulls, budgets, mounts and arcs, subsystems, refit economy, blueprints |
 | [docs/03-officers-and-crew.md](docs/03-officers-and-crew.md) | Bridge officers, crew quality, marines, promotion, permadeath rules |
 | [docs/04-galaxy-and-territory.md](docs/04-galaxy-and-territory.md) | Hex galaxy, supply, fleet movement, contested space, sieges |
 | [docs/05-economy-and-expansion.md](docs/05-economy-and-expansion.md) | Trade routes, stations, colonization, exploration, resources |

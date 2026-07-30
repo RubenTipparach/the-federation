@@ -126,7 +126,7 @@ Installations are covered mechanically in [05](05-economy-and-expansion.md); the
 
 - An installation **anchors** a hex: pressure can't flip it while a functional installation
   stands.
-- Installations have their own **shield facings, hardpoints, and internals**: they are
+- Installations have their own **shield facings, mounts, and internals**: they are
   fitted, like ships, by whoever built them. A well-fitted station is a serious battle.
 - **Sieges** are multi-stage and take real time:
   1. **Blockade**: cut the hex's supply; the station's regeneration and garrison

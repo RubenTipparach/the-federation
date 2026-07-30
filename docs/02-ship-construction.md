@@ -30,7 +30,7 @@ Each hull defines:
 | **Mass** | Base mass; drives thrust/turn requirements |
 | **Internal space** | The primary fitting budget (§3) |
 | **Base power** | Free power before any reactors are fitted |
-| **Hardpoints** | Fixed list of mounts, each with size and arc (§4) |
+| **Mounts** | Fixed list of mounts, each with size, permitted classes, and arc field (§4) |
 | **Shield facing caps** | Max shield strength per facing, regardless of generators |
 | **Armor facings** | Which facings can mount armor, and how much |
 | **Berths** | Crew + marine capacity ceiling |
@@ -88,34 +88,90 @@ error state, which is a nice source of build diversity.
 
 ---
 
-## 4. Hardpoints & Arcs
+## 4. Mounts & Arcs
 
-Weapons go in hardpoints. Hardpoints are **fixed by the hull**: you cannot add or move
-them. This is the primary reason hull choice matters.
+Weapons go in **mounts**. Mounts are **fixed by the hull**: you cannot add, move, or
+re-aim them. This is the primary reason hull choice matters.
 
-Each hardpoint has:
+### 4.1 The sector model
+
+Bearings are divided into **12 sectors of 30 degrees**. Bearing 000 is dead ahead and
+increases clockwise. Sector `i` covers `[i*30, i*30+30)`.
+
+Each of the six shield facings is **exactly two sectors**, so a hit's facing is a lookup
+and never boundary arithmetic:
+
+```
+  facing #1  fore          sectors 11, 0     330-030
+  facing #2  fore-stbd     sectors  1, 2     030-090
+  facing #3  aft-stbd      sectors  3, 4     090-150
+  facing #4  aft           sectors  5, 6     150-210
+  facing #5  aft-port      sectors  7, 8     210-270
+  facing #6  fore-port     sectors  9, 10    270-330
+```
+
+30 degrees is the deliberate middle ground. Six sectors would make the 90 degree sponson
+arcs below impossible; free arbitrary degrees would mean every shot lands on a shield
+boundary case and players could not eyeball whether a target bears.
+
+### 4.2 The mount owns the arc
+
+Each mount has:
 
 - **Size**: Light / Medium / Heavy / Spinal. A weapon fits its size or smaller
   (with wasted capacity), never larger.
-- **Arc**: the firing cone, expressed against the six facings.
+- **Permitted classes**: which weapon families may be fitted at all. A torpedo bay does
+  not accept a beam emitter.
+- **Field**: the set of sectors the mount can fire into. This is a property of the
+  *hull*, not of whatever is fitted.
+
+**A weapon fitted to a mount inherits the mount's field.** Swapping a beam for a
+disruptor does not change where the ship can shoot. Typical fields:
 
 ```
-  Arc types:
-    FA   Forward only            (60°)   : lances, spinal mounts
-    FX   Forward extended       (120°)   : main disruptor banks
-    FP/FS Forward port/stbd      (90°)   : asymmetric broadside mounts
-    LS/RS Left/right broadside  (180°)   : beam batteries
-    RA   Rear                    (120°)  : retreat guns, mine layers
-    360  Full turret             (360°)  : expensive, low damage, point defense
+  fore spinal        sectors 11,0            60 deg    photon, lance
+  fore quarter       sectors 0,1,2           90 deg    beam, disruptor
+  waist broadside    sectors 2,3,4           90 deg    beam
+  aft               sectors 5,6,7            90 deg    beam, mine
+  dorsal ring        all 12                 360 deg    drone, point defense
 ```
+
+**Arc width itself is free.** A wide mount costs no extra space, mass, or damage. Balance
+comes entirely from **which mounts a hull has**: a 360 degree ring mount is rare and only
+appears on hulls the designers chose to give one, and it is usually Light size so only
+small weapons fit it. This keeps the fitting screen honest, since there is no arc stat to
+min-max, and it makes hull selection the real decision.
+
+### 4.3 Multiple arcs, and special weapons
+
+A mount's field may be **several disjoint runs of sectors**, and all of them fire at
+**full effect**. There is no degraded secondary arc. A spinal mount with a matching rear
+tube is `{11,0}` plus `{5,6}`, and both ends hit just as hard.
+
+**Special weapons may override the mount's field.** This is the documented exception, not
+the norm: a named or unique component (an omni-directional emitter, a spinal weapon with
+its own gimbal) carries its own sector list and ignores the mount's. Overrides are how
+exotic salvage and anomaly components (see
+[05-economy-and-expansion.md](05-economy-and-expansion.md) §5) become genuinely exciting
+rather than a stat bump, because one of them can close a blind bearing that the hull was
+never supposed to cover.
+
+Overrides must be visually obvious in the fitting UI, because otherwise a player cannot
+tell why one ship covers an arc its hull should not.
+
+### 4.4 Why this matters
 
 **Arc management is the tactical skill the fitting screen sells you.** A ship with
-everything in FA is a hammer that must be pointed; a ship with broadsides wants to circle;
-a 360 turret build has no bad angle and no punch. The shipyard is where you decide which
-kind of fight you're going to be able to have.
+everything forward is a hammer that must be pointed; a broadside ship wants to circle; a
+ring-mount build has no bad angle and no punch. The shipyard is where you decide which
+kind of fight you are able to have.
 
-The fitting UI renders your combined arc coverage as an overlay, with a **damage-by-angle
-rose** so you can see your blind spots before an enemy finds them.
+The fitting UI renders arcs on a **12 sector wheel where the angle is the bearing and the
+radius is the weapon's effective range**. Both dimensions carry information: a long thin
+wedge is a sniper, a short fat one is a brawler, overlaps are where firepower concentrates,
+and any sector no weapon reaches is a **blind bearing** shown as a first class derived
+stat next to alpha strike. The same arc-intersected-with-range shape is used to draw
+firing envelopes in combat, so the two screens teach the same geometry.
 
 ---
 
@@ -215,7 +271,8 @@ A **design** is a saved, named, validated fitting of one hull. Designs are:
 
 ### Refit
 Changing an existing ship's fitting at a yard: cheaper and faster than new construction,
-but bounded: you can swap components freely; you cannot change hull or hardpoints. This
+but bounded: you can swap components freely; you cannot change hull or mounts, so a refit
+never changes where the ship can shoot. This
 is the "prestige-funded refit" loop from the reference, and it's where most of a player's
 ongoing spend goes.
 

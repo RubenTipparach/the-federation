@@ -124,9 +124,14 @@ hulls survive; it costs mass, which costs speed.
 
 ## 5. Weapons
 
-Every weapon occupies a **hardpoint** with a fixed **arc** (see
-[02-ship-construction.md](02-ship-construction.md) §4). Firing requires: target within
-range, target within arc, and capacitor charged.
+Every weapon occupies a **mount**, and the mount owns the **arc** (see
+[02-ship-construction.md](02-ship-construction.md) §4). Bearings are 12 sectors of 30
+degrees, and each shield facing is exactly two sectors, so resolving which facing a shot
+strikes is a lookup rather than angle math.
+
+Firing requires: target within range, target inside one of the mount's sectors, and
+capacitor charged. The **firing envelope** is therefore the mount's arc intersected with
+the weapon's range, which is exactly the wedge the fitting screen draws.
 
 ### 5.1 Direct-fire energy
 
