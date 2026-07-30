@@ -130,11 +130,18 @@ func close(battle: Battle) -> void:
 ##
 ## It runs to the recorded end tick. extra_ticks only applies to a log that was
 ## never closed, which should not happen but is worth surviving.
-func replay(extra_ticks: int = 0) -> Battle:
+## The battle this log starts from, before any command is applied. Shared by
+## the headless replay and the screen that watches one, so a watched replay and
+## a tested replay begin from the same state.
+func replay_setup() -> Battle:
 	var fit: ShipFit = ShipFit.create_default(player_hull)
 	for mount_id in player_slots.keys():
 		fit.slots[String(mount_id)] = String(player_slots[mount_id])
-	var battle: Battle = Battle.create_duel(fit, enemy_hull, seed_value)
+	return Battle.create_duel(fit, enemy_hull, seed_value)
+
+
+func replay(extra_ticks: int = 0) -> Battle:
+	var battle: Battle = replay_setup()
 	var until: int = end_tick if end_tick >= 0 else last_tick() + extra_ticks
 	while battle.tick < until and not battle.over:
 		for c in commands_at(battle.tick):

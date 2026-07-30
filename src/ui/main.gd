@@ -17,6 +17,7 @@ func _ready() -> void:
 	$Root/Content/Fitting.bind_session(session)
 	$Root/Content/Arcs.bind_session(session)
 	$Root/Content/Skirmish.bind_session(session)
+	$Root/Content/Skirmish.replay_chosen.connect(_on_replay_chosen)
 	$Root/Content/Combat.bind_session(session)
 
 	$Root/TopBar/TabFitting.pressed.connect(show_tab.bind("Fitting"))
@@ -63,6 +64,11 @@ func _on_design_selected(hull_id: String) -> void:
 func _on_begin_battle() -> void:
 	show_tab("Combat")
 	$Root/Content/Combat.start_battle()
+
+
+func _on_replay_chosen(log: BattleLog) -> void:
+	show_tab("Combat")
+	$Root/Content/Combat.start_replay(log)
 
 
 func _on_battle_ended() -> void:

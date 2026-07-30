@@ -17,6 +17,12 @@ var _drag_moved: float = 0.0
 var _report_lines: Array[String] = []
 var _wired: bool = false
 
+## Set while watching a recording. The battle is driven by the log's commands
+## instead of the player's, and the same tactical view renders it: a replay is
+## the combat screen in another mode, never a second screen (CLAUDE.md 4.1).
+var replay_log: BattleLog = null
+var replay_speed: float = 1.0
+
 
 ## Called every time the player enters combat. The session is swapped each
 ## time, the wiring happens once: every connection below is to a node that
@@ -80,13 +86,42 @@ func bind_session(p_session: Session) -> void:
 	touch.camera_moved.connect(_on_camera_stick)
 	touch.target_stepped.connect(_step_target)
 
+	var bar: Control = $Mid/ReplayBar
+	bar.get_node("Play").pressed.connect(_toggle_pause)
+	bar.get_node("Restart").pressed.connect(func() -> void: seek_replay(0))
+	bar.get_node("Leave").pressed.connect(func() -> void: battle_ended.emit())
+	for speed in [1, 2, 4]:
+		bar.get_node("Speed%d" % speed).pressed.connect(
+			_set_replay_speed.bind(float(speed)))
+	bar.get_node("Scrub").value_changed.connect(func(v: float) -> void:
+		if replay_log != null and absi(int(v) - battle.tick) > 1:
+			seek_replay(int(v)))
+
 
 
 func _world() -> Node3D:
 	return $Mid/ViewPanel/Stack/ViewContainer/View/World
 
 
+## Watch a recording. The view, the HUD, and the comm log are the live ones.
+func start_replay(log: BattleLog) -> void:
+	replay_log = log
+	battle = log.replay_setup()
+	_world().bind_battle(battle)
+	paused = false
+	replay_speed = 1.0
+	_report_lines = []
+	$Mid/Actions/Pause.text = "Pause"
+	$Mid/ViewPanel/Stack/EndOverlay.visible = false
+	_build_weapon_rows()
+	_sync_pitch_ui()
+	_refresh_hud()
+	_sync_replay_bar()
+
+
 func start_battle() -> void:
+	replay_log = null
+	$Mid/ReplayBar.visible = false
 	battle = Battle.create_duel(session.fit.duplicate_fit(), session.enemy_hull_id,
 		int(Time.get_ticks_usec()) % 1000000007)
 	# Every battle is recorded. A log is small, it is written from the one
@@ -122,7 +157,9 @@ func _physics_process(delta: float) -> void:
 		return
 	_apply_sticks(delta)
 	var events: Array[Dictionary] = []
-	if not paused and not battle.over:
+	if replay_log != null:
+		events = _step_replay(delta)
+	elif not paused and not battle.over:
 		events = battle.step(delta)
 	_world().update_visuals(delta, events)
 	for e in events:
@@ -137,6 +174,61 @@ func _physics_process(delta: float) -> void:
 	_refresh_target_label()
 	_position_ship_labels()
 
+
+
+# ---- replay ------------------------------------------------------------------
+
+## Drive the battle from the log rather than from the player. Steps are the
+## log's fixed dt, so what is watched is exactly what was recorded; speed just
+## runs more of them per frame.
+func _step_replay(delta: float) -> Array[Dictionary]:
+	var events: Array[Dictionary] = []
+	if paused or battle.over or battle.tick >= replay_log.end_tick:
+		_sync_replay_bar()
+		return events
+	var budget: float = delta * replay_speed
+	var steps: int = maxi(1, int(budget / replay_log.dt))
+	for i in range(steps):
+		if battle.over or battle.tick >= replay_log.end_tick:
+			break
+		for c in replay_log.commands_at(battle.tick):
+			battle.apply_command(int(c[1]), String(c[2]), c[3], false)
+		events.append_array(battle.step(replay_log.dt))
+	_sync_replay_bar()
+	return events
+
+
+## Jump to a tick by replaying to it from the start. The simulation is cheap
+## and this is the only way a scrub can land on the same state the recording
+## had: there is no snapshot to restore, by design (docs/11).
+func seek_replay(tick: int) -> void:
+	if replay_log == null:
+		return
+	battle = replay_log.replay_setup()
+	var target: int = clampi(tick, 0, replay_log.end_tick)
+	while battle.tick < target and not battle.over:
+		for c in replay_log.commands_at(battle.tick):
+			battle.apply_command(int(c[1]), String(c[2]), c[3], false)
+		battle.step(replay_log.dt)
+	_world().bind_battle(battle)
+	_build_weapon_rows()
+	_refresh_hud()
+	_sync_replay_bar()
+
+
+func _sync_replay_bar() -> void:
+	var bar: Control = $Mid/ReplayBar
+	bar.visible = replay_log != null
+	if replay_log == null:
+		return
+	var seconds: float = float(battle.tick) * replay_log.dt
+	var total: float = float(replay_log.end_tick) * replay_log.dt
+	bar.get_node("Where").text = "TICK %d / %d   %0.1fs / %0.1fs" % [
+		battle.tick, replay_log.end_tick, seconds, total]
+	var scrub: HSlider = bar.get_node("Scrub")
+	scrub.max_value = maxf(1.0, float(replay_log.end_tick))
+	if not scrub.has_focus():
+		scrub.set_value_no_signal(float(battle.tick))
 
 
 # ---- touch ------------------------------------------------------------------
@@ -244,7 +336,7 @@ func _on_power_slider(value: float, sink: String) -> void:
 ## step gate: firing into a frozen battle applied damage while time stood
 ## still, which the review caught.
 func _can_command() -> bool:
-	return battle != null and not paused and not battle.over
+	return battle != null and not paused and not battle.over and replay_log == null
 
 
 func _fire_beams() -> void:
@@ -285,16 +377,38 @@ func _come_about() -> void:
 	_note("Helm: coming about")
 
 
+func _set_replay_speed(speed: float) -> void:
+	replay_speed = speed
+	for option in [1, 2, 4]:
+		$Mid/ReplayBar.get_node("Speed%d" % option).button_pressed = \
+			is_equal_approx(float(option), speed)
+
+
 func _toggle_pause() -> void:
 	paused = not paused
 	$Mid/Actions/Pause.text = "Resume" if paused else "Pause"
+	$Mid/ReplayBar/Play.text = "Play" if paused else "Pause"
 
 
 func _end_battle(reason: String) -> void:
 	_show_end(-1, reason)
 
 
+## A finished battle is written to disk, so anything odd can be watched again
+## or attached to a report (docs/11). Every ending saves: a victory, a defeat,
+## and a disengagement are all worth being able to replay.
+func _save_recording() -> void:
+	if replay_log != null or battle == null or battle.log == null:
+		return
+	if battle.log.end_tick < 0:
+		battle.log.close(battle)
+	var path: String = ReplayStore.save(battle.log, int(Time.get_unix_time_from_system()))
+	if not path.is_empty():
+		_note("Battle recorded to %s" % [path.get_file()])
+
+
 func _show_end(winner: int, reason: String = "") -> void:
+	_save_recording()
 	var overlay: CenterContainer = $Mid/ViewPanel/Stack/EndOverlay
 	overlay.visible = true
 	var result: Label = overlay.get_node("P/V/Result")
