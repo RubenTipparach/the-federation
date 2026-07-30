@@ -220,3 +220,20 @@ Two conventions the pipeline establishes, worth keeping:
 
 The rules above apply from the first line of code, especially §4.1. Retrofitting shared
 implementations after divergence has set in is far more expensive than starting shared.
+
+---
+
+## 9. Automation and Self Check-ins
+
+**Do not schedule recurring self check-ins, polling loops, or re-arming reminders unless
+the user explicitly asks for them.** This includes waking the session on a timer to re-check
+a pull request, a CI run, a deploy, or any other external state.
+
+- Finish the work, report the state once, and stop. Do not schedule a follow up "just in
+  case."
+- A check-in that is already running must not re-arm itself after the user asks for it to
+  stop, or after the thing it was watching is resolved.
+- Reacting to an event that arrives on its own, such as a pull request webhook or a task
+  completion notification, is fine. It is the self scheduled timer that is off by default.
+- When the user does ask for a recurring check, follow their interval and their stop
+  condition, and end the loop as soon as that condition is met.
