@@ -368,8 +368,12 @@ than a `BoxMesh` built at runtime. `docs/07` M1 is adjusted for this.
 **Overlays render on the plane, not in screen space.** Shield facings, firing envelopes,
 and range rings are geometry lying on the plane at y=0. This is what preserves arc
 legibility under perspective, and it also means they are ordinary meshes and materials,
-so the constrained renderer does not threaten them. The camera needs a **pitch floor**,
-and a plan-view inset is a hard UI requirement rather than a nicety.
+so the constrained renderer does not threaten them. The camera is **clamped to 25 to 90
+degrees of elevation**: downward looking only, never level, never below the plane. The
+clamp belongs in one shared function that every input path calls, because per-handler
+clamping is how one path drifts and allows an illegal camera. A plan-view inset is a hard
+UI requirement rather than a nicety. See
+[01-tactical-combat.md](01-tactical-combat.md) §1.
 - **Hex rendering: unresolved, and blocked on a project rule.** A TileMap is unlikely to
   carry 3,000 hexes with several layered, frequently changing overlays, and the map needs
   smooth zoom from whole-galaxy down to a single hex. The obvious answer is a
@@ -428,7 +432,7 @@ and a plan-view inset is a hard UI requirement rather than a nicety.
 | UDP unavailable / awkward on Fly | Low | Architecture deliberately requires only WebSocket/TCP (§4) |
 | Single Postgres primary becomes the ceiling | Medium | Read replicas; region sharding (§8) is the real answer and is already the plan |
 | 3D combat looks flat on the `gl_compatibility` feature set | Medium | Art direction carries the look (silhouettes, emissive hulls, engine glow), not renderer features. See §9.1. Reassess only if the browser build is dropped |
-| Low camera pitch makes arcs unreadable | Medium | Camera pitch floor, an on screen warning below the threshold, and a mandatory plan-view inset. Demonstrated in the approved mockup |
+| Low camera pitch makes arcs unreadable | Low | Prevented structurally: elevation is clamped to 25-90 degrees, above the ~20 degree point where foreshortening bites. One shared clamp, plus a mandatory plan-view inset |
 | Web export limits (no threads, browser memory ceilings) bite later | Medium | Web is built and deployed from day one (`docs/08`), so regressions surface immediately rather than at M2 |
 | GDScript too slow on a hot sim path | Low | 15 Hz over 24 ships is little work. If profiling shows one, move that function to GDExtension rather than porting the project |
 | GDScript's weak typing lets a sim bug through | Medium | Typed GDScript mandatory in `src/sim/`; untyped declarations there are a review failure |

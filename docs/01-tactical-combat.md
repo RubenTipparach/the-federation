@@ -45,14 +45,29 @@ envelopes are fans on the plane, and range rings are circles on the plane that r
 ellipses under perspective. Because they live on the plane, the perspective that makes the
 scene look 3D also tells you where things are.
 
-Two consequences that must be designed for, not discovered:
+### The camera looks down, always
 
-- **A low camera foreshortens the plane** until arcs collapse into slivers. There is a
-  **camera pitch floor**, and the UI warns when the pitch is low enough that arc geometry
-  is no longer trustworthy from the 3D view alone.
-- **A plan-view inset is mandatory, not a nicety.** Whatever the 3D camera is doing, one
-  always-top-down view of arcs and positions must be on screen. It is the guarantee that
-  cinematic framing can never cost the player tactical information.
+**Elevation is clamped to 25 to 90 degrees.** The camera is never level with the plane,
+never below it, and never tilted up toward a horizon. Straight down (90) is the plan view;
+25 is the lowest, most cinematic angle allowed.
+
+This is a hard constraint, not a default, and it does two jobs with one number:
+
+- **It is the camera rule.** Combat is looked *down* on. There is no positive pitch and no
+  under-plane view, so the player can never lose the plane as a spatial reference.
+- **It also settles legibility.** A low camera foreshortens the plane until arcs collapse
+  into slivers, which starts to bite around 20 degrees. Because the floor sits above that,
+  arc geometry is *always* readable from the 3D view. Foreshortening is prevented
+  structurally rather than warned about.
+
+The clamp must live in exactly one function that every input path calls (slider, drag,
+keyboard, presets, scripted camera moves). Per-handler clamping is how one path eventually
+drifts and allows an illegal camera.
+
+**A plan-view inset is still mandatory, not a nicety.** Whatever the 3D camera is doing,
+one always-top-down view of arcs and positions must be on screen. At the floor the 3D view
+is readable, but the inset is what makes arc comparison across several ships quick, and it
+is the guarantee that cinematic framing can never cost tactical information.
 
 ---
 

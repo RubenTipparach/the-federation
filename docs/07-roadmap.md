@@ -21,7 +21,8 @@ persistence last.
 - One hardcoded enemy AI that manages its own power and shield rotation competently.
 - Tactical pause.
 - **Rendered in 3D** with an orbitable camera, ships on a plane, and tactical overlays
-  painted on the plane. Camera pitch floor plus the plan-view inset.
+  painted on the plane. Camera elevation clamped to 25-90 degrees (downward only, one
+  shared clamp for every input path), plus the mandatory plan-view inset.
 - Runs locally in the Godot editor. **No server, no accounts, no database.**
 - **One placeholder hull model**, committed as `.gltf` per `CLAUDE.md` §2. 3D combat is a
   hard requirement, so a runtime `BoxMesh` is not an option (§5.1 forbids generated
