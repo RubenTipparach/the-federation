@@ -1,0 +1,34 @@
+; Godot project configuration.
+;
+; Minimal project shell so the export pipeline has something to build. M1 in
+; docs/07-roadmap.md replaces the placeholder main scene with the tactical
+; prototype. Gameplay belongs in code, not here, per CLAUDE.md section 5.2.
+;
+; Managed by the Godot editor. Hand edits are fine for the sections below, but
+; the editor will rewrite formatting when it next saves.
+
+config_version=5
+
+[application]
+
+config/name="The Federation"
+config/description="Tactical space MMO. Pre-production."
+run/main_scene="res://scenes/main.tscn"
+config/features=PackedStringArray("4.7", "GL Compatibility")
+; No config/icon yet. Godot's default new-project icon is an .svg, and
+; CLAUDE.md section 3 requires art assets to be delivered as .png, so the
+; icon is left unset until a real .png icon exists.
+
+[display]
+
+window/size/viewport_width=1600
+window/size/viewport_height=900
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+
+[rendering]
+
+; gl_compatibility, not forward_plus: Vulkan does not run in a browser, and the
+; Web build is a project priority. Also the safest desktop default.
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"

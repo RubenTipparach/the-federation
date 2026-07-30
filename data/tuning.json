@@ -1,0 +1,73 @@
+{
+  "_comment": "Gameplay and camera tuning, per CLAUDE.md 5.4: nothing here may be hardcoded in gameplay code. Camera pitch is clamped downward only, 25 to 90 degrees, per docs/01 section 1.",
+  "camera": {
+    "pitch_floor_deg": 25.0,
+    "pitch_ceil_deg": 90.0,
+    "default_pitch_deg": 55.0,
+    "default_azimuth_deg": -35.0,
+    "distance": 46.0,
+    "orbit_speed": 0.3,
+    "presets": {
+      "tactical": 55.0,
+      "cinematic": 30.0,
+      "plan": 90.0
+    },
+    "plan_inset_size": 70.0
+  },
+  "combat": {
+    "arena_half_extent": 30.0,
+    "start_separation": 26.0,
+    "shield_regen_per_sec": 0.7,
+    "shield_power_demand": 12.0,
+    "battery_charge_per_reserve_unit": 0.02,
+    "reinforce_amount": 6.0,
+    "beam_fade_sec": 0.45,
+    "engine_power_demand": 10.0,
+    "overdrive_cap": 1.25,
+    "min_accel_factor": 0.2,
+    "dead_ship_decel": 1.0
+  },
+  "power": {
+    "sinks": [
+      "weapons",
+      "shields",
+      "engines",
+      "systems",
+      "reserve"
+    ],
+    "default_split": {
+      "weapons": 0.34,
+      "shields": 0.28,
+      "engines": 0.24,
+      "systems": 0.09,
+      "reserve": 0.05
+    },
+    "ai_split": {
+      "weapons": 0.38,
+      "shields": 0.3,
+      "engines": 0.24,
+      "systems": 0.05,
+      "reserve": 0.03
+    }
+  },
+  "ai": {
+    "preferred_range_frac": 0.65,
+    "close_throttle": 1.0,
+    "hold_throttle": 0.55,
+    "back_off_range_frac": 0.35,
+    "back_off_throttle": 0.3,
+    "weak_facing_frac": 0.3,
+    "presenting_offset_deg": 60.0,
+    "fallback_best_range": 8.0
+  },
+  "fitting_demo": {
+    "volleys": [
+      8,
+      16,
+      32
+    ]
+  },
+  "skirmish": {
+    "command_tonnage": 240
+  }
+}

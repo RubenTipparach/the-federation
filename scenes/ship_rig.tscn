@@ -1,0 +1,108 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://src/ui/ship_rig.gd" id="1"]
+[ext_resource type="ArrayMesh" path="res://assets/meshes/hull_placeholder.obj" id="2"]
+[ext_resource type="ArrayMesh" path="res://assets/meshes/wedge30.obj" id="3"]
+[ext_resource type="ArrayMesh" path="res://assets/meshes/arc_seg.obj" id="4"]
+[ext_resource type="ArrayMesh" path="res://assets/meshes/ring.obj" id="5"]
+[ext_resource type="Material" path="res://assets/materials/mat_hull_friend.tres" id="6"]
+
+[node name="ShipRig" type="Node3D"]
+script = ExtResource("1")
+
+[node name="Hull" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.55, 0)
+mesh = ExtResource("2")
+material_override = ExtResource("6")
+
+[node name="RangeRing" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.02, 0)
+mesh = ExtResource("5")
+
+[node name="Wedges" type="Node3D" parent="."]
+
+[node name="Shields" type="Node3D" parent="."]
+
+[node name="W0" type="MeshInstance3D" parent="Wedges"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, 0)
+mesh = ExtResource("3")
+visible = false
+
+[node name="W1" type="MeshInstance3D" parent="Wedges"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, 0)
+mesh = ExtResource("3")
+visible = false
+
+[node name="W2" type="MeshInstance3D" parent="Wedges"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, 0)
+mesh = ExtResource("3")
+visible = false
+
+[node name="W3" type="MeshInstance3D" parent="Wedges"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, 0)
+mesh = ExtResource("3")
+visible = false
+
+[node name="W4" type="MeshInstance3D" parent="Wedges"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, 0)
+mesh = ExtResource("3")
+visible = false
+
+[node name="W5" type="MeshInstance3D" parent="Wedges"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, 0)
+mesh = ExtResource("3")
+visible = false
+
+[node name="W6" type="MeshInstance3D" parent="Wedges"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, 0)
+mesh = ExtResource("3")
+visible = false
+
+[node name="W7" type="MeshInstance3D" parent="Wedges"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, 0)
+mesh = ExtResource("3")
+visible = false
+
+[node name="W8" type="MeshInstance3D" parent="Wedges"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, 0)
+mesh = ExtResource("3")
+visible = false
+
+[node name="W9" type="MeshInstance3D" parent="Wedges"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, 0)
+mesh = ExtResource("3")
+visible = false
+
+[node name="W10" type="MeshInstance3D" parent="Wedges"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, 0)
+mesh = ExtResource("3")
+visible = false
+
+[node name="W11" type="MeshInstance3D" parent="Wedges"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, 0)
+mesh = ExtResource("3")
+visible = false
+
+[node name="S0" type="MeshInstance3D" parent="Shields"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)
+mesh = ExtResource("4")
+
+[node name="S1" type="MeshInstance3D" parent="Shields"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)
+mesh = ExtResource("4")
+
+[node name="S2" type="MeshInstance3D" parent="Shields"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)
+mesh = ExtResource("4")
+
+[node name="S3" type="MeshInstance3D" parent="Shields"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)
+mesh = ExtResource("4")
+
+[node name="S4" type="MeshInstance3D" parent="Shields"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)
+mesh = ExtResource("4")
+
+[node name="S5" type="MeshInstance3D" parent="Shields"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)
+mesh = ExtResource("4")

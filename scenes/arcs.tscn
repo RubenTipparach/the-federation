@@ -1,0 +1,106 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://src/ui/arcs_screen.gd" id="1"]
+[ext_resource type="Script" path="res://src/ui/arc_wheel_control.gd" id="2"]
+
+[node name="Arcs" type="HBoxContainer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_constants/separation = 14
+script = ExtResource("1")
+
+[node name="WheelPanel" type="PanelContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="V" type="VBoxContainer" parent="WheelPanel"]
+layout_mode = 2
+
+[node name="Head" type="Label" parent="WheelPanel/V"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "FIRING ARCS"
+
+[node name="Wheel" type="Control" parent="WheelPanel/V"]
+layout_mode = 2
+size_flags_vertical = 3
+custom_minimum_size = Vector2(420, 420)
+script = ExtResource("2")
+
+[node name="Note" type="Label" parent="WheelPanel/V"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+autowrap_mode = 2
+text = "Angle is bearing, 000 dead ahead, clockwise. Radius is effective range: a long thin wedge is a sniper, a short fat one is a brawler. Red hatching is a blind bearing. Isolate a mount to see its permitted field."
+
+[node name="Right" type="VBoxContainer" parent="."]
+layout_mode = 2
+custom_minimum_size = Vector2(320, 0)
+theme_override_constants/separation = 12
+
+[node name="MountsPanel" type="PanelContainer" parent="Right"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="V" type="VBoxContainer" parent="Right/MountsPanel"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Head" type="Label" parent="Right/MountsPanel/V"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "MOUNTS"
+
+[node name="Scroll" type="ScrollContainer" parent="Right/MountsPanel/V"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="MountList" type="VBoxContainer" parent="Right/MountsPanel/V/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="ShowAll" type="Button" parent="Right/MountsPanel/V"]
+layout_mode = 2
+text = "Show all"
+
+[node name="DerivedPanel" type="PanelContainer" parent="Right"]
+layout_mode = 2
+
+[node name="V" type="VBoxContainer" parent="Right/DerivedPanel"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Head" type="Label" parent="Right/DerivedPanel/V"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "DERIVED"
+
+[node name="Body" type="Label" parent="Right/DerivedPanel/V"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "stats"
+
+[node name="OverridePanel" type="PanelContainer" parent="Right"]
+layout_mode = 2
+
+[node name="V" type="VBoxContainer" parent="Right/OverridePanel"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Head" type="Label" parent="Right/OverridePanel/V"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "OVERRIDE DEMO"
+
+[node name="Note" type="Label" parent="Right/OverridePanel/V"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+autowrap_mode = 2
+text = "A special weapon may ignore its mount's field. Swap one in and watch the blind bearing close."
+
+[node name="Swap" type="Button" parent="Right/OverridePanel/V"]
+layout_mode = 2
+text = "Refit: Omni Emitter"

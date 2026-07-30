@@ -1,0 +1,20 @@
+# Godot
+.godot/
+.import/
+export_presets.cfg.bak
+
+# .NET / C#
+.mono/
+bin/
+obj/
+*.user
+*.userprefs
+*.csproj.user
+
+# Build pipeline
+builds/
+.tools/
+
+# OS noise
+.DS_Store
+Thumbs.db

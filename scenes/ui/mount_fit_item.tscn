@@ -1,0 +1,26 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/ui/mount_fit_item.gd" id="1"]
+
+[node name="MountFitItem" type="PanelContainer"]
+size_flags_horizontal = 3
+script = ExtResource("1")
+
+[node name="Body" type="VBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="Title" type="Label" parent="Body"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "M1  Fore"
+
+[node name="Meta" type="Label" parent="Body"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+text = "field"
+autowrap_mode = 2
+
+[node name="Weapon" type="OptionButton" parent="Body"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
