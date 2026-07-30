@@ -42,7 +42,7 @@ load_config() {
   local required=(
     GODOT_VERSION GODOT_RELEASE GODOT_FLAVOR
     ITCH_USER ITCH_GAME
-    ENABLED_TARGETS TARGETS
+    ENABLED_TARGETS DEPLOY_TARGETS TARGETS
     BUILD_DIR TOOLS_DIR
   )
   local name
@@ -119,6 +119,12 @@ load_target() {
 # Populate the global SELECTED_TARGETS array, aborting the calling script if
 # any requested target is unknown.
 #
+# Usage: read_selected_targets "$ENABLED_TARGETS" "$@"
+# The first argument is the default list to use when the caller passed no
+# target names. It is explicit because build.sh and deploy-itch.sh default to
+# different lists: everything that gets built is not necessarily everything
+# that gets published.
+#
 # Callers must use this rather than reading selected_targets through a process
 # substitution. In `mapfile -t x < <(selected_targets ...)` the function runs in
 # a subshell, so its die() cannot stop the parent: the script would print the
@@ -130,12 +136,14 @@ read_selected_targets() {
   mapfile -t SELECTED_TARGETS <<< "$raw"
 }
 
-# Targets requested on the command line, else ENABLED_TARGETS from config.
+# Targets requested on the command line, else the caller's default list.
 # Validates every name before returning any, so a typo fails before work starts.
 selected_targets() {
+  local fallback="$1"
+  shift
   local requested=("$@") name
-  [[ ${#requested[@]} -eq 0 ]] && read -r -a requested <<< "$ENABLED_TARGETS"
-  [[ ${#requested[@]} -eq 0 ]] && die "no targets requested and ENABLED_TARGETS is empty"
+  [[ ${#requested[@]} -eq 0 ]] && read -r -a requested <<< "$fallback"
+  [[ ${#requested[@]} -eq 0 ]] && die "no targets requested and the default target list is empty"
   for name in "${requested[@]}"; do
     resolve_target "$name" >/dev/null || die "$(unknown_target_error "$name")"
   done

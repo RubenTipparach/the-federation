@@ -68,7 +68,7 @@ build_target() {
 main() {
   # Validate arguments before checking for tools, so a typo'd target name
   # reports the typo rather than a missing Godot install.
-  read_selected_targets "$@"
+  read_selected_targets "$ENABLED_TARGETS" "$@"
   local targets=("${SELECTED_TARGETS[@]}")
 
   require_godot_project

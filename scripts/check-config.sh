@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 # Validate that build.config and export_presets.cfg agree.
 #
-# Catches the two silent misconfigurations the pipeline is prone to:
-#   1. A name in ENABLED_TARGETS with no row in the TARGETS table.
+# Catches the silent misconfigurations the pipeline is prone to:
+#   1. A name in ENABLED_TARGETS or DEPLOY_TARGETS with no row in TARGETS.
 #   2. A target whose Godot preset does not exist in export_presets.cfg.
+#   3. A target that is deployed but never built, which fails at upload time
+#      with a missing artifact rather than at config time.
 #
-# Both would otherwise surface as a confusing mid-build failure, or worse, as
+# All would otherwise surface as a confusing mid-build failure, or worse, as
 # an empty artifact that uploads successfully.
 #
 # Usage: ./scripts/check-config.sh
@@ -19,12 +21,28 @@ failures=0
 fail() { printf 'FAIL: %s\n' "$*" >&2; failures=$((failures + 1)); }
 pass() { printf 'ok    %s\n' "$*"; }
 
-step "Checking ENABLED_TARGETS against the TARGETS table"
-for name in $ENABLED_TARGETS; do
-  if resolve_target "$name" >/dev/null 2>&1; then
-    pass "target '$name' is defined"
+step "Checking ENABLED_TARGETS and DEPLOY_TARGETS against the TARGETS table"
+for list in ENABLED_TARGETS DEPLOY_TARGETS; do
+  for name in ${!list}; do
+    if resolve_target "$name" >/dev/null 2>&1; then
+      pass "$list target '$name' is defined"
+    else
+      fail "$list names '$name', which has no row in TARGETS"
+    fi
+  done
+done
+
+step "Checking every deployed target is also built"
+for name in $DEPLOY_TARGETS; do
+  found=0
+  for built in $ENABLED_TARGETS; do
+    [[ "$built" == "$name" ]] && found=1 && break
+  done
+  if [[ "$found" == 1 ]]; then
+    pass "deploy target '$name' is in ENABLED_TARGETS"
   else
-    fail "ENABLED_TARGETS names '$name', which has no row in TARGETS"
+    fail "DEPLOY_TARGETS names '$name', which ENABLED_TARGETS does not build.
+      The upload would fail on a missing artifact."
   fi
 done
 

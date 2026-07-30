@@ -114,15 +114,33 @@ key produces a clear warning rather than a confusing build failure.
 
 From the `TARGETS` table in `build.config`:
 
-| Target | Godot preset | itch channel | Enabled |
-|---|---|---|---|
-| `web` | Web | `html5` | **yes, and first class** |
-| `windows` | Windows Desktop | `windows` | yes |
-| `linux` | Linux | `linux` | yes |
-| `macos` | macOS | `osx` | no, see below |
+| Target | Godot preset | itch channel | Built | Published |
+|---|---|---|---|---|
+| `web` | Web | `html5` | yes | **yes, and first class** |
+| `linux` | Linux | `linux` | yes | no, verification only |
+| `windows` | Windows Desktop | `windows` | no | no |
+| `macos` | macOS | `osx` | no | no, see below |
 
 `web` is listed first because it is the priority target: on itch.io a browser
 playable build reaches far more people than a download.
+
+**Built and published are two different lists.** `ENABLED_TARGETS` is what
+`build.sh` exports, `DEPLOY_TARGETS` is what `deploy-itch.sh` uploads, and the
+second must be a subset of the first. They differ on purpose: the desktop
+downloads are paused, so only `web` is published, but `linux` is still exported
+because `verify-build.sh` boots that binary headless to prove the package runs.
+It is the only target whose binary runs on the build machine, and every target
+packages the same `.pck` contents, so dropping it would cost the boot check for
+all of them.
+
+Resuming a desktop download is a one word change: put the name back in both
+lists. `check-config.sh` fails the build if a name appears in `DEPLOY_TARGETS`
+but not in `ENABLED_TARGETS`, which would otherwise surface as an upload of a
+missing artifact.
+
+Turning a channel off here stops future uploads. It does not remove what is
+already on itch.io: previously pushed `windows` and `linux` builds stay on the
+project page until they are deleted there, which butler cannot do.
 
 Channel names are chosen so itch.io auto detects the platform from the channel
 name. **Every target pushes its whole output directory**, never a single file: a
@@ -288,7 +306,8 @@ logic in committed scripts, configuration in `build.config`.
 
 1. Add a preset in the Godot editor. Note its exact name.
 2. Add a row to `TARGETS` in `build.config`.
-3. Add the name to `ENABLED_TARGETS`.
+3. Add the name to `ENABLED_TARGETS`, and to `DEPLOY_TARGETS` as well if the
+   target should be published rather than only built.
 4. Run `./scripts/check-config.sh`, then `./scripts/build.sh <name>`, then
    `DRY_RUN=1 ./scripts/deploy-itch.sh <name>`.
 
