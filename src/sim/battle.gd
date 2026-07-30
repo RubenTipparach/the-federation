@@ -11,6 +11,17 @@ var time: float = 0.0
 var over: bool = false
 var winner: int = -1
 var seekers: Array[Seeker] = []
+
+## Fixed step counter. Commands are stamped with it, never with wall clock
+## time, because that is what makes a log replayable (see BattleLog).
+var tick: int = 0
+
+## The seed this battle was created from, so a recording can reproduce it.
+var seed_value: int = 0
+
+## Set to record this battle. Every command routed through apply_command is
+## written down, so a recording cannot miss an input that changed the outcome.
+var log: BattleLog = null
 var _events: Array[Dictionary] = []
 var _targets: Dictionary = {}
 
@@ -19,6 +30,7 @@ static func create_duel(player_fit: ShipFit, enemy_hull_id: String, seed_value: 
 	var b: Battle = Battle.new()
 	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 	rng.seed = seed_value
+	b.seed_value = seed_value
 	var tuning: Dictionary = Catalog.tuning()["combat"]
 	var sep: float = float(tuning["start_separation"])
 
@@ -98,6 +110,9 @@ func step(dt: float) -> Array[Dictionary]:
 			_events.append({ "type": "end", "winner": winner })
 			break
 	time += dt
+	tick += 1
+	if over and log != null and log.end_tick < 0:
+		log.close(self)
 	return _drain()
 
 
@@ -158,6 +173,45 @@ func _drain() -> Array[Dictionary]:
 	var out: Array[Dictionary] = _events
 	_events = []
 	return out
+
+
+## The one door into a battle. Every order, from a button, a stick, the AI, or
+## a replay, arrives here, which is why a log written from this point is
+## complete by construction (CLAUDE.md 4.1).
+##
+## record is false when a replay is feeding commands back in, so replaying a
+## log does not append to it.
+func apply_command(actor: int, kind: String, args: Array, record: bool = true) -> bool:
+	if actor < 0 or actor >= ships.size():
+		return false
+	var ship: ShipState = ships[actor]
+	var ok: bool = false
+	match kind:
+		"order":
+			ship.set_order(float(args[0]), float(args[1]))
+			ok = true
+		"fire":
+			ok = try_fire(ship, int(args[0]))
+		"fire_family":
+			ok = fire_family(ship, String(args[0])) > 0
+		"reinforce":
+			ok = ship.reinforce(int(args[0]), Catalog.tuning())
+		"shield_bias":
+			ship.shield_bias = int(args[0])
+			ok = true
+		"transfer_shield":
+			ok = ship.transfer_shield(int(args[0]), int(args[1]), Catalog.tuning())
+		"power":
+			ship.set_alloc_units(String(args[0]), float(args[1]))
+			ok = true
+		"target":
+			var index: int = int(args[0])
+			if index >= 0 and index < ships.size():
+				set_target(ship, ships[index])
+				ok = true
+	if record and log != null:
+		log.record(tick, actor, kind, args)
+	return ok
 
 
 ## Fire one weapon if its check passes. Both the player UI and the AI route

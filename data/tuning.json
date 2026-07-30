@@ -31,7 +31,8 @@
     "seeker_hit_radius": 0.6,
     "seeker_lifetime": 30.0,
     "shield_bias_weight": 2.5,
-    "shield_transfer_amount": 5.0
+    "shield_transfer_amount": 5.0,
+    "replay_step": 0.03333333333333333
   },
   "power": {
     "sinks": [

@@ -18,6 +18,7 @@ const BattleLib = preload("res://src/sim/battle.gd")
 const WeaponLib = preload("res://src/sim/weapon_model.gd")
 const YardLib = preload("res://src/sim/shipyard.gd")
 const SeekerLib = preload("res://src/sim/seeker.gd")
+const LogLib = preload("res://src/sim/battle_log.gd")
 
 var checks: int = 0
 var failures: int = 0
@@ -53,6 +54,7 @@ func _initialize() -> void:
 	test_seekers()
 	test_shields()
 	test_shipyard()
+	test_replay()
 	print("")
 	if failures == 0:
 		print("ALL TESTS PASSED  (%d checks)" % checks)
@@ -239,6 +241,95 @@ func test_shipyard() -> void:
 	swap.move(String(swap.shop[0]["uid"]), "mount", "M2")
 	eq(swap.cargo.size(), held + 1, "the displaced weapon lands in the hold")
 	eq(String(swap.fit.slots["M2"]), "ph1", "and the new one is fitted")
+
+
+## A scripted battle: the same orders given at the same ticks every time, which
+## is what a replay has to reproduce exactly.
+func _scripted_battle(record: bool) -> Variant:
+	var fit = FitLib.create_default("wayfarer")
+	var battle = BattleLib.create_duel(fit, "bloodletter", 4242)
+	if record:
+		battle.log = LogLib.create(fit, "bloodletter", 4242, 1.0 / 30.0)
+	var script: Dictionary = {
+		0: [[0, "order", [45.0, 1.0]], [0, "power", ["weapons", 16.0]]],
+		20: [[0, "fire_family", ["beam"]]],
+		48: [[0, "order", [180.0, 0.6]], [0, "shield_bias", [3]]],
+		90: [[0, "fire_family", ["heavy"]], [0, "reinforce", [0]]],
+		140: [[0, "transfer_shield", [1, 2]], [0, "fire_family", ["beam"]]],
+		210: [[0, "order", [300.0, 1.0]]],
+	}
+	for i in range(420):
+		if script.has(battle.tick):
+			for c in script[battle.tick]:
+				battle.apply_command(int(c[0]), String(c[1]), c[2])
+		if battle.over:
+			break
+		battle.step(1.0 / 30.0)
+	if battle.log != null and battle.log.end_tick < 0:
+		battle.log.close(battle)
+	return battle
+
+
+func test_replay() -> void:
+	print("\n== battle log and replay ==")
+	var live = _scripted_battle(true)
+	var log = live.log
+	ok(log != null, "a battle can be recorded")
+	ok(log.commands.size() >= 9, "every command is written down")
+	eq(int(log.commands[0][0]), 0, "commands carry the tick they were given on")
+	eq(String(log.commands[0][2]), "order", "and the kind")
+
+	# The same run, twice, from the log alone.
+	var replayed = log.replay()
+	var live_print: Dictionary = LogLib.fingerprint(live)
+	var replay_print: Dictionary = LogLib.fingerprint(replayed)
+	eq(JSON.stringify(replay_print), JSON.stringify(live_print),
+		"a replay reproduces the battle exactly, box for box")
+
+	var again = log.replay()
+	eq(JSON.stringify(LogLib.fingerprint(again)), JSON.stringify(live_print),
+		"and does so every time")
+
+	# A second live run with the same seed and script matches too, which is
+	# what proves the determinism is in the simulation, not in the log.
+	var twin = _scripted_battle(false)
+	eq(JSON.stringify(LogLib.fingerprint(twin)), JSON.stringify(live_print),
+		"the same seed and the same orders give the same battle")
+
+	# A different seed must not, or the seed is being ignored somewhere.
+	var other_fit = FitLib.create_default("wayfarer")
+	var other = BattleLib.create_duel(other_fit, "bloodletter", 999)
+	for i in range(420):
+		if other.over:
+			break
+		other.step(1.0 / 30.0)
+	ok(JSON.stringify(LogLib.fingerprint(other)) != JSON.stringify(live_print),
+		"a different seed gives a different battle")
+
+	# Round trip through JSON, which is what a file is.
+	var text: String = JSON.stringify(log.to_dict())
+	var parsed = LogLib.from_dict(JSON.parse_string(text))
+	eq(parsed.seed_value, log.seed_value, "the seed survives the round trip")
+	eq(parsed.commands.size(), log.commands.size(), "so do the commands")
+	eq(JSON.stringify(LogLib.fingerprint(parsed.replay())), JSON.stringify(live_print),
+		"and a log read back from text replays identically")
+
+	# On disk, which is the point of the whole exercise.
+	var path: String = "user://test_replay.json"
+	ok(log.save(path), "a log writes to disk")
+	var loaded = LogLib.load_from(path)
+	ok(loaded != null, "and reads back")
+	eq(int(loaded.end_tick), int(log.end_tick), "including how long it ran")
+	eq(JSON.stringify(LogLib.fingerprint(loaded.replay())), JSON.stringify(live_print),
+		"a saved replay reproduces the battle it recorded")
+	eq(int(loaded.dt * 1000.0), int(log.dt * 1000.0), "the step size is part of the setup")
+	eq(String(loaded.player_hull), "wayfarer", "the design is part of the setup")
+	eq(String(loaded.enemy_hull), "bloodletter", "and so is the opponent")
+
+	# Replaying a log must never alter it.
+	var before: int = log.commands.size()
+	log.replay()
+	eq(log.commands.size(), before, "replaying a log does not append to it")
 
 
 func test_sectors() -> void:

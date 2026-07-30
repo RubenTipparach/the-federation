@@ -51,7 +51,7 @@ func bind_session(p_session: Session) -> void:
 
 	$Left/ShipPanel/V/Throttle/Slider.value_changed.connect(func(v: float) -> void:
 		if battle != null:
-			battle.player().set_order(battle.player().ordered_heading, v))
+			battle.apply_command(0, "order", [battle.player().ordered_heading, v]))
 	for sink in ["Weapons", "Shields", "Engines", "Systems", "Reserve"]:
 		var slider: HSlider = $Left/PowerPanel/V.get_node(sink + "/Slider")
 		slider.value_changed.connect(_on_power_slider.bind(sink.to_lower()))
@@ -89,8 +89,13 @@ func _world() -> Node3D:
 func start_battle() -> void:
 	battle = Battle.create_duel(session.fit.duplicate_fit(), session.enemy_hull_id,
 		int(Time.get_ticks_usec()) % 1000000007)
-	battle.player().set_order(battle.player().heading,
-		float($Left/ShipPanel/V/Throttle/Slider.value))
+	# Every battle is recorded. A log is small, it is written from the one
+	# command path, and it is the difference between "it did something odd"
+	# and a bug someone else can reproduce (docs/11).
+	battle.log = BattleLog.create(battle.player().fit, session.enemy_hull_id,
+		battle.seed_value, float(Catalog.tuning()["combat"]["replay_step"]))
+	battle.apply_command(0, "order", [battle.player().heading,
+		float($Left/ShipPanel/V/Throttle/Slider.value)])
 	_world().bind_battle(battle)
 	paused = false
 	_report_lines = []
@@ -156,8 +161,8 @@ func _apply_sticks(delta: float) -> void:
 	var cam: Dictionary = Catalog.tuning()["camera"]
 	if absf(_helm_stick.x) > 0.12 and _can_command():
 		var me: ShipState = battle.player()
-		me.set_order(me.ordered_heading + _helm_stick.x
-			* float(cam["stick_turn_deg_per_sec"]) * delta, me.ordered_throttle)
+		battle.apply_command(0, "order", [me.ordered_heading + _helm_stick.x
+			* float(cam["stick_turn_deg_per_sec"]) * delta, me.ordered_throttle])
 	if _camera_stick.length() > 0.12:
 		var speed: float = float(cam["stick_orbit_deg_per_sec"]) * delta
 		_world().orbit(_camera_stick.x * speed, -_camera_stick.y * speed)
@@ -174,7 +179,7 @@ func _step_target(step: int) -> void:
 		return
 	var current: int = maxi(0, foes.find(battle.target_for(me)))
 	var next: int = posmod(current + step, foes.size())
-	battle.set_target(me, foes[next])
+	battle.apply_command(0, "target", [battle.ships.find(foes[next])])
 	_note("Target: %s" % String(foes[next].fit.hull()["name"]))
 	_refresh_target_label()
 
@@ -204,7 +209,8 @@ func _on_view_input(event: InputEvent) -> void:
 				var p: Vector2 = world.plane_point(event.position)
 				if is_finite(p.x):
 					var me: ShipState = battle.player()
-					me.set_order(Sectors.bearing_between(me.pos, p), me.ordered_throttle)
+					battle.apply_command(0, "order",
+						[Sectors.bearing_between(me.pos, p), me.ordered_throttle])
 					_note("Helm: come to %03d" % int(Sectors.bearing_between(me.pos, p)))
 			_dragging = false
 	elif event is InputEventMouseMotion and _dragging:
@@ -231,7 +237,7 @@ func _sync_pitch_ui() -> void:
 
 func _on_power_slider(value: float, sink: String) -> void:
 	if battle != null:
-		battle.player().set_alloc_units(sink, value)
+		battle.apply_command(0, "power", [sink, value])
 
 
 ## Sim mutating commands are gated on pause and battle end, matching the
@@ -244,8 +250,8 @@ func _can_command() -> bool:
 func _fire_beams() -> void:
 	if not _can_command():
 		return
-	var n: int = battle.fire_family(battle.player(), "beam")
-	n += battle.fire_family(battle.player(), "disruptor")
+	var n: int = 1 if battle.apply_command(0, "fire_family", ["beam"]) else 0
+	n += 1 if battle.apply_command(0, "fire_family", ["disruptor"]) else 0
 	if n == 0:
 		_note("No beam or disruptor bears")
 
@@ -253,9 +259,9 @@ func _fire_beams() -> void:
 func _fire_heavy() -> void:
 	if not _can_command():
 		return
-	var n: int = battle.fire_family(battle.player(), "torpedo")
-	n += battle.fire_family(battle.player(), "lance")
-	n += battle.fire_family(battle.player(), "drone")
+	var n: int = 1 if battle.apply_command(0, "fire_family", ["torpedo"]) else 0
+	n += 1 if battle.apply_command(0, "fire_family", ["lance"]) else 0
+	n += 1 if battle.apply_command(0, "fire_family", ["drone"]) else 0
 	if n == 0:
 		_note("No heavy weapon bears")
 
@@ -265,7 +271,7 @@ func _reinforce() -> void:
 		return
 	var me: ShipState = battle.player()
 	var facing: int = me.weakest_facing()
-	if me.reinforce(facing, Catalog.tuning()):
+	if battle.apply_command(0, "reinforce", [facing]):
 		_note("Reinforced shield #%d from the battery" % (facing + 1))
 	else:
 		_note("Battery not charged")
@@ -275,7 +281,7 @@ func _come_about() -> void:
 	if not _can_command():
 		return
 	var me: ShipState = battle.player()
-	me.set_order(me.ordered_heading + 180.0, me.ordered_throttle)
+	battle.apply_command(0, "order", [me.ordered_heading + 180.0, me.ordered_throttle])
 	_note("Helm: coming about")
 
 
