@@ -30,31 +30,74 @@ second part.
 
 ---
 
-## 2. Language & Engine Recommendation
+## 2. Language & Engine Decision
 
-**Recommendation: Godot 4 with C# (.NET), and .NET for the backend services.**
+**Decision: Godot 4, standard (non .NET) build, GDScript. Not C#.**
 
-Rationale: the decisive factor is **sharing the simulation code**:
+This reverses an earlier recommendation in this document, and the reason is concrete rather
+than stylistic.
 
-- The combat sim, the fitting validator, and the damage model must produce *identical*
-  results in the client (for prediction, dry-dock simulation, and the fitting UI's derived
-  stats) and on the server (authoritative). Implementing them twice guarantees divergence
-  bugs that are miserable to find.
-- With Godot's .NET build, `TheFederation.Sim` can be a **plain .NET class library**
-  referenced by the Godot client, the headless combat server, *and* the meta service. The
-  fitting screen's projected stats are computed by literally the same code that resolves the
-  battle.
-- C# also handles this game's data-heavy math (four-budget validation, internal damage
-  tables, arc geometry) with far better performance and refactoring safety than GDScript.
+### Why not C#
 
-Use **GDScript for UI glue and scene scripting** where it's faster to write: the shipyard's
-interaction layer, menus, effects. Keep all rules in C#.
+A **first class Web build on itch.io is a project priority**, and Godot 4's .NET build
+cannot produce one. This is not a guess or a version pin problem. Godot 4.7.1 refuses the
+export with:
 
-**Alternative considered:** GDScript client + Elixir/Phoenix meta server. Elixir is
-genuinely the better tool for tens of thousands of persistent connections and supervised
-world processes. **Rejected for the first two years** because it adds a third language, and
-because the shared-sim-code benefit above outweighs Elixir's concurrency edge at our
-expected scale (§7). Revisit if the meta server becomes the bottleneck, and it probably won't.
+> Exporting to Web is currently not supported in Godot 4 when using C#/.NET. Use Godot 3 to
+> target Web with C#/Mono instead. If this project does not use C#, use a non-C# editor
+> build to export the project.
+
+A browser playable build is the single biggest distribution advantage itch.io offers, and it
+matters more for a prototype seeking players than C#'s advantages do. See
+`docs/08-build-and-deploy.md` section 6.
+
+### The shared simulation still works, and that is the important part
+
+The original case for C# was **one implementation of the combat sim, the fitting validator,
+and the damage model**, shared by client and server, because two implementations guarantee
+divergence (CLAUDE.md section 4.1).
+
+**That requirement is fully satisfiable in GDScript**, because the sharing does not come from
+the language. It comes from **client and authoritative server being the same engine**:
+
+- The combat server is a **headless Godot dedicated server export of this same project**
+  (section 4). It runs the identical GDScript files the client runs.
+- So `res://src/sim/` is loaded by the client for the fitting screen's derived stats and the
+  dry-dock preview, and by the server to resolve real battles. One copy, no port, no
+  divergence. This is arguably a *stronger* guarantee than a shared .NET assembly, since
+  there is not even a build boundary between them.
+
+What is genuinely given up:
+
+- **The meta service cannot reuse the sim directly.** It is a separate process in a separate
+  language (section 3), so anything it needs from the sim must either be validated by asking
+  a headless Godot instance, or live behind an internal endpoint the sim serves. In practice
+  the meta service is Postgres CRUD (build queues, markets, colonies) and does not need the
+  combat sim at all. The one real case is **fitting validation** on a build order, and the
+  right answer is to have Godot own that check rather than reimplement it. Reimplementing it
+  in the meta service is forbidden by section 4.1 and must not happen.
+- **Raw performance on the heavy math.** GDScript is slower than C# on four-budget
+  validation, damage tables, and arc geometry. This is very unlikely to matter: the tick is
+  15 Hz over at most 24 ships (section 1), which is a tiny amount of work per frame. If a
+  hot path ever does show up in profiling, the answer is GDExtension for that specific
+  function, not rewriting the project.
+- **Refactoring safety.** GDScript's static typing is weaker than C#'s. Mitigate by using
+  typed GDScript everywhere (`var x: float`, typed arrays, typed signals) and treating
+  untyped declarations in `src/sim/` as a review failure.
+
+### Backend language
+
+The meta services stay a separate decision from the client, since they share no code with it
+(see the trade above). Go or Elixir are both reasonable; Elixir's concurrency model fits a
+persistent world well. **Deferred** until M4, when networking work actually starts, per
+`docs/07-roadmap.md`. Nothing before M4 depends on it.
+
+### If Web export stops mattering
+
+If a browser build is ever dropped as a priority, C# becomes attractive again for the
+reasons originally given. The switch is deliberately cheap on the build side:
+`GODOT_FLAVOR="mono"` in `build.config` is the only pipeline change. The expensive part
+would be porting `src/sim/`, so that is the cost to weigh, not the tooling.
 
 ---
 
@@ -285,8 +328,9 @@ Three largely separate front-ends sharing an asset and data layer:
 | `GalaxyRoot` | Hex map, fleet orders, trade/colony/station management. REST + light WebSocket for push. |
 | `BattleRoot` | The tactical sim client. WebSocket to a battle Machine. |
 
-- **Shared:** `TheFederation.Sim` (C# class library: rules, math, validation),
-  a REST client, and the asset/data catalog.
+- **Shared:** `res://src/sim/` (rules, math, validation, in typed GDScript), a REST client,
+  and the asset/data catalog. The same files load in the client and in the headless server
+  export, which is what keeps one implementation of the sim. See section 2.
 - **Hex rendering: unresolved, and blocked on a project rule.** A TileMap is unlikely to
   carry 3,000 hexes with several layered, frequently changing overlays, and the map needs
   smooth zoom from whole-galaxy down to a single hex. The obvious answer is a
@@ -306,8 +350,9 @@ Three largely separate front-ends sharing an asset and data layer:
   code place instances of it. Confirm before building.
 - **Dedicated server export:** the headless combat server is a **dedicated server export
   preset** of the same project, stripped of rendering, audio, and client-only scenes. Same
-  repo, same sim code, no duplicated logic. This is the payoff for choosing Godot on the
-  server side rather than a separate engine.
+  repo, same GDScript sim files, no duplicated logic. This is the payoff for choosing Godot
+  on the server side rather than a separate engine, and it is what makes a GDScript client
+  compatible with the single-implementation rule (section 2).
 
 ---
 
@@ -343,5 +388,7 @@ Three largely separate front-ends sharing an asset and data layer:
 | Fly Machines API rate limits under contact storms | Medium | **Verify limits early.** Queue battle creation, warm pool absorbs bursts |
 | UDP unavailable / awkward on Fly | Low | Architecture deliberately requires only WebSocket/TCP (§4) |
 | Single Postgres primary becomes the ceiling | Medium | Read replicas; region sharding (§8) is the real answer and is already the plan |
-| Godot .NET export friction on some targets | Medium | Validate .NET export to all target platforms in M1, before code volume makes it expensive to reverse |
+| Web export limits (no threads, browser memory ceilings) bite later | Medium | Web is built and deployed from day one (`docs/08`), so regressions surface immediately rather than at M2 |
+| GDScript too slow on a hot sim path | Low | 15 Hz over 24 ships is little work. If profiling shows one, move that function to GDExtension rather than porting the project |
+| GDScript's weak typing lets a sim bug through | Medium | Typed GDScript mandatory in `src/sim/`; untyped declarations there are a review failure |
 | Cross-region latency in fleet battles | Medium | Region sharding (§8); instance placed nearest participant centroid |

@@ -115,14 +115,29 @@ main() {
   require_cmd find
 
   local template_dir="$HOME/.local/share/godot/export_templates/$GODOT_TEMPLATE_VERSION"
+  # Records which version and flavor the installed editor actually is. Without
+  # it, "the binary exists" was the only check, so changing GODOT_VERSION or
+  # GODOT_FLAVOR in build.config silently kept the old editor and produced
+  # confusing export failures against the new templates.
+  local stamp
+  stamp="$(dirname "$GODOT_BIN")/.installed-version"
 
-  if [[ -x "$GODOT_BIN" ]] && [[ -d "$template_dir" ]] \
-     && [[ -n "$(ls -A "$template_dir" 2>/dev/null)" ]]; then
+  local installed=""
+  [[ -f "$stamp" ]] && installed="$(cat "$stamp")"
+
+  if [[ -x "$GODOT_BIN" ]] && [[ "$installed" == "$GODOT_TEMPLATE_VERSION" ]] \
+     && [[ -d "$template_dir" ]] && [[ -n "$(ls -A "$template_dir" 2>/dev/null)" ]]; then
     step "Godot $GODOT_TEMPLATE_VERSION and templates already installed"
     return 0
   fi
 
-  [[ -x "$GODOT_BIN" ]] || install_editor
+  if [[ -x "$GODOT_BIN" ]] && [[ "$installed" != "$GODOT_TEMPLATE_VERSION" ]]; then
+    step "Installed editor is '${installed:-unknown}', want '$GODOT_TEMPLATE_VERSION'"
+    log "removing the stale editor"
+    rm -rf -- "${TOOLS_PATH:?}/godot"
+  fi
+
+  [[ -x "$GODOT_BIN" ]] || { install_editor; printf '%s' "$GODOT_TEMPLATE_VERSION" > "$stamp"; }
   if [[ ! -d "$template_dir" ]] || [[ -z "$(ls -A "$template_dir" 2>/dev/null)" ]]; then
     install_templates
   fi

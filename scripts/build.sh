@@ -18,14 +18,25 @@ load_config
 readonly EXPORT_MODE="${EXPORT_MODE:-release}"
 
 import_project() {
-  # Godot must generate .godot/ (import metadata, and the C# assembly for the
-  # mono flavor) before any export will succeed. On a clean checkout this does
-  # not exist, and exporting without it produces an empty or broken package.
-  #
-  # .godot/ existing is NOT sufficient evidence that the import worked: a
-  # crashed import leaves a partial one behind. run_godot distinguishes a crash
-  # from the harmless nonzero status Godot returns for warnings.
+  # Godot must generate .godot/ (import metadata and resource caches) before any
+  # export will succeed. On a clean checkout it does not exist, and exporting
+  # without it produces an empty or broken package.
   step "Importing project"
+
+  # Godot 4.7.1 aborts (SIGABRT, "Parameter \"singleton\" is null" in
+  # is_cmdline_mode) when --import runs against a project that has no .godot/
+  # yet, while still leaving a partial .godot/ behind. Opening the editor once
+  # and quitting performs the cold import cleanly. Verified on 4.7.1.stable.
+  #
+  # This pass runs only when cold, and its exit status is deliberately ignored,
+  # because the crash it works around is the thing being tolerated.
+  if [[ ! -d "$REPO_ROOT/.godot" ]]; then
+    log "cold project, priming the import with --editor --quit"
+    "$GODOT_BIN" --headless --path "$REPO_ROOT" --editor --quit >&2 || true
+  fi
+
+  # With .godot/ present, --import behaves and its exit status can be trusted,
+  # so run_godot's crash detection is meaningful here.
   run_godot --headless --path "$REPO_ROOT" --import
   [[ -d "$REPO_ROOT/.godot" ]] || die "import did not produce .godot/, cannot export"
   log "import complete"

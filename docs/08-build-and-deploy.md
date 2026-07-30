@@ -104,10 +104,13 @@ From the `TARGETS` table in `build.config`:
 
 | Target | Godot preset | itch channel | Enabled |
 |---|---|---|---|
-| `linux` | Linux | `linux` | yes |
+| `web` | Web | `html5` | **yes, and first class** |
 | `windows` | Windows Desktop | `windows` | yes |
-| `macos` | macOS | `osx` | no |
-| `web` | Web | `html5` | no |
+| `linux` | Linux | `linux` | yes |
+| `macos` | macOS | `osx` | no, see below |
+
+`web` is listed first because it is the priority target: on itch.io a browser
+playable build reaches far more people than a download.
 
 Channel names are chosen so itch.io auto detects the platform from the channel
 name. **Every target pushes its whole output directory**, never a single file: a
@@ -121,51 +124,58 @@ upload an empty build.
 
 ---
 
-## 6. Why macOS and Web are off
+## 6. Web is first class, and what that decided
 
-### Web is blocked by the C# decision, and this is a real trade
+### The C# question is settled, against C#
 
-`docs/06-technical-architecture.md` section 2 selects **C# / .NET**, for a good
-reason: one `TheFederation.Sim` library shared by the client, the combat server,
-and the meta services, so the fitting screen and the battle resolve through the
-same code.
+An earlier draft of this pipeline used Godot's .NET build, because
+`docs/06-technical-architecture.md` wanted C# for a shared simulation library.
+**That is reversed.** A browser playable build on itch.io matters more, and Godot
+4's .NET build cannot produce one. This is not a guess: 4.7.1 refuses outright.
 
-That choice has a cost that lands squarely on itch.io. **Godot's .NET builds have
-historically not supported Web export.** Web is the single biggest reason to ship
-on itch at all: a browser playable build gets many times the engagement of a
-download, and itch's discovery surfaces favor it.
+```
+ERROR: Cannot export project with preset "Web" due to configuration errors:
+Exporting to Web is currently not supported in Godot 4 when using C#/.NET.
+Use Godot 3 to target Web with C#/Mono instead.
+If this project does not use C#, use a non-C# editor build to export the project.
+```
 
-So there is a genuine tension to resolve, and it is worth deciding deliberately
-rather than by default:
+So `GODOT_FLAVOR="standard"` and the project is GDScript.
 
-1. **Keep C#, accept desktop only distribution on itch.** The shared sim library
-   is preserved. The prototype reaches fewer people.
-2. **Use GDScript for the client, C# only server side.** Restores Web export, but
-   the fitting math and the combat sim would exist twice, in two languages. That
-   is precisely the divergence CLAUDE.md section 4.1 forbids, and it is the worst
-   option available.
-3. **Keep C#, distribute the prototype elsewhere,** or ship desktop builds on itch
-   and revisit Web when Godot's .NET Web support is production ready.
+**The shared simulation requirement survives intact**, because the sharing comes
+from the engine rather than the language: the authoritative combat server is a
+headless Godot export of this same project, so it runs the identical GDScript
+files the client runs. See `docs/06-technical-architecture.md` section 2 for the
+full argument and the two things genuinely given up.
 
-**Recommendation: option 1 for now, then re-evaluate at M2.** Prototype playtesting
-per `docs/07-roadmap.md` M1 needs a handful of committed testers giving detailed
-feedback, not casual browser traffic, and desktop builds serve that fine. The
-decision only becomes expensive at M2, when the shipyard is worth showing widely.
+Switching back, if a browser build ever stops mattering, is one word in
+`build.config`. The expensive part would be porting the sim, not the tooling.
 
-**Verify before relying on either direction:** Godot's .NET Web export status has
-been moving, and it has not been confirmed for the pinned 4.7.1. Check the Godot
-documentation before committing to a plan. Note that the `web` preset is present
-and `scripts/check-config.sh` validates it, so testing this is a one line change
-to `ENABLED_TARGETS` plus a build.
+### Web export settings that matter
+
+- **`variant/thread_support=false`.** Godot's threaded Web export needs
+  `SharedArrayBuffer`, which needs COOP and COEP response headers that itch.io
+  only sends when a project explicitly enables its SharedArrayBuffer option.
+  Threads off means the build runs anywhere with no special configuration. If
+  that option is enabled on the itch project later, flipping this to `true` is
+  worth doing for performance.
+- **`gl_compatibility` renderer**, set in `project.godot`. Vulkan does not run in
+  a browser, so `forward_plus` would produce a build that fails at startup.
+
+### itch.io page setup for the web build
+
+butler uploads the files, but it cannot configure the page. On the project's edit
+page, the `html5` channel's build must be set as **"This file will be played in
+the browser"**, and an embed size chosen (the project is authored at 1600x900).
+Without that, itch offers the web build as a download instead of playing it.
 
 ### macOS is off for signing reasons
 
 Exporting macOS from a Linux runner produces an **unsigned** app. It runs, but
-Gatekeeper shows a scary warning that a first time player will read as "this is
-malware." Options are to sign properly (needs an Apple developer account and
-certificates in CI), or to document the right click to open workaround. Neither
-is worth doing before there is a game to install, so the preset exists and the
-target is off.
+Gatekeeper shows a warning a first time player will read as "this is malware."
+Fixing it properly needs an Apple developer account and certificates in CI.
+Not worth doing before there is a game to install, so the preset exists and the
+target stays off.
 
 ---
 
@@ -174,12 +184,16 @@ target is off.
 The pipeline was exercised end to end on a real Godot install, not just written.
 
 **Verified by running it:**
-- **Godot 4.7.1.stable.mono installs and runs.** Downloaded from Godot's own
+- **Godot 4.7.1.stable installs and runs.** Downloaded from Godot's own
   endpoint, `downloads.godotengine.org`, which is what godotengine.org/download
   links to. Preferred over the GitHub releases URLs because it is canonical and
   stays reachable where egress policy blocks github.com.
-- **Real exports.** Linux (71 MB binary plus a .pck) and Windows (105 MB plus a
-  .pck), both from `export_presets.cfg` as committed.
+- **Real exports of all three enabled targets** from `export_presets.cfg` as
+  committed: Web (39 MB `index.wasm` plus `index.html`, `index.js`, `index.pck`),
+  Windows (105 MB plus a .pck), Linux (71 MB plus a .pck).
+- **The Web export specifically**, which is the whole reason for the GDScript
+  decision. `index.html` sits at the output root and references the wasm, js, and
+  pck, which is the layout itch.io needs.
 - **The exported build boots and runs its scripts.** `scripts/verify-build.sh`
   runs the Linux binary headless and requires it to print its smoke marker. An
   export succeeding is not the same as a build that works.
@@ -191,7 +205,7 @@ The pipeline was exercised end to end on a real Godot install, not just written.
 - All scripts pass `bash -n` and `shellcheck --severity=warning`. Both workflows
   parse.
 
-**Three real bugs were found by running it, and fixed:**
+**Four real bugs were found by running it, and fixed:**
 
 1. **The deploy shipped broken builds.** With `binary_format/embed_pck` disabled,
    a desktop export produces the executable *and* a separate `.pck` holding all
@@ -199,20 +213,33 @@ The pipeline was exercised end to end on a real Godot install, not just written.
    not start. It now always pushes the target's whole output directory, which is
    correct for every target and removes a per target special case rather than
    adding one.
-2. **A crashed import counted as success.** The .NET build of Godot segfaults
-   (SIGSEGV, exit 134) when the SDK is absent, even for a project with no C#
-   files, *and still leaves a partial `.godot/` behind*. The old check looked
-   only for that directory. There is now a `run_godot` wrapper that treats any
-   exit status of 128 or above as a crash, plus an up front check that dotnet is
-   present whenever the flavor is mono.
-3. **An `rm -rf` on a computed path** could have expanded to `./*`. Flagged by
+2. **A crashed import counted as success.** Two separate crashes hid behind the
+   old check, which only looked for `.godot/` existing:
+   - The .NET build segfaults (SIGSEGV) when the SDK is absent, even with no C#
+     files, and still leaves a partial `.godot/` behind.
+   - Godot 4.7.1 **aborts** (SIGABRT, `Parameter "singleton" is null` in
+     `is_cmdline_mode`) when `--import` runs against a project that has no
+     `.godot/` yet. A cold checkout, which is every CI run.
+
+   There is now a `run_godot` wrapper that treats any exit status of 128 or above
+   as a crash, so both are caught rather than swallowed. The cold import is
+   primed with `--editor --quit`, which handles a fresh project correctly, and
+   only then is `--import` run and its status trusted.
+3. **Changing the Godot version or flavor kept the old editor.** The install was
+   idempotent on "does the binary exist," so switching from mono to standard
+   silently kept the mono editor and would have failed against the new templates.
+   It now records the installed version in a stamp file and replaces a mismatch.
+4. **An `rm -rf` on a computed path** could have expanded to `./*`. Flagged by
    shellcheck; the path is now proven to sit inside `builds/` first.
 
 **Still unverified:**
 - **The upload itself.** `butler push` has not run against itch.io from here,
   because the API key correctly lives only in repository secrets. The first
   deploy from `main` is the real test.
-- **macOS and Web exports.** Presets exist, targets are disabled. See section 6.
+- **The Web build actually running in a browser.** It exports correctly and has
+  the right file layout, but it has not been loaded in a browser. The first
+  deploy is the real test.
+- **The macOS export.** Preset exists, target disabled. See section 6.
 - `export_presets.cfg` was hand written and Godot accepted it, but the editor has
   not re-saved it. Opening the project once and letting the editor rewrite the
   file is still worth doing, so any option keys Godot silently ignored get

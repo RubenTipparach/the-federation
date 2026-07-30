@@ -14,14 +14,10 @@ config_version=5
 config/name="The Federation"
 config/description="Tactical space MMO. Pre-production."
 run/main_scene="res://scenes/main.tscn"
-config/features=PackedStringArray("4.7", "C#", "Forward Plus")
+config/features=PackedStringArray("4.7", "GL Compatibility")
 ; No config/icon yet. Godot's default new-project icon is an .svg, and
 ; CLAUDE.md section 3 requires art assets to be delivered as .png, so the
 ; icon is left unset until a real .png icon exists.
-
-[dotnet]
-
-project/assembly_name="TheFederation"
 
 [display]
 
@@ -32,4 +28,7 @@ window/stretch/aspect="expand"
 
 [rendering]
 
-renderer/rendering_method="forward_plus"
+; gl_compatibility, not forward_plus: Vulkan does not run in a browser, and the
+; Web build is a project priority. Also the safest desktop default.
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
