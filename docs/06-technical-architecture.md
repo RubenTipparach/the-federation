@@ -371,7 +371,23 @@ legibility under perspective, and it also means they are ordinary meshes and mat
 so the constrained renderer does not threaten them. The camera is **clamped to 25 to 90
 degrees of elevation**: downward looking only, never level, never below the plane. The
 clamp belongs in one shared function that every input path calls, because per-handler
-clamping is how one path drifts and allows an illegal camera. A plan-view inset is a hard
+clamping is how one path drifts and allows an illegal camera.
+
+**Build the view matrix from an explicit look-at basis** (forward, right, up), not from a
+hand rolled yaw-then-pitch of world points. A sign error in the hand rolled form inverts
+the plane vertically: near parts render above centre and far parts below, which is exactly
+what a camera *under* the plane looking up produces. It cost a round trip to find because
+it looks plausible until you check it.
+
+**Assert it, do not eyeball it.** The invariant is that among points on the plane, greater
+camera depth must render higher on screen, and a point above the plane must render above
+its own shadow. Both must hold at every allowed pitch. A test that hand labels which sample
+is "far" can label them backwards and pass while the camera is upside down, which is how
+the inversion survived a verification pass.
+
+**Offset labels in screen space, not world space.** Vertical world offsets collapse to zero
+as pitch approaches 90 degrees, so world-lifted labels land on top of the hulls they name
+in plan view. A plan-view inset is a hard
 UI requirement rather than a nicety. See
 [01-tactical-combat.md](01-tactical-combat.md) §1.
 - **Hex rendering: unresolved, and blocked on a project rule.** A TileMap is unlikely to
