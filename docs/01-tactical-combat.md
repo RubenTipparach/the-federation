@@ -179,6 +179,19 @@ Firing requires: target within range, target inside one of the mount's sectors, 
 capacitor charged. The **firing envelope** is therefore the mount's arc intersected with
 the weapon's range, which is exactly the wedge the fitting screen draws.
 
+
+### 5.0 Controls, and touch
+
+The game is built for a mouse and keyboard: click the plane to set a heading, drag to
+orbit, and use the action row. **Touch is a testing surface, not the primary one.** On a
+device with a touchscreen the combat view adds an overlay: a left stick that turns the
+ship, a right stick that moves the camera through the same clamp the mouse uses, and
+previous and next target buttons. Throttle and the power split stay on their sliders.
+
+Target selection lives in the simulation (`Battle.target_for`), not in the overlay, so the
+buttons cycle the same thing a shot resolves against and a squadron UI will reuse it
+unchanged.
+
 ### 5.1 Direct-fire energy
 
 | Family | Behavior |

@@ -213,6 +213,18 @@ func test_damage() -> void:
 	near(def.shields[3], 8.0, "reinforce restores the tuned amount")
 	ok(not def.reinforce(3, CatalogLib.tuning()), "battery is spent after one reinforce")
 
+	# Target selection: the sim owns it, so the touch buttons and any future
+	# squadron UI cycle the same thing the shot resolves against.
+	var duel = BattleLib.create_duel(FitLib.create_default("wayfarer"), "talon", 77)
+	var me = duel.player()
+	eq(duel.foes_of(me).size(), 1, "a duel offers one target")
+	eq(duel.target_for(me), duel.enemy(), "the default target is the only hostile")
+	duel.set_target(me, duel.enemy())
+	eq(duel.target_for(me), duel.enemy(), "an explicit target is remembered")
+	duel.enemy().alive = false
+	eq(duel.foes_of(me).size(), 0, "a dead hostile leaves the target list")
+	ok(duel.target_for(me) != null, "target_for still answers with no hostiles left")
+
 
 func test_sector_damage() -> void:
 	print("\n== sector damage ==")

@@ -11,6 +11,7 @@ var time: float = 0.0
 var over: bool = false
 var winner: int = -1
 var _events: Array[Dictionary] = []
+var _targets: Dictionary = {}
 
 
 static func create_duel(player_fit: ShipFit, enemy_hull_id: String, seed_value: int) -> Battle:
@@ -44,7 +45,32 @@ func enemy() -> ShipState:
 
 
 func foe_of(ship: ShipState) -> ShipState:
-	return ships[1] if ship == ships[0] else ships[0]
+	return target_for(ship)
+
+
+## Every hostile still flying, in a stable order so cycling targets is
+## predictable. A duel has one, a squadron battle will have several.
+func foes_of(ship: ShipState) -> Array[ShipState]:
+	var out: Array[ShipState] = []
+	for s in ships:
+		if s != ship and s.alive:
+			out.append(s)
+	return out
+
+
+## Who this ship is shooting at. Selection is remembered per attacker and
+## falls back to the first living hostile, so the AI needs no target logic and
+## the player's choice survives a step.
+func target_for(ship: ShipState) -> ShipState:
+	var chosen: ShipState = _targets.get(ship, null) as ShipState
+	if chosen != null and chosen.alive:
+		return chosen
+	var living: Array[ShipState] = foes_of(ship)
+	return living[0] if not living.is_empty() else (ships[1] if ship == ships[0] else ships[0])
+
+
+func set_target(ship: ShipState, target: ShipState) -> void:
+	_targets[ship] = target
 
 
 ## Advance the battle and return every event since the last step, including
@@ -84,7 +110,7 @@ func _drain() -> Array[Dictionary]:
 func try_fire(attacker: ShipState, weapon_index: int) -> bool:
 	if over:
 		return false
-	var target: ShipState = foe_of(attacker)
+	var target: ShipState = target_for(attacker)
 	var check: Dictionary = attacker.fire_check(weapon_index, target.pos)
 	if not bool(check["ok"]):
 		return false

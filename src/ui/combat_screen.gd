@@ -15,10 +15,19 @@ var _weapon_rows: Array = []
 var _dragging: bool = false
 var _drag_moved: float = 0.0
 var _report_lines: Array[String] = []
+var _wired: bool = false
 
 
+## Called every time the player enters combat. The session is swapped each
+## time, the wiring happens once: every connection below is to a node that
+## outlives the battle, and connecting them again on the second visit stacked
+## duplicate handlers (the sticks made this visible by erroring, the lambdas
+## and bound callables were duplicating silently).
 func bind_session(p_session: Session) -> void:
 	session = p_session
+	if _wired:
+		return
+	_wired = true
 	var world: Node3D = _world()
 	var cam: Dictionary = Catalog.tuning()["camera"]
 	$Mid/CamRow/Pitch.min_value = float(cam["pitch_floor_deg"])
@@ -62,6 +71,16 @@ func bind_session(p_session: Session) -> void:
 	plan_cam.size = float(cam["plan_inset_size"])
 	plan_cam.look_at_from_position(Vector3(0, 60, 0), Vector3.ZERO, Vector3(0, 0, 1))
 
+	# Touch play. The sticks and the target buttons drive the same paths the
+	# desktop controls do, so mobile is a second surface on one implementation
+	# rather than a second control scheme (CLAUDE.md 4.1).
+	var touch: Control = $Mid/ViewPanel/Stack/TouchControls
+	touch.visible = touch.wanted()
+	touch.helm_moved.connect(_on_helm_stick)
+	touch.camera_moved.connect(_on_camera_stick)
+	touch.target_stepped.connect(_step_target)
+
+
 
 func _world() -> Node3D:
 	return $Mid/ViewPanel/Stack/ViewContainer/View/World
@@ -96,6 +115,7 @@ func _build_weapon_rows() -> void:
 func _physics_process(delta: float) -> void:
 	if battle == null or not visible:
 		return
+	_apply_sticks(delta)
 	var events: Array[Dictionary] = []
 	if not paused and not battle.over:
 		events = battle.step(delta)
@@ -107,7 +127,64 @@ func _physics_process(delta: float) -> void:
 		elif String(e["type"]) == "end":
 			_show_end(int(e["winner"]))
 	_refresh_hud()
+	_refresh_target_label()
 	_position_ship_labels()
+
+
+
+# ---- touch ------------------------------------------------------------------
+
+## Held stick positions, applied every frame in _process so a thumb resting on
+## the stick keeps turning rather than turning once per input event.
+var _helm_stick: Vector2 = Vector2.ZERO
+var _camera_stick: Vector2 = Vector2.ZERO
+
+
+func _on_helm_stick(v: Vector2) -> void:
+	_helm_stick = v
+
+
+func _on_camera_stick(v: Vector2) -> void:
+	_camera_stick = v
+
+
+## Left stick turns the ship, right stick moves the camera. Both go through
+## the same helm order and the same camera clamp the mouse uses.
+func _apply_sticks(delta: float) -> void:
+	var cam: Dictionary = Catalog.tuning()["camera"]
+	if absf(_helm_stick.x) > 0.12 and _can_command():
+		var me: ShipState = battle.player()
+		me.set_order(me.ordered_heading + _helm_stick.x
+			* float(cam["stick_turn_deg_per_sec"]) * delta, me.ordered_throttle)
+	if _camera_stick.length() > 0.12:
+		var speed: float = float(cam["stick_orbit_deg_per_sec"]) * delta
+		_world().orbit(_camera_stick.x * speed, -_camera_stick.y * speed)
+
+
+## Cycle the target the player is shooting at. With one hostile this reports
+## the only choice; the sim already supports several.
+func _step_target(step: int) -> void:
+	if battle == null:
+		return
+	var me: ShipState = battle.player()
+	var foes: Array[ShipState] = battle.foes_of(me)
+	if foes.is_empty():
+		return
+	var current: int = maxi(0, foes.find(battle.target_for(me)))
+	var next: int = posmod(current + step, foes.size())
+	battle.set_target(me, foes[next])
+	_note("Target: %s" % String(foes[next].fit.hull()["name"]))
+	_refresh_target_label()
+
+
+func _refresh_target_label() -> void:
+	var touch: Control = $Mid/ViewPanel/Stack/TouchControls
+	if battle == null or not touch.visible:
+		return
+	var me: ShipState = battle.player()
+	var foes: Array[ShipState] = battle.foes_of(me)
+	var index: int = maxi(0, foes.find(battle.target_for(me)))
+	touch.set_target_label("TARGET %d/%d" % [index + 1, maxi(1, foes.size())])
 
 
 # ---- orders ------------------------------------------------------------------
