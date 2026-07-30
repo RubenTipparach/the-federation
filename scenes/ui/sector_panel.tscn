@@ -33,6 +33,7 @@ text = "000-000"
 
 [node name="Systems" type="GridContainer" parent="V"]
 layout_mode = 2
+size_flags_horizontal = 4
 columns = 5
 theme_override_constants/h_separation = 6
 theme_override_constants/v_separation = 6

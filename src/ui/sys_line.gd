@@ -33,10 +33,13 @@ func paint(cur: int, boxes_max: int) -> void:
 	var hue: Color = Palette.CRIT if dead else (
 		Palette.AMBER if hurt else Palette.family_color(_family))
 	$Icon.modulate = Palette.with_alpha(Palette.CRIT, 0.4) if dead else hue
-	$Health.color = Palette.with_alpha(hue, 0.25 if dead else 0.9)
-	# The bar is the glance: full width intact, a stub when nearly gone.
-	$Health.custom_minimum_size.x = 26.0
-	$Health.scale = Vector2(maxf(frac, 0.04) if not dead else 1.0, 1.0)
+	# The bar is the glance: a track that keeps the slot's width, and a fill
+	# anchored to its left edge. Scaling the bar instead would drift the slot
+	# off centre, because a scaled Control still lays out at its full size.
+	$Health.color = Palette.with_alpha(Palette.LINE, 0.9)
+	var fill: ColorRect = $Health/Fill
+	fill.color = Palette.with_alpha(hue, 0.35 if dead else 1.0)
+	fill.anchor_right = 1.0 if dead else clampf(frac, 0.06, 1.0)
 	_write_tooltip(cur, boxes_max)
 
 
