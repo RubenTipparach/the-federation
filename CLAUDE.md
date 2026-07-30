@@ -171,6 +171,28 @@ Note: the shipyard fitting screen is the most used screen in this game and is ef
 UI heavy product in its own right. It needs mockup approval per screen, not one blanket
 approval for the whole system.
 
+### 6.1 The ship systems display is one component
+
+**The SSD is a single reusable node, never a per screen reimplementation.** It is the
+canonical view of a ship's layout and loadout: the hull seen from above, the six shield
+facings around it, the subsystem slots in each facing, and the hull core. Wherever a
+screen needs to show what a ship is carrying and what state it is in, it instances that
+one component.
+
+- It already appears on the fitting screen and in the shipyard, and it will appear in
+  combat, in a fleet roster, in a target readout, and in a post battle report. Those are
+  five more chances to fork it, and every fork will drift.
+- Callers configure it, they do not rebuild it. What varies between screens is
+  parameters: read only or editable, whether mounts accept drops, whether damage is
+  shown, and how large it is drawn. Those are inputs to the component, not reasons for
+  a second one.
+- Anything specific to one screen, such as the shipyard's prices or the fitting screen's
+  dry fire buttons, lives in that screen and is layered around the component rather than
+  added inside it.
+
+This is section 4.1 applied to the interface. Two ship displays would eventually disagree
+about what is fitted, which is the one thing a player must always be able to trust.
+
 ---
 
 ## 7. Documented Exceptions
