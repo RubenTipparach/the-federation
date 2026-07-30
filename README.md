@@ -28,12 +28,39 @@ hulls to board, capture, and refit into your own.
 | [docs/05-economy-and-expansion.md](docs/05-economy-and-expansion.md) | Trade routes, stations, colonization, exploration, resources |
 | [docs/06-technical-architecture.md](docs/06-technical-architecture.md) | Godot + Fly.io topology, netcode, persistence, scaling, cost model |
 | [docs/07-roadmap.md](docs/07-roadmap.md) | Vertical slice → alpha → beta, scope cuts, risk register |
+| [docs/08-build-and-deploy.md](docs/08-build-and-deploy.md) | itch.io deploy pipeline, secrets, targets, what is verified |
+
+Project rules live in [CLAUDE.md](CLAUDE.md) and are binding.
 
 ## Status
 
-Pre-production. This repository currently contains design documentation only. Nothing
-here is implemented yet. See [docs/07-roadmap.md](docs/07-roadmap.md) for the intended
-build order and the first milestone's exit criteria.
+Pre-production. No gameplay exists yet. What is in the repository:
+
+- The design documents above.
+- A **deploy pipeline** for itch.io, triggered on merge to `main`. See
+  [docs/08-build-and-deploy.md](docs/08-build-and-deploy.md), including a plain
+  account of which parts are verified and which are not.
+- A **minimal Godot project shell** (`project.godot`, `export_presets.cfg`, and a
+  placeholder `scenes/main.tscn` carrying no gameplay) so the pipeline has
+  something to export. M1 replaces the placeholder.
+
+Fly.io deployment is deliberately deferred until the prototype mechanics are
+understood. See [docs/08-build-and-deploy.md](docs/08-build-and-deploy.md) section 8.
+
+See [docs/07-roadmap.md](docs/07-roadmap.md) for the intended build order and the
+first milestone's exit criteria.
+
+## Quick start
+
+```sh
+./scripts/install-godot.sh      # pinned Godot, from build.config
+./scripts/install-butler.sh     # itch.io upload tool
+./scripts/build.sh              # export ENABLED_TARGETS
+DRY_RUN=1 ./scripts/deploy-itch.sh
+```
+
+CI runs these same scripts. `build.config` is the single source of truth for
+versions, targets, and itch.io coordinates.
 
 ## A note on IP
 

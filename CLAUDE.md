@@ -192,8 +192,19 @@ starts.
 
 ## 8. Repository Context
 
-This repository currently contains design documentation only. No code exists yet. See
-`README.md` for the document index and `docs/07-roadmap.md` for the intended build order.
+No gameplay code exists yet. The repository holds the design documents, the itch.io
+deploy pipeline (`scripts/`, `.github/workflows/`, `build.config`), and a minimal Godot
+project shell so the pipeline has something to export. See `README.md` for the document
+index, `docs/08-build-and-deploy.md` for the pipeline, and `docs/07-roadmap.md` for the
+intended build order.
+
+Two conventions the pipeline establishes, worth keeping:
+
+- **CI workflows stay thin.** Build logic lives in `scripts/`, which CI and developers
+  both run. Putting build steps in workflow YAML creates a second implementation that
+  drifts from the local one, which section 4.1 forbids.
+- **`build.config` is the only place** build versions, targets, and deploy coordinates
+  are written, per section 5.4. Do not hardcode them in scripts or YAML.
 
 The rules above apply from the first line of code, especially §4.1. Retrofitting shared
 implementations after divergence has set in is far more expensive than starting shared.

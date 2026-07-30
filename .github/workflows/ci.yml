@@ -1,0 +1,53 @@
+name: CI
+
+# Cheap checks that run on every pull request and on main. Deliberately fast:
+# no Godot download, no build. The heavy build lives in deploy-itch.yml.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: Style and scripts
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Enforces CLAUDE.md section 1. Until now the rule was a documented
+      # grep that nothing ran.
+      - name: Writing style (no em or en dashes)
+        run: ./scripts/check-style.sh
+
+      - name: Shell syntax
+        run: |
+          set -euo pipefail
+          fail=0
+          for f in scripts/*.sh scripts/lib/*.sh; do
+            if bash -n "$f"; then
+              echo "ok    $f"
+            else
+              echo "FAIL  $f"
+              fail=1
+            fi
+          done
+          exit "$fail"
+
+      - name: ShellCheck
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq shellcheck
+          shellcheck --severity=warning scripts/*.sh scripts/lib/*.sh
+
+      # Catches a target named in ENABLED_TARGETS that has no row in the
+      # TARGETS table, and a target whose preset is missing from
+      # export_presets.cfg. Both are silent misconfigurations otherwise.
+      - name: Validate build config against export presets
+        run: ./scripts/check-config.sh

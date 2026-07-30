@@ -1,0 +1,125 @@
+name: Deploy to itch.io
+
+# Deploys on merge to main. Every step delegates to a script in scripts/ so
+# that CI and a developer's machine run the identical build, per CLAUDE.md
+# section 4.1. Do not inline build logic here.
+
+on:
+  push:
+    branches: [main]
+    # Documentation only changes do not need a build.
+    paths-ignore:
+      - "docs/**"
+      - "**/*.md"
+      - ".gitignore"
+  workflow_dispatch:
+    inputs:
+      targets:
+        description: "Space separated targets, empty for ENABLED_TARGETS in build.config"
+        required: false
+        default: ""
+      dry_run:
+        description: "Build and validate, but do not upload to itch.io"
+        type: boolean
+        required: false
+        default: false
+
+# One deploy at a time. Cancelling a half finished upload would leave a
+# partial build on itch.io, so in progress runs are allowed to finish.
+concurrency:
+  group: deploy-itch
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Build and deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Full history so scripts/lib/common.sh can derive a version from
+          # git describe rather than falling back to "unknown".
+          fetch-depth: 0
+
+      - name: Read build config
+        id: config
+        run: |
+          set -euo pipefail
+          # shellcheck source=/dev/null
+          source build.config
+          echo "godot_version=$GODOT_VERSION" >> "$GITHUB_OUTPUT"
+          echo "godot_release=$GODOT_RELEASE" >> "$GITHUB_OUTPUT"
+          echo "godot_flavor=$GODOT_FLAVOR"   >> "$GITHUB_OUTPUT"
+          echo "dotnet_version=$DOTNET_VERSION" >> "$GITHUB_OUTPUT"
+          echo "targets=$ENABLED_TARGETS"     >> "$GITHUB_OUTPUT"
+
+      - name: Set up .NET
+        if: steps.config.outputs.godot_flavor == 'mono'
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ steps.config.outputs.dotnet_version }}
+
+      - name: Cache Godot and export templates
+        uses: actions/cache@v4
+        with:
+          path: |
+            .tools/godot
+            ~/.local/share/godot/export_templates
+          key: godot-${{ steps.config.outputs.godot_version }}-${{ steps.config.outputs.godot_release }}-${{ steps.config.outputs.godot_flavor }}
+
+      - name: Install Godot
+        run: ./scripts/install-godot.sh
+
+      - name: Install butler
+        run: ./scripts/install-butler.sh
+
+      - name: Build
+        run: ./scripts/build.sh ${{ github.event.inputs.targets }}
+
+      # Kept regardless of whether the upload succeeds, so a failed deploy
+      # still leaves something to inspect.
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: builds
+          path: builds/
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: Check for itch.io credentials
+        id: creds
+        env:
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+        run: |
+          if [ -z "$BUTLER_API_KEY" ]; then
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::BUTLER_API_KEY is not set, skipping the itch.io upload. Artifacts were still built and uploaded to this run."
+          else
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Deploy to itch.io
+        if: steps.creds.outputs.present == 'true'
+        env:
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+          DRY_RUN: ${{ github.event.inputs.dry_run == 'true' && '1' || '0' }}
+        run: ./scripts/deploy-itch.sh ${{ github.event.inputs.targets }}
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### itch.io deploy"
+            echo
+            echo "| Field | Value |"
+            echo "|---|---|"
+            echo "| Version | \`$(git describe --tags --dirty 2>/dev/null || echo "r$(git rev-list --count HEAD)-$(git rev-parse --short HEAD)")\` |"
+            echo "| Targets | \`${{ github.event.inputs.targets || steps.config.outputs.targets }}\` |"
+            echo "| Credentials | ${{ steps.creds.outputs.present == 'true' && 'present' || 'MISSING, upload skipped' }} |"
+          } >> "$GITHUB_STEP_SUMMARY"

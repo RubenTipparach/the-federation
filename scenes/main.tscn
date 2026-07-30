@@ -1,0 +1,8 @@
+[gd_scene format=3 uid="uid://bqx1n8fed3twa"]
+
+; Placeholder boot scene. Exists only so the export pipeline has a main scene
+; to package. Deliberately carries no gameplay and no designed UI: M1 in
+; docs/07-roadmap.md replaces it, and any real UI needs mockup approval first
+; per CLAUDE.md section 6.
+
+[node name="Main" type="Node2D"]
