@@ -237,3 +237,29 @@ a pull request, a CI run, a deploy, or any other external state.
   completion notification, is fine. It is the self scheduled timer that is off by default.
 - When the user does ask for a recurring check, follow their interval and their stop
   condition, and end the loop as soon as that condition is met.
+
+---
+
+## 10. Design References
+
+**Federation Commander is the reference for ship systems and combat.** Its free
+starter rulebook is *Federation Commander: First Missions*, Amarillo Design Bureau:
+https://www.starfleetgames.com/fc/FCFirstMissions.pdf
+
+`docs/09-reference-federation-commander.md` holds the notes: what the source says by
+section number, what we take unchanged, and where we deliberately differ. Read it
+before designing anything that touches shields, damage, or the ship systems display.
+
+Two rules for using it:
+
+- **Cite the section, do not trust recall.** When a decision rests on how Federation
+  Commander does something, name the rule in the reference file rather than asserting
+  it from memory. Add the quote if it is not already there.
+- **Take the shape, not the text.** Rules text, ship statistics, and artwork belong to
+  Amarillo Design Bureau. What we inherit is system design, the way any tactical game
+  inherits from its ancestors. Never copy their wording or their ships into this
+  repository.
+
+Reference material for other systems belongs in the same place: a numbered document
+under `docs/`, with the source named and linked, and a line in this section pointing
+at it.
