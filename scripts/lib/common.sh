@@ -211,6 +211,20 @@ run_godot() {
   return 0
 }
 
+# Godot must generate .godot/ before any export or script run will behave. On
+# a clean checkout it does not exist. 4.7.1 aborts if --import runs against a
+# cold project, so the cold pass is primed with --editor --quit first, and only
+# then is --import run with its exit status trusted. Shared by build.sh and
+# run-tests.sh so the workaround exists once.
+ensure_imported() {
+  if [[ ! -d "$REPO_ROOT/.godot" ]]; then
+    log "cold project, priming the import with --editor --quit"
+    "$GODOT_BIN" --headless --path "$REPO_ROOT" --editor --quit >&2 || true
+  fi
+  run_godot --headless --path "$REPO_ROOT" --import
+  [[ -d "$REPO_ROOT/.godot" ]] || die "import did not produce .godot/, cannot continue"
+}
+
 require_godot_project() {
   [[ -f "$REPO_ROOT/project.godot" ]] \
     || die "no project.godot at repository root, nothing to export"

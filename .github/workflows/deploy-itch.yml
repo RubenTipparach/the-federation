@@ -81,6 +81,10 @@ jobs:
       - name: Install butler
         run: ./scripts/install-butler.sh
 
+      # The sim library must pass its headless suite before anything exports.
+      - name: Run simulation tests
+        run: ./scripts/run-tests.sh
+
       - name: Build
         run: ./scripts/build.sh ${{ github.event.inputs.targets }}
 

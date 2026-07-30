@@ -1,0 +1,133 @@
+class_name ArcWheelControl
+extends Control
+
+## The 12 sector firing arc wheel (docs/02 section 4.4). Angle is bearing,
+## radius is effective range: both dimensions carry information. Everything
+## drawn here is read from a ShipFit through the one fitting implementation;
+## this control computes nothing about arcs itself.
+
+var _fit: ShipFit
+var _isolated_mount: String = ""
+var _range_max: float = 22.0
+
+
+func show_fit(fit: ShipFit, isolated_mount: String) -> void:
+	_fit = fit
+	_isolated_mount = isolated_mount
+	queue_redraw()
+
+
+func _radius_for_range(rng: float, r0: float, r_max: float) -> float:
+	return r0 + minf(rng, _range_max) / _range_max * (r_max - r0)
+
+
+func _dir(bearing_deg: float) -> Vector2:
+	var a: float = deg_to_rad(bearing_deg)
+	return Vector2(sin(a), -cos(a))
+
+
+func _sector_band(center: Vector2, sectors: Array[int], r0: float,
+		r1: float) -> Array[PackedVector2Array]:
+	# One polygon per contiguous run so a wrapped arc draws correctly.
+	var runs: Array = []
+	var sorted: Array = sectors.duplicate()
+	sorted.sort()
+	var current: Array = []
+	for s in sorted:
+		if current.is_empty() or int(s) == int(current[-1]) + 1:
+			current.append(s)
+		else:
+			runs.append(current)
+			current = [s]
+	if not current.is_empty():
+		runs.append(current)
+	if runs.size() > 1 and int(runs[0][0]) == 0 and int(runs[-1][-1]) == Sectors.COUNT - 1:
+		var tail: Array = runs.pop_back()
+		tail.append_array(runs[0])
+		runs[0] = tail
+
+	var out: Array[PackedVector2Array] = []
+	for run in runs:
+		var deg0: float = float(int(run[0])) * Sectors.SECTOR_DEG
+		var deg1: float = deg0 + float(run.size()) * Sectors.SECTOR_DEG
+		var steps: int = maxi(run.size() * 4, 4)
+		var poly: PackedVector2Array = PackedVector2Array()
+		for i in range(steps + 1):
+			poly.append(center + _dir(lerpf(deg0, deg1, float(i) / steps)) * r1)
+		for i in range(steps + 1):
+			poly.append(center + _dir(lerpf(deg1, deg0, float(i) / steps)) * r0)
+		out.append(poly)
+	return out
+
+
+func _draw() -> void:
+	if _fit == null:
+		return
+	var center: Vector2 = size * 0.5
+	var r_max: float = minf(size.x, size.y) * 0.40
+	var r0: float = r_max * 0.16
+	var font: Font = get_theme_default_font()
+
+	# Range rings.
+	for rng in [5.0, 10.0, 15.0, 20.0]:
+		var rr: float = _radius_for_range(rng, r0, r_max)
+		draw_arc(center, rr, 0.0, TAU, 64, Palette.LINE, 1.0)
+		draw_string(font, center + Vector2(4, -rr + 12), str(int(rng)),
+			HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Palette.DIM)
+
+	# Sector spokes and bearing labels.
+	for i in range(Sectors.COUNT):
+		var d: Vector2 = _dir(float(i) * Sectors.SECTOR_DEG)
+		draw_line(center + d * r0, center + d * r_max, Palette.LINE, 1.0)
+		var mid: Vector2 = _dir(float(i) * Sectors.SECTOR_DEG + Sectors.SECTOR_DEG * 0.5)
+		draw_string(font, center + mid * (r_max + 10.0) + Vector2(-12, 4),
+			"%03d" % (i * int(Sectors.SECTOR_DEG)),
+			HORIZONTAL_ALIGNMENT_CENTER, 26, 9, Palette.DIM)
+
+	# Shield facing bands outside, so arcs read against facings.
+	for f in range(Sectors.FACING_COUNT):
+		var a0: float = deg_to_rad(f * 60.0 - 25.0) - PI * 0.5
+		var a1: float = deg_to_rad(f * 60.0 + 25.0) - PI * 0.5
+		draw_arc(center, r_max + 22.0, a0, a1, 16, Palette.CYAN_DIM, 4.0)
+		var mid: Vector2 = _dir(f * 60.0)
+		draw_string(font, center + mid * (r_max + 36.0) + Vector2(-10, 4),
+			"#%d" % (f + 1), HORIZONTAL_ALIGNMENT_CENTER, 22, 11, Palette.CYAN)
+
+	# Blind bearings, hatched critical.
+	var blind: Array[int] = _fit.blind_sectors()
+	if not blind.is_empty():
+		for poly in _sector_band(center, blind, r0, r_max):
+			draw_colored_polygon(poly, Palette.with_alpha(Palette.CRIT, 0.14))
+			draw_polyline(poly + PackedVector2Array([poly[0]]),
+				Palette.with_alpha(Palette.CRIT, 0.6), 1.0)
+
+	# One wedge per fitted mount, radius is that weapon's range.
+	for m in _fit.mounts():
+		var w: Dictionary = _fit.weapon_in(String(m["id"]))
+		if w.is_empty():
+			continue
+		var isolated: bool = _isolated_mount == String(m["id"])
+		var dimmed: bool = not _isolated_mount.is_empty() and not isolated
+		var field: Array[int] = _fit.effective_field(m)
+		var rr: float = _radius_for_range(float(w["range"]), r0, r_max)
+		var fill_alpha: float = 0.07 if dimmed else (0.3 if isolated else 0.15)
+		var overridden: bool = bool(w.get("special", false)) and w.has("override_field")
+		var edge: Color = Palette.AMBER if overridden else Palette.MAGENTA
+		for poly in _sector_band(center, field, r0, rr):
+			draw_colored_polygon(poly, Palette.with_alpha(Palette.MAGENTA, fill_alpha))
+			if not dimmed:
+				draw_polyline(poly + PackedVector2Array([poly[0]]),
+					Palette.with_alpha(edge, 0.8), 1.4)
+		# The isolated mount also shows its permitted field as a thin outline,
+		# which is what separates the mount's arc from the weapon's reach.
+		if isolated:
+			var mount_field: Array[int] = Catalog.to_int_array(m["field"])
+			for poly in _sector_band(center, mount_field, r0, r_max):
+				draw_polyline(poly + PackedVector2Array([poly[0]]),
+					Palette.with_alpha(Palette.CYAN_DIM, 0.75), 1.0)
+
+	# Hub.
+	draw_circle(center, r0 - 5.0, Palette.PANEL_2)
+	draw_arc(center, r0 - 5.0, 0.0, TAU, 32, Palette.LINE, 1.0)
+	draw_string(font, center + Vector2(-26, 4), "BOW 000",
+		HORIZONTAL_ALIGNMENT_CENTER, 56, 9, Palette.DIM)
