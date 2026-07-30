@@ -39,6 +39,11 @@ var battery: float = 0.0
 
 var alive: bool = true
 
+## The facing the shield engineer is favouring. Its regeneration is weighted,
+## which is the cheap version of Federation Commander's shield reinforcement
+## decision made continuously rather than once per impulse.
+var shield_bias: int = -1
+
 
 static func _make_system(entry: Array, sector: int) -> Dictionary:
 	return {
@@ -199,9 +204,17 @@ func step(dt: float, tuning: Dictionary) -> void:
 	var shd_share: float = clampf(
 		alloc_units("shields") / float(combat["shield_power_demand"]), 0.0,
 		float(combat["overdrive_cap"]))
+	# Regeneration is shared out across the six facings, weighted toward the
+	# biased one if the engineer has picked a side to hold.
 	var regen: float = float(combat["shield_regen_per_sec"]) * shd_share * dt
+	var bias_weight: float = float(combat["shield_bias_weight"])
+	var weights: float = float(shields.size())
+	if shield_bias >= 0 and shield_bias < shields.size():
+		weights += bias_weight - 1.0
 	for i in range(shields.size()):
-		shields[i] = minf(shield_max, shields[i] + regen)
+		var share: float = bias_weight if i == shield_bias else 1.0
+		shields[i] = minf(shield_max, shields[i] + regen * float(shields.size())
+			* share / weights)
 
 	# Reserve power charges the battery that pays for shield reinforcement.
 	battery = minf(1.0, battery + dt * alloc_units("reserve")
@@ -355,6 +368,42 @@ func reinforce(facing: int, tuning: Dictionary) -> bool:
 		return false
 	battery = 0.0
 	shields[facing] = minf(shield_max, shields[facing] + float(tuning["combat"]["reinforce_amount"]))
+	return true
+
+
+## Point defense damage per second this ship can put on a point, from every
+## undamaged weapon that has it and reaches. Free: it does not spend the
+## weapon's capacitor, so a light beam defends while its crew reloads.
+func point_defense_dps(at: Vector2) -> float:
+	var total: float = 0.0
+	for i in range(weapons_rt.size()):
+		var w: Dictionary = weapons_rt[i]["weapon"]
+		if w.is_empty() or not bool(w.get("point_defense", false)):
+			continue
+		if mount_disabled(i):
+			continue
+		if pos.distance_to(at) <= float(w["pd_range"]):
+			total += float(w["pd_dps"])
+	return total
+
+
+## Move shield strength from one facing to a neighbour, which is Federation
+## Commander 3C3: five boxes may be transferred to an adjacent shield, and only
+## to replace what damage took, never to exceed the original strength.
+func transfer_shield(from_facing: int, to_facing: int, tuning: Dictionary) -> bool:
+	if from_facing == to_facing:
+		return false
+	var step: int = int(Sectors.turn_delta(
+		float(from_facing) * 60.0, float(to_facing) * 60.0))
+	if absi(step) != 60:
+		return false
+	var amount: float = float(tuning["combat"]["shield_transfer_amount"])
+	var missing: float = shield_max - shields[to_facing]
+	var moved: float = minf(minf(amount, shields[from_facing]), missing)
+	if moved <= 0.0:
+		return false
+	shields[from_facing] -= moved
+	shields[to_facing] += moved
 	return true
 
 

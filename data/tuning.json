@@ -27,7 +27,11 @@
     "engine_power_demand": 10.0,
     "overdrive_cap": 1.25,
     "min_accel_factor": 0.2,
-    "dead_ship_decel": 1.0
+    "dead_ship_decel": 1.0,
+    "seeker_hit_radius": 0.6,
+    "seeker_lifetime": 30.0,
+    "shield_bias_weight": 2.5,
+    "shield_transfer_amount": 5.0
   },
   "power": {
     "sinks": [

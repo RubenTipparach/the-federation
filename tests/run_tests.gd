@@ -17,6 +17,7 @@ const ShipLib = preload("res://src/sim/ship_state.gd")
 const BattleLib = preload("res://src/sim/battle.gd")
 const WeaponLib = preload("res://src/sim/weapon_model.gd")
 const YardLib = preload("res://src/sim/shipyard.gd")
+const SeekerLib = preload("res://src/sim/seeker.gd")
 
 var checks: int = 0
 var failures: int = 0
@@ -49,6 +50,8 @@ func _initialize() -> void:
 	test_falloff()
 	test_movement_and_weapons()
 	test_battle_and_ai()
+	test_seekers()
+	test_shields()
 	test_shipyard()
 	print("")
 	if failures == 0:
@@ -56,6 +59,119 @@ func _initialize() -> void:
 	else:
 		print("%d OF %d CHECKS FAILED" % [failures, checks])
 	quit(0 if failures == 0 else 1)
+
+
+func test_seekers() -> void:
+	print("\n== seeking weapons ==")
+	var tuning: Dictionary = CatalogLib.tuning()
+	var battle = BattleLib.create_duel(FitLib.create_default("ironhold"), "talon", 5)
+	var me = battle.player()
+	var foe = battle.enemy()
+	# Put them nose to nose so the drone rack bears and the flight is short.
+	me.pos = Vector2.ZERO
+	foe.pos = Vector2(0.0, 6.0)
+	me.heading = 0.0
+	for i in range(400):
+		me.step(1.0 / 15.0, tuning)
+
+	var drone_index: int = -1
+	for i in range(me.weapons_rt.size()):
+		if String(me.weapons_rt[i]["mount"]["id"]) == "M5":
+			drone_index = i
+	ok(drone_index >= 0, "the ironhold carries a drone rack aft")
+	me.heading = 180.0  # bring the aft mount to bear on a target dead astern
+	foe.pos = Vector2(0.0, 6.0)
+
+	var boxes_before: int = foe.total_boxes()
+	var shields_before: float = 0.0
+	for f in range(6):
+		shields_before += foe.shields[f]
+	ok(battle.try_fire(me, drone_index), "the rack launches")
+	eq(battle.seekers.size(), 1, "a launch puts a weapon in flight, not damage on the target")
+	eq(foe.total_boxes(), boxes_before, "nothing has been hit yet")
+
+	# Fly it home. The frigate has no point defense, so it arrives.
+	for i in range(240):
+		battle.step(1.0 / 15.0)
+		if battle.seekers.is_empty():
+			break
+	eq(battle.seekers.size(), 0, "the seeker resolves rather than orbiting forever")
+	var shields_after: float = 0.0
+	for f in range(6):
+		shields_after += foe.shields[f]
+	# The frigate's shield takes it, which is the point: a drone that lands is
+	# damage on the facing it arrived through, not a free hit on the internals.
+	ok(shields_after < shields_before or foe.total_boxes() < boxes_before,
+		"and it damages what it reaches")
+
+	# Point defense: the wayfarer's PH-3 shoots drones down.
+	var defended = BattleLib.create_duel(FitLib.create_default("wayfarer"), "bloodletter", 9)
+	var guard = defended.player()
+	guard.pos = Vector2.ZERO
+	near(guard.point_defense_dps(Vector2(0.0, 2.0)), 1.6, "a PH-3 defends at close range")
+	near(guard.point_defense_dps(Vector2(0.0, 40.0)), 0.0, "and not across the arena")
+	for sys in guard.systems:
+		if String(sys["mount_id"]) == "M5":
+			sys["boxes"] = 0
+	near(guard.point_defense_dps(Vector2(0.0, 2.0)), 0.0,
+		"a destroyed mount stops defending")
+
+	var hunted = BattleLib.create_duel(FitLib.create_default("wayfarer"), "bloodletter", 3)
+	hunted.player().pos = Vector2.ZERO
+	hunted.enemy().pos = Vector2(0.0, 5.0)
+	var drone: Dictionary = CatalogLib.weapon("drone")
+	var seeker = SeekerLib.launch(hunted.enemy(), hunted.player(), drone)
+	hunted.seekers.append(seeker)
+	var start_boxes: int = hunted.player().total_boxes()
+	for i in range(200):
+		hunted.step(1.0 / 15.0)
+		if hunted.seekers.is_empty():
+			break
+	ok(hunted.seekers.is_empty(), "the drone is resolved one way or the other")
+	eq(hunted.player().total_boxes(), start_boxes,
+		"point defense kills the drone before it lands")
+
+
+func test_shields() -> void:
+	print("\n== shields ==")
+	var tuning: Dictionary = CatalogLib.tuning()
+	var ship = _fresh_ship()
+
+	# Bias: the favoured facing regenerates faster than the rest, and the
+	# total handed out does not change.
+	ship.shields[0] = 0.0
+	ship.shields[1] = 0.0
+	ship.shield_bias = 0
+	for i in range(60):
+		ship.step(1.0 / 15.0, tuning)
+	ok(ship.shields[0] > ship.shields[1], "the biased facing recovers faster")
+	var unbiased = _fresh_ship()
+	unbiased.shields[0] = 0.0
+	unbiased.shields[1] = 0.0
+	for i in range(60):
+		unbiased.step(1.0 / 15.0, tuning)
+	near(unbiased.shields[0], unbiased.shields[1],
+		"with no bias the facings recover together", 0.001)
+
+	# Transfer, Federation Commander 3C3: adjacent only, never above full.
+	var mover = _fresh_ship()
+	mover.shields[1] = 10.0
+	ok(mover.transfer_shield(0, 1, tuning), "strength moves to an adjacent facing")
+	near(mover.shields[1], 15.0, "the neighbour gains the transfer amount")
+	near(mover.shields[0], mover.shield_max - 5.0, "and the donor loses it")
+	ok(not mover.transfer_shield(0, 3, tuning), "a facing two steps away is refused")
+	ok(not mover.transfer_shield(2, 2, tuning), "a facing cannot feed itself")
+	var full = _fresh_ship()
+	ok(not full.transfer_shield(0, 1, tuning), "nothing moves into an undamaged facing")
+	var drained = _fresh_ship()
+	drained.shields[0] = 0.0
+	drained.shields[1] = 0.0
+	ok(not drained.transfer_shield(0, 1, tuning), "an empty facing has nothing to give")
+	var partial = _fresh_ship()
+	partial.shields[1] = partial.shield_max - 2.0
+	ok(partial.transfer_shield(0, 1, tuning), "a nearly full facing takes what it can")
+	near(partial.shields[1], partial.shield_max, "and stops at full")
+	near(partial.shields[0], partial.shield_max - 2.0, "the donor gives only that much")
 
 
 func test_shipyard() -> void:

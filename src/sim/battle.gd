@@ -10,6 +10,7 @@ var ships: Array[ShipState] = []
 var time: float = 0.0
 var over: bool = false
 var winner: int = -1
+var seekers: Array[Seeker] = []
 var _events: Array[Dictionary] = []
 var _targets: Dictionary = {}
 
@@ -86,6 +87,7 @@ func step(dt: float) -> Array[Dictionary]:
 	CombatAi.act(enemy(), player(), self)
 	for s in ships:
 		s.step(dt, tuning)
+	_step_seekers(dt, tuning)
 
 	_keep_in_arena(tuning)
 
@@ -97,6 +99,59 @@ func step(dt: float) -> Array[Dictionary]:
 			break
 	time += dt
 	return _drain()
+
+
+## Weapons in flight: fly, then let point defense shoot at them, then land the
+## ones that arrived. Point defense fires for free, without spending the
+## defending weapon's capacitor, which is what makes a light beam worth its
+## space (docs/01 section 5.2).
+func _step_seekers(dt: float, tuning: Dictionary) -> void:
+	var combat: Dictionary = tuning["combat"]
+	var hit_radius: float = float(combat["seeker_hit_radius"])
+	var lifetime: float = float(combat["seeker_lifetime"])
+	var survivors: Array[Seeker] = []
+
+	for seeker in seekers:
+		if not seeker.alive():
+			continue
+		seeker.step(dt)
+
+		# Everything hostile to the seeker with point defense in range shoots.
+		for defender in ships:
+			if defender == seeker.owner or not defender.alive:
+				continue
+			var dps: float = defender.point_defense_dps(seeker.pos)
+			if dps <= 0.0:
+				continue
+			seeker.hp -= dps * dt
+			if seeker.hp <= 0.0:
+				_events.append({
+					"type": "seeker_killed",
+					"weapon": seeker.short,
+					"at": seeker.pos,
+					"log": ["%s shot down by point defense" % [seeker.short]],
+				})
+				break
+
+		if seeker.hp <= 0.0:
+			continue
+		if seeker.age > lifetime:
+			_events.append({ "type": "seeker_lost", "weapon": seeker.short,
+				"at": seeker.pos, "log": ["%s ran out of fuel" % [seeker.short]] })
+			continue
+		if seeker.distance_to_target() <= hit_radius:
+			var bearing: float = Sectors.bearing_between(seeker.target.pos, seeker.pos)
+			var lines: Array[String] = seeker.target.apply_damage(bearing, float(seeker.damage))
+			lines.insert(0, "%s impacts" % [seeker.short])
+			_events.append({
+				"type": "shot", "weapon": seeker.short, "damage": seeker.damage,
+				"hit": true, "range": 0.0, "from_pos": seeker.pos,
+				"to_pos": seeker.target.pos, "log": lines,
+			})
+			continue
+		survivors.append(seeker)
+
+	seekers = survivors
 
 
 func _drain() -> Array[Dictionary]:
@@ -114,6 +169,16 @@ func try_fire(attacker: ShipState, weapon_index: int) -> bool:
 	var check: Dictionary = attacker.fire_check(weapon_index, target.pos)
 	if not bool(check["ok"]):
 		return false
+	var weapon: Dictionary = attacker.weapons_rt[weapon_index]["weapon"]
+	if bool(weapon.get("seeking", false)):
+		attacker.weapons_rt[weapon_index]["charge"] = 0.0
+		seekers.append(Seeker.launch(attacker, target, weapon))
+		_events.append({
+			"type": "launch", "weapon": String(weapon["short"]),
+			"from_pos": attacker.pos, "to_pos": target.pos,
+			"log": ["%s launched" % [String(weapon["short"])]],
+		})
+		return true
 	_events.append(attacker.fire_at(weapon_index, target))
 	return true
 

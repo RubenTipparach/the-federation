@@ -121,10 +121,12 @@ func _physics_process(delta: float) -> void:
 		events = battle.step(delta)
 	_world().update_visuals(delta, events)
 	for e in events:
-		if String(e["type"]) == "shot":
+		# Every event that narrates itself gets narrated: shots, launches,
+		# interceptions, and drones running out of fuel.
+		if e.has("log"):
 			for line in e["log"]:
 				_note(String(line))
-		elif String(e["type"]) == "end":
+		if String(e["type"]) == "end":
 			_show_end(int(e["winner"]))
 	_refresh_hud()
 	_refresh_target_label()

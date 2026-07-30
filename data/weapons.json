@@ -1,5 +1,6 @@
 {
   "_comment": "Weapon catalog. All gameplay tuning lives here per CLAUDE.md 5.4. family: beam, disruptor, torpedo, lance, drone, special. size ranks Light < Medium < Heavy < Spinal. reload is seconds at full weapons power. costs feed the four fitting budgets. A weapon with special=true ignores the mount's permitted families and, if override_field is present, replaces the mount's arc field with its own sector list.",
+  "_seeking": "A weapon with seeking true is launched rather than fired: Battle spawns a Seeker that flies at seeker_speed and carries seeker_hp before point defense can kill it. A weapon with point_defense true also shoots at seekers within pd_range for pd_dps, without spending its own capacitor, which is what makes a light beam worth its space. See docs/01 section 5.2.",
   "_falloff": "Range falloff, read only through src/sim/weapon_model.gd. Bands are ordered by 'to', the inclusive outer edge of the band in sim distance units, and the last 'to' is the weapon's reach. 'damage' is what a hit scores inside that band, 'hit' is the chance the shot connects at all. The three shapes come from Federation Commander, see docs/09: beams hold their accuracy and lose damage, torpedoes hold their damage and lose accuracy, disruptors lose both. The numbers are ours, tuned to our own ranges. The first band is point blank and its damage is what the fitting screen projects as alpha.",
   "weapons": {
     "ph1": {
@@ -17,6 +18,7 @@
     "ph3": {
       "name": "PH-3 Beam", "short": "PH-3", "family": "beam", "size": "Light",
       "price": 420, "reload": 2.0,
+      "point_defense": true, "pd_range": 4.0, "pd_dps": 1.6,
       "falloff": [
         { "to": 1.5, "hit": 1.0, "damage": 4 },
         { "to": 3.0, "hit": 1.0, "damage": 3 },
@@ -62,6 +64,7 @@
     "drone": {
       "name": "Drone Rack", "short": "DRN", "family": "drone", "size": "Light",
       "price": 640, "reload": 6.0,
+      "seeking": true, "seeker_speed": 3.2, "seeker_hp": 2,
       "falloff": [
         { "to": 14.0, "hit": 1.0, "damage": 6 }
       ],

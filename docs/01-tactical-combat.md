@@ -139,6 +139,13 @@ states quickly. Presets are configured in the shipyard, per design.
 
 ## 4. Shields: six facings
 
+**Two controls beyond raw power.** The shield engineer can **bias** one facing,
+which weights that facing's share of regeneration toward the side being held,
+and can **transfer** strength to an adjacent facing, which is Federation
+Commander 3C3: only to an adjacent shield, only to replace what damage took,
+never above the original strength. Both live in `ShipState`, so the AI can use
+them the moment it is taught to.
+
 Every ship has six independent shield facings mapped to the hex-like arrangement around
 the hull:
 
@@ -226,6 +233,19 @@ between two designs. `ShipFit.expected_into(sector, distance)` is that number.
 |---|---|
 | **Plasma torpedoes** | Slow-moving, enormous damage, degrades over flight distance, killable by point defense. Fired *ahead* of where the enemy will be. |
 | **Drone/missile racks** | Limited ammunition, pursue autonomously, can be shot down, can be **re-targeted** mid-flight. Ammo count is a fitting decision. |
+
+**Seeking weapons are launched, not fired.** A weapon with `seeking` in
+`data/weapons.json` puts a `Seeker` on the plane instead of resolving damage:
+it flies at its own speed toward wherever the target is now, and it carries hit
+points. Anything hostile with `point_defense` in range shoots it for free,
+without spending its own capacitor, which is what makes a light beam worth its
+space. A seeker that arrives resolves through the same `apply_damage` a beam
+does, on the facing it arrived through. One that is shot down or runs out of
+fuel says so in the comm log.
+
+This is the distinction Federation Commander draws in 4F: direct fire is a die
+roll, seeking weapons are counters on the map that move until they arrive or
+die. See `docs/09-reference-federation-commander.md`.
 | **Mines** | Deployed, area denial, invisible until triggered. Great for chokepoint and station defense. |
 
 Seeking weapons create the game's most interesting pressure: a plasma torpedo in the water
