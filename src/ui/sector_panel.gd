@@ -22,13 +22,11 @@ func build(tag: String, title: String, arc: String, systems: Array[Dictionary]) 
 	for sys in systems:
 		var line := SYS_LINE.instantiate()
 		$V/Systems.add_child(line)
-		line.build(String(sys["code"]), int(sys["boxes_max"]), String(sys["family"]))
+		line.build(String(sys["code"]), int(sys["boxes_max"]), String(sys["family"]),
+			String(sys.get("mount_id", "")))
 		_lines.append(line)
 	if systems.is_empty():
-		var empty := SYS_LINE.instantiate()
-		$V/Systems.add_child(empty)
-		empty.build("NO SYSTEMS", 0, "hull")
-		empty.paint(0, 0)
+		$V/Head/Arc.text = "empty"
 
 
 ## Repaint from the same system dictionaries the sim mutates, so the plate and

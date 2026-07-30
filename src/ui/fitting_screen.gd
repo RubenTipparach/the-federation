@@ -114,6 +114,7 @@ func _rebuild_internals() -> void:
 			"no shield" if is_core else Sectors.facing_arc_label(sector),
 			_demo.systems_in(key))
 		_panels.append(panel)
+	$Center/V/Ring/HullView.show_hull(session.fit.hull())
 
 
 func _refresh_state_views() -> void:

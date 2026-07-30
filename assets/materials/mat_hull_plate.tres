@@ -1,0 +1,13 @@
+[gd_resource type="StandardMaterial3D" format=3]
+
+; The hull under the ship systems display. Dimmer and less emissive than the
+; tactical hull material so the plate's panels stay the thing being read, with
+; enough shading left for the silhouette to have depth.
+
+[resource]
+albedo_color = Color(0.15, 0.26, 0.33, 1)
+metallic = 0.1
+roughness = 0.85
+emission_enabled = true
+emission = Color(0.09, 0.28, 0.34, 1)
+emission_energy_multiplier = 1.0

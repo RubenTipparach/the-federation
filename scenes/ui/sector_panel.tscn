@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://src/ui/sector_panel.gd" id="1"]
 
 [node name="SectorPanel" type="PanelContainer"]
-custom_minimum_size = Vector2(178, 0)
+custom_minimum_size = Vector2(0, 0)
 mouse_filter = 2
 script = ExtResource("1")
 
@@ -31,6 +31,8 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 9
 text = "000-000"
 
-[node name="Systems" type="VBoxContainer" parent="V"]
+[node name="Systems" type="GridContainer" parent="V"]
 layout_mode = 2
-theme_override_constants/separation = 5
+columns = 5
+theme_override_constants/h_separation = 6
+theme_override_constants/v_separation = 6

@@ -1,33 +1,45 @@
-extends HBoxContainer
+extends VBoxContainer
 
-## One system on the ship systems display: its icon, its code, and what is
-## left of it. The SSD is a fitting view, so it answers "what is aboard and is
-## it intact"; the per hit point boxes belong to the combat view, where losing
-## one box at a time is the thing being watched.
+## One subsystem slot on the ship systems display: an icon and a health bar,
+## nothing else. The SSD is a fitting view, so a section's slots should read at
+## a glance; the code, the box count, and the mount live in the tooltip for
+## when the player wants them, and the per hit point boxes belong to the combat
+## view where they are what is being watched.
 ##
-## Icons are committed .png files (CLAUDE.md 3), tinted here with the family
-## colour the rest of the UI already uses, so one file serves every state.
+## Icons are committed .png masks (CLAUDE.md 3) tinted here with the family
+## colour the rest of the UI uses, so one file serves every damage state.
 
 const ICON_DIR: String = "res://assets/icons/"
 
 var _family: String = "hull"
+var _code: String = ""
+var _mount: String = ""
 
 
-## Called when the fit changes. Loading the texture is the only work here.
-func build(code: String, _boxes_max: int, family: String) -> void:
+## Called when the fit changes: load the mask and write the tooltip once.
+func build(code: String, boxes_max: int, family: String, mount_id: String = "") -> void:
 	_family = family
-	$SysName.text = code
+	_code = code
+	_mount = mount_id
 	var path: String = ICON_DIR + code.to_lower().replace("-", "") + ".png"
 	$Icon.texture = load(path) if ResourceLoader.exists(path) else null
-	$Icon.visible = $Icon.texture != null
+	_write_tooltip(boxes_max, boxes_max)
 
 
 func paint(cur: int, boxes_max: int) -> void:
-	$Count.text = "%d/%d" % [cur, boxes_max]
+	var frac: float = 0.0 if boxes_max <= 0 else float(cur) / float(boxes_max)
 	var dead: bool = cur <= 0
-	var hurt: bool = cur < boxes_max and not dead
+	var hurt: bool = frac < 1.0 and not dead
 	var hue: Color = Palette.CRIT if dead else (
 		Palette.AMBER if hurt else Palette.family_color(_family))
-	$Icon.modulate = hue if not dead else Palette.with_alpha(Palette.CRIT, 0.45)
-	$SysName.add_theme_color_override("font_color", Palette.CRIT if dead else Palette.FG)
-	$Count.add_theme_color_override("font_color", hue if dead or hurt else Palette.DIM)
+	$Icon.modulate = Palette.with_alpha(Palette.CRIT, 0.4) if dead else hue
+	$Health.color = Palette.with_alpha(hue, 0.25 if dead else 0.9)
+	# The bar is the glance: full width intact, a stub when nearly gone.
+	$Health.custom_minimum_size.x = 26.0
+	$Health.scale = Vector2(maxf(frac, 0.04) if not dead else 1.0, 1.0)
+	_write_tooltip(cur, boxes_max)
+
+
+func _write_tooltip(cur: int, boxes_max: int) -> void:
+	tooltip_text = "%s   %d / %d boxes%s" % [
+		_code, cur, boxes_max, "" if _mount.is_empty() else "   mount " + _mount]
