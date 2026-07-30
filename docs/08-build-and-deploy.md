@@ -11,6 +11,7 @@ How the project gets from a commit to a playable build on itch.io.
         |
         v
   .github/workflows/deploy-itch.yml   (thin wrapper, no build logic)
+        |    job "Style and scripts", then job "Build and deploy"
         |
         +--> scripts/install-godot.sh    pinned Godot + export templates
         +--> scripts/install-butler.sh   itch.io upload tool
@@ -61,20 +62,31 @@ itch.io.
 
 | Trigger | Behavior |
 |---|---|
-| Push to `main` | Builds, verifies, and **deploys**. Skipped for changes only under `docs/` or to `*.md`. |
-| Push to `claude/**` | Builds and verifies. **Never deploys.** Catches a broken export in the pull request instead of on merge. |
+| Push to `main` | Checks, builds, verifies, and **deploys**. |
+| Pull request | Checks, builds, and verifies. **Never deploys.** Catches a broken export in the pull request instead of on merge. |
 | Manual dispatch | Optional target list, and a `dry_run` checkbox that builds and validates without uploading. |
 
-The deploy step is gated on `github.ref == 'refs/heads/main'`, so a feature
-branch cannot publish to itch.io even with the secret available.
+**One run per commit.** The triggers are disjoint on purpose: `pull_request`
+covers every feature branch, `push` covers `main`, and nothing is subscribed to
+both. An earlier layout split the checks into a second workflow file that
+listened on `pull_request` while this one listened on branch pushes, so one
+commit started two runs, and a merge started two more. Everything now lives in
+this file as two jobs, and the build job runs only if the checks job passes.
+
+There is no `paths-ignore` filter. A documentation only change costs about a
+minute of cached build time, which is cheaper than maintaining a rule that
+decides when verification may be skipped, and it means no change can reach
+`main` without the export having been built from it.
+
+The deploy step is gated on `github.ref == 'refs/heads/main'`, so a pull
+request cannot publish to itch.io even with the secret available.
 
 Note that `workflow_dispatch` only becomes available once this workflow file
-exists on the default branch. Until the first merge to `main`, feature branch
-pushes are the only way to run it.
+exists on the default branch.
 
-Deploys run one at a time (`concurrency: deploy-itch`) and in progress runs are
-**not** cancelled, because killing a half finished upload would leave a partial
-build on itch.io.
+Runs are grouped per ref. A superseded pull request run is cancelled, since its
+result no longer matters, but a `main` run is never cancelled: killing a half
+finished upload would leave a partial build on itch.io.
 
 Artifacts upload to the workflow run regardless of whether the itch.io push
 succeeds, so a failed deploy still leaves something to inspect.
