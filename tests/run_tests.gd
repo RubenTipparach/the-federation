@@ -82,6 +82,12 @@ func test_sectors() -> void:
 	eq(runs.size(), 1, "wrap through zero groups into one run")
 	eq(int(runs[0][0]), 9, "wrapped run starts at its true beginning")
 
+	eq(SectorsLib.facing_name(0), "Bow", "facing 1 is the bow")
+	eq(SectorsLib.facing_name(3), "Stern", "facing 4 is the stern")
+	eq(SectorsLib.facing_arc_label(0), "330-030", "the bow arc straddles dead ahead")
+	eq(SectorsLib.facing_arc_label(1), "030-090", "the starboard bow arc")
+	eq(SectorsLib.facing_name(6), "Bow", "facing names wrap")
+
 
 func test_catalog() -> void:
 	print("\n== catalog ==")

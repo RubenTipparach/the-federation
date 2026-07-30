@@ -89,3 +89,24 @@ static func label_for_sectors(sectors: Array) -> String:
 		var b: int = (int(run[-1]) + 1) * int(SECTOR_DEG) % 360
 		parts.append("%03d-%03d" % [a % 360, b])
 	return ", ".join(parts)
+
+
+## Human names for the six shield facings, numbered 1 to 6 from the bow
+## clockwise (docs/09, Federation Commander 3C1). One list, so no screen
+## invents its own wording.
+const FACING_NAMES: Array[String] = [
+	"Bow", "Starboard bow", "Starboard quarter",
+	"Stern", "Port quarter", "Port bow",
+]
+
+
+static func facing_name(facing: int) -> String:
+	return FACING_NAMES[posmod(facing, FACING_COUNT)]
+
+
+## The bearing arc a facing covers, as the plate prints it.
+static func facing_arc_label(facing: int) -> String:
+	var f: int = posmod(facing, FACING_COUNT)
+	var from_deg: float = wrap_deg(float(f) * 60.0 - 30.0)
+	var to_deg: float = wrap_deg(float(f) * 60.0 + 30.0)
+	return "%03d-%03d" % [int(from_deg), int(to_deg)]

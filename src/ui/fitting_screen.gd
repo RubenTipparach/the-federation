@@ -9,14 +9,13 @@ extends HBoxContainer
 signal design_changed
 
 const SELECT_CARD := preload("res://scenes/ui/select_card.tscn")
-const SYS_BOX := preload("res://scenes/ui/sys_box.tscn")
-const SYS_ROW := preload("res://scenes/ui/sys_row.tscn")
+const SECTOR_PANEL := preload("res://scenes/ui/sector_panel.tscn")
 const MOUNT_ITEM := preload("res://scenes/ui/mount_fit_item.tscn")
 
 var session: Session
 var _demo: ShipState
 var _wired: bool = false
-var _boxes: Array = []  # index aligned with _demo.systems
+var _panels: Array = []  # six facings then the hull core, index is the sector
 
 
 ## Safe to call again when the session's fit is replaced from another screen:
@@ -93,30 +92,36 @@ func _reset_demo() -> void:
 
 
 func _rebuild_internals() -> void:
-	var grid: VBoxContainer = $Center/V/Ring/InternalsAnchor/Internals
-	for child in grid.get_children():
-		child.queue_free()
-	_boxes = []
-	# One row per shield facing, then the hull core, which is the order the
-	# approved plate reads in and the order damage resolves in.
-	var row_nodes: Dictionary = {}
-	for sys in _demo.systems:
-		var sector: int = int(sys["sector"])
-		if not row_nodes.has(sector):
-			var row_node: HBoxContainer = SYS_ROW.instantiate()
-			grid.add_child(row_node)
-			row_nodes[sector] = row_node
-		var box: Panel = SYS_BOX.instantiate()
-		row_nodes[sector].add_child(box)
-		_boxes.append(box)
+	# The plate: one panel per shield facing arranged around the ring in the
+	# ship's own geometry, plus the hull core in the middle. Panels are
+	# instances of a committed scene dropped into anchors authored in
+	# fitting.tscn, so nothing here builds a node tree (CLAUDE.md 5.1).
+	_panels = []
+	for sector in range(Sectors.FACING_COUNT + 1):
+		var is_core: bool = sector == Sectors.FACING_COUNT
+		var anchor: Control = $Center/V/Ring.get_node(
+			"Core" if is_core else "Sector%d" % sector)
+		for child in anchor.get_children():
+			child.queue_free()
+		var panel: PanelContainer = SECTOR_PANEL.instantiate()
+		anchor.add_child(panel)
+		# Centre the panel on its anchor point once it has been sized.
+		panel.set_anchors_preset(Control.PRESET_CENTER)
+		var key: int = ShipState.CORE if is_core else sector
+		panel.build(
+			"CORE" if is_core else str(sector + 1),
+			"Hull core" if is_core else Sectors.facing_name(sector),
+			"no shield" if is_core else Sectors.facing_arc_label(sector),
+			_demo.systems_in(key))
+		_panels.append(panel)
 
 
 func _refresh_state_views() -> void:
 	$Center/V/Ring.show_state(_demo.shields, _demo.shield_max)
-	for i in range(_demo.systems.size()):
-		var sys: Dictionary = _demo.systems[i]
-		_boxes[i].paint(String(sys["code"]), int(sys["boxes"]),
-			int(sys["boxes_max"]), String(sys["family"]))
+	for sector in range(_panels.size()):
+		var is_core: bool = sector == Sectors.FACING_COUNT
+		_panels[sector].refresh(
+			0.0 if is_core else _demo.shields[sector], _demo.shield_max, not is_core)
 	$Center/V/Head.text = "SHIP SYSTEM DISPLAY  %s" % String(
 		session.fit.hull()["name"]).to_upper()
 

@@ -67,30 +67,84 @@ text = "SHIP SYSTEM DISPLAY"
 [node name="Ring" type="Control" parent="Center/V"]
 layout_mode = 2
 size_flags_vertical = 3
-custom_minimum_size = Vector2(0, 300)
+custom_minimum_size = Vector2(0, 660)
 script = ExtResource("2")
 
-[node name="InternalsAnchor" type="Control" parent="Center/V/Ring"]
+[node name="Sector0" type="Control" parent="Center/V/Ring"]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
-anchor_top = 0.5
+anchor_top = 0.02
 anchor_right = 0.5
-anchor_bottom = 0.5
+anchor_bottom = 0.02
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="Internals" type="VBoxContainer" parent="Center/V/Ring/InternalsAnchor"]
+[node name="Sector1" type="Control" parent="Center/V/Ring"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.79
+anchor_top = 0.24
+anchor_right = 0.79
+anchor_bottom = 0.24
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Sector2" type="Control" parent="Center/V/Ring"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.79
+anchor_top = 0.6
+anchor_right = 0.79
+anchor_bottom = 0.6
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Sector3" type="Control" parent="Center/V/Ring"]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
-anchor_top = 0.5
+anchor_top = 0.8
 anchor_right = 0.5
-anchor_bottom = 0.5
+anchor_bottom = 0.8
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/separation = 4
+mouse_filter = 2
+
+[node name="Sector4" type="Control" parent="Center/V/Ring"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.21
+anchor_top = 0.6
+anchor_right = 0.21
+anchor_bottom = 0.6
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Sector5" type="Control" parent="Center/V/Ring"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.21
+anchor_top = 0.24
+anchor_right = 0.21
+anchor_bottom = 0.24
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Core" type="Control" parent="Center/V/Ring"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.44
+anchor_right = 0.5
+anchor_bottom = 0.44
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
 
 [node name="Controls" type="HBoxContainer" parent="Center/V"]

@@ -1,0 +1,36 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/ui/sector_panel.gd" id="1"]
+
+[node name="SectorPanel" type="PanelContainer"]
+custom_minimum_size = Vector2(178, 0)
+mouse_filter = 2
+script = ExtResource("1")
+
+[node name="V" type="VBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="Head" type="HBoxContainer" parent="V"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Tag" type="Label" parent="V/Head"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+text = "1"
+
+[node name="Title" type="Label" parent="V/Head"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 10
+text = "SECTOR"
+
+[node name="Arc" type="Label" parent="V/Head"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+text = "000-000"
+
+[node name="Systems" type="VBoxContainer" parent="V"]
+layout_mode = 2
+theme_override_constants/separation = 5
