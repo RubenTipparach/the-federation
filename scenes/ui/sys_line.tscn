@@ -2,27 +2,27 @@
 
 [ext_resource type="Script" path="res://src/ui/sys_line.gd" id="1"]
 
-[node name="SysLine" type="VBoxContainer"]
-theme_override_constants/separation = 2
+[node name="SysLine" type="HBoxContainer"]
+theme_override_constants/separation = 6
 script = ExtResource("1")
 
-[node name="Head" type="HBoxContainer" parent="."]
+[node name="Icon" type="TextureRect" parent="."]
+custom_minimum_size = Vector2(20, 20)
 layout_mode = 2
-theme_override_constants/separation = 6
+size_flags_vertical = 4
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
 
-[node name="SysName" type="Label" parent="Head"]
+[node name="SysName" type="Label" parent="."]
 layout_mode = 2
 size_flags_horizontal = 3
+size_flags_vertical = 4
 theme_override_font_sizes/font_size = 10
 text = "SYSTEM"
 
-[node name="Count" type="Label" parent="Head"]
+[node name="Count" type="Label" parent="."]
 layout_mode = 2
+size_flags_vertical = 4
 theme_override_font_sizes/font_size = 10
 text = "0/0"
-
-[node name="Boxes" type="GridContainer" parent="."]
-layout_mode = 2
-columns = 6
-theme_override_constants/h_separation = 2
-theme_override_constants/v_separation = 2

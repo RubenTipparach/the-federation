@@ -1,36 +1,33 @@
-extends VBoxContainer
+extends HBoxContainer
 
-## One system on the ship systems display: its name, what is left of it, and
-## one box per hit point wrapping six to a row, which is the layout the
-## approved plate uses. Boxes are instanced from a committed scene and only
-## painted here (CLAUDE.md 5.1).
+## One system on the ship systems display: its icon, its code, and what is
+## left of it. The SSD is a fitting view, so it answers "what is aboard and is
+## it intact"; the per hit point boxes belong to the combat view, where losing
+## one box at a time is the thing being watched.
+##
+## Icons are committed .png files (CLAUDE.md 3), tinted here with the family
+## colour the rest of the UI already uses, so one file serves every state.
 
-const HIT_BOX := preload("res://scenes/ui/hit_box.tscn")
+const ICON_DIR: String = "res://assets/icons/"
 
-var _boxes: Array[Panel] = []
 var _family: String = "hull"
 
 
-## Build the box row once, when the fit changes. Painting per frame never
-## touches the tree.
-func build(sys_name: String, boxes_max: int, family: String) -> void:
+## Called when the fit changes. Loading the texture is the only work here.
+func build(code: String, _boxes_max: int, family: String) -> void:
 	_family = family
-	$Head/SysName.text = sys_name
-	for child in $Boxes.get_children():
-		child.queue_free()
-	_boxes = []
-	for i in range(boxes_max):
-		var box: Panel = HIT_BOX.instantiate()
-		$Boxes.add_child(box)
-		_boxes.append(box)
+	$SysName.text = code
+	var path: String = ICON_DIR + code.to_lower().replace("-", "") + ".png"
+	$Icon.texture = load(path) if ResourceLoader.exists(path) else null
+	$Icon.visible = $Icon.texture != null
 
 
 func paint(cur: int, boxes_max: int) -> void:
-	$Head/Count.text = "%d/%d" % [cur, boxes_max]
+	$Count.text = "%d/%d" % [cur, boxes_max]
 	var dead: bool = cur <= 0
-	$Head/SysName.add_theme_color_override("font_color",
-		Palette.CRIT if dead else Palette.FG)
-	$Head/Count.add_theme_color_override("font_color",
-		Palette.CRIT if dead else Palette.DIM)
-	for i in range(_boxes.size()):
-		_boxes[i].paint(i < cur, _family)
+	var hurt: bool = cur < boxes_max and not dead
+	var hue: Color = Palette.CRIT if dead else (
+		Palette.AMBER if hurt else Palette.family_color(_family))
+	$Icon.modulate = hue if not dead else Palette.with_alpha(Palette.CRIT, 0.45)
+	$SysName.add_theme_color_override("font_color", Palette.CRIT if dead else Palette.FG)
+	$Count.add_theme_color_override("font_color", hue if dead or hurt else Palette.DIM)
