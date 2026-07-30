@@ -69,7 +69,7 @@ func refresh() -> void:
 				if weapon.is_empty():
 					continue
 				if _state.fit.effective_field(_state.weapons_rt[j]["mount"]).has(i):
-					r = maxf(r, float(weapon["range"]))
+					r = maxf(r, WeaponModel.max_range(weapon))
 		w.visible = r > 0.0
 		if r > 0.0:
 			w.scale = Vector3(r, 1, r)

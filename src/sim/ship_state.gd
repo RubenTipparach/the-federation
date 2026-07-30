@@ -191,7 +191,7 @@ func fire_check(index: int, target_pos: Vector2) -> Dictionary:
 		return { "ok": false, "reason": "destroyed" }
 	if float(w["charge"]) < 1.0:
 		return { "ok": false, "reason": "charging" }
-	if pos.distance_to(target_pos) > float(w["weapon"]["range"]):
+	if pos.distance_to(target_pos) > WeaponModel.max_range(w["weapon"]):
 		return { "ok": false, "reason": "range" }
 	var rel: float = Sectors.relative_bearing(Sectors.bearing_between(pos, target_pos), heading)
 	if not fit.effective_field(w["mount"]).has(Sectors.sector_of_bearing(rel)):
@@ -203,13 +203,23 @@ func fire_check(index: int, target_pos: Vector2) -> Dictionary:
 func fire_at(index: int, target: ShipState) -> Dictionary:
 	var w: Dictionary = weapons_rt[index]
 	w["charge"] = 0.0
-	var damage: int = int(w["weapon"]["damage"])
+	var distance: float = pos.distance_to(target.pos)
+	# Range decides both whether the shot connects and what it scores, so a
+	# weapon fired at its extreme edge is worth less than the same weapon
+	# fired point blank (WeaponModel).
+	var damage: int = WeaponModel.roll_damage(w["weapon"], distance, rng)
 	var arrive_bearing: float = Sectors.bearing_between(target.pos, pos)
-	var log_lines: Array[String] = target.apply_damage(arrive_bearing, float(damage))
+	var log_lines: Array[String] = []
+	if damage <= 0:
+		log_lines.append("%s misses at range %d" % [String(w["weapon"]["short"]), int(distance)])
+	else:
+		log_lines = target.apply_damage(arrive_bearing, float(damage))
 	return {
 		"type": "shot",
 		"weapon": String(w["weapon"]["short"]),
 		"damage": damage,
+		"hit": damage > 0,
+		"range": distance,
 		"from_pos": pos,
 		"to_pos": target.pos,
 		"log": log_lines,

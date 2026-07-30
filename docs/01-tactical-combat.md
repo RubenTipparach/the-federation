@@ -185,6 +185,25 @@ the weapon's range, which is exactly the wedge the fitting screen draws.
 |---|---|
 | **Beam batteries** | Instant hit, damage falls off with range, wide arcs, cheap power. The reliable baseline. |
 | **Disruptor banks** | Punchy at medium range, narrow arc, higher power draw, can **overload** for ~2× damage at half range and a heavy capacitor cost. |
+
+**Range falloff is a table, not a curve.** Every weapon in `data/weapons.json` carries a
+`falloff` list: bands from point blank outward, each with the damage a hit scores and the
+chance the shot connects at all. `src/sim/weapon_model.gd` is the only code that reads it,
+so the fitting screen's projected alpha, the arc wheel's radius, and a real shot in a
+battle cannot disagree.
+
+The three shapes are inherited from Federation Commander, see
+`docs/09-reference-federation-commander.md`:
+
+| Shape | Accuracy with range | Damage with range | Feels like |
+|---|---|---|---|
+| Beams, phasers | Unchanged, they always connect | Falls steadily | Reliable, and worth closing for |
+| Torpedoes | Falls | Unchanged, a hit is a hit | All or nothing at long range |
+| Disruptors | Falls | Falls | Punishing to trade with at distance |
+
+Two consequences the fitting screen must state plainly: **alpha strike is a point blank
+figure**, the best case, and expected damage at a chosen range is the honest comparison
+between two designs. `ShipFit.expected_into(sector, distance)` is that number.
 | **Lance/spinal mounts** | Extreme damage, forward-only, very long charge, huge power. Battleship/dreadnought only. |
 | **Point defense** | Auto-firing, short range, only engages seeking weapons and fighters. |
 

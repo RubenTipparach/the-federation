@@ -87,7 +87,43 @@ when that shield falls.
 
 ---
 
-## 3. Terms
+## 3. Weapons and range
+
+The source's weapon charts are the part worth inheriting. Every direct fire weapon has a
+table indexed by range, and the three archetypes behave differently as the range grows.
+
+**Phasers (charts on page 19).** One die per shot, cross indexed against a range column.
+The damage in the table shrinks as range grows, but a phaser at extreme range still scores
+something on a good roll: it never stops connecting, it stops mattering. Phaser-1 is the
+heavy mount, Phaser-2 the medium, Phaser-3 the short ranged defensive one, and each has its
+own table.
+
+**Photon torpedoes (chart on page 20, arming in 4C).** Damage is flat across the whole
+range column. What changes is the "to hit" number: near certain up close, a single number
+on the die at maximum range. A torpedo is all or nothing, and the decision it forces is
+whether to hold the shot for a closer pass, which the arming rules (4C5) make expensive.
+
+**Disruptors (chart on page 20, procedure in 4D2).** Both rows shrink: accuracy falls and
+so does the damage per hit. The result is a weapon that punishes long range trades from
+both directions.
+
+**What we take.** The three shapes, exactly as above. Beams hold accuracy and lose damage,
+torpedoes hold damage and lose accuracy, disruptors lose both. Our version replaces the
+die roll with a hit chance per band, since a real time game resolves shots continuously
+rather than once per impulse, and a probability is the same statement without a turn
+structure to hang it on.
+
+**What we do not take.** Their numbers. Our bands are in our own distance units and tuned
+against our own hulls, and they live in `data/weapons.json` where a designer can change
+them. Copying the published tables would be copying the game, not learning from it, per
+section 10 of `CLAUDE.md`.
+
+The shared reader is `src/sim/weapon_model.gd`. Nothing else in the codebase interprets a
+band, so the fitting screen's projection and a live shot cannot drift apart.
+
+---
+
+## 4. Terms
 
 | Source term | Ours | Note |
 |---|---|---|

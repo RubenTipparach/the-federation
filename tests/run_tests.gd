@@ -15,6 +15,7 @@ const PowerLib = preload("res://src/sim/power.gd")
 const FitLib = preload("res://src/sim/fit.gd")
 const ShipLib = preload("res://src/sim/ship_state.gd")
 const BattleLib = preload("res://src/sim/battle.gd")
+const WeaponLib = preload("res://src/sim/weapon_model.gd")
 
 var checks: int = 0
 var failures: int = 0
@@ -43,6 +44,7 @@ func _initialize() -> void:
 	test_fit()
 	test_power()
 	test_damage()
+	test_falloff()
 	test_movement_and_weapons()
 	test_battle_and_ai()
 	print("")
@@ -203,6 +205,90 @@ func test_damage() -> void:
 	ok(def.reinforce(3, CatalogLib.tuning()), "reinforce fires with a charged battery")
 	near(def.shields[3], 8.0, "reinforce restores the tuned amount")
 	ok(not def.reinforce(3, CatalogLib.tuning()), "battery is spent after one reinforce")
+
+
+func test_falloff() -> void:
+	print("\n== range falloff ==")
+	var ph1: Dictionary = CatalogLib.weapon("ph1")
+	var photon: Dictionary = CatalogLib.weapon("photon")
+	var disr: Dictionary = CatalogLib.weapon("disruptor")
+
+	near(WeaponLib.max_range(ph1), 10.0, "reach is the outer edge of the last band")
+	eq(WeaponLib.max_damage(ph1), 8, "point blank damage is the first band")
+
+	# A band edge belongs to its own band: at exactly 2.0 the shot is still
+	# point blank, at a hair beyond it is not. Off by one here would silently
+	# change every weapon's profile.
+	eq(WeaponLib.damage_at(ph1, 2.0), 8, "the band edge is inside the band")
+	eq(WeaponLib.damage_at(ph1, 2.001), 7, "just past the edge is the next band")
+	eq(WeaponLib.damage_at(ph1, 0.0), 8, "muzzle contact is point blank")
+	eq(WeaponLib.damage_at(ph1, 10.0), 2, "the last band reaches the stated range")
+	eq(WeaponLib.damage_at(ph1, 10.5), 0, "beyond reach scores nothing")
+	near(WeaponLib.hit_chance_at(ph1, 10.5), 0.0, "beyond reach cannot connect")
+
+	# The three shapes from docs/09: beams lose damage and keep accuracy,
+	# torpedoes keep damage and lose accuracy, disruptors lose both.
+	near(WeaponLib.hit_chance_at(ph1, 9.0), 1.0, "a beam still connects at its edge")
+	ok(WeaponLib.damage_at(ph1, 9.0) < WeaponLib.max_damage(ph1), "a beam weakens with range")
+	eq(WeaponLib.damage_at(photon, 19.0), WeaponLib.max_damage(photon),
+		"a torpedo hits as hard at the edge as at the muzzle")
+	ok(WeaponLib.hit_chance_at(photon, 19.0) < 1.0, "a torpedo loses accuracy instead")
+	ok(WeaponLib.damage_at(disr, 11.0) < WeaponLib.max_damage(disr)
+		and WeaponLib.hit_chance_at(disr, 11.0) < 1.0, "a disruptor loses both")
+
+	# Expected damage must never rise with range, for every weapon in the
+	# catalog. A band typo that made a weapon better far away would pass every
+	# test above and be found by a player instead.
+	for id in CatalogLib.weapons().keys():
+		var w: Dictionary = CatalogLib.weapon(String(id))
+		var reach: float = WeaponLib.max_range(w)
+		var prev: float = WeaponLib.expected_damage_at(w, 0.0)
+		var monotonic: bool = true
+		var d: float = 0.0
+		while d <= reach:
+			var cur: float = WeaponLib.expected_damage_at(w, d)
+			if cur > prev + 0.0001:
+				monotonic = false
+			prev = cur
+			d += reach / 40.0
+		ok(monotonic, "%s never scores more at a longer range" % [String(id)])
+		near(WeaponLib.expected_damage_at(w, reach + 0.1), 0.0,
+			"%s scores nothing past its reach" % [String(id)])
+
+	# Rolling honours the band: a certain weapon always scores its band damage,
+	# and an uncertain one misses sometimes and scores full damage otherwise.
+	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
+	rng.seed = 99
+	var beam_rolls_low: bool = false
+	for i in range(200):
+		if WeaponLib.roll_damage(ph1, 5.0, rng) != 5:
+			beam_rolls_low = true
+	ok(not beam_rolls_low, "a certain beam always scores its band damage")
+
+	var misses: int = 0
+	var partials: int = 0
+	for i in range(400):
+		var scored: int = WeaponLib.roll_damage(photon, 18.0, rng)
+		if scored == 0:
+			misses += 1
+		elif scored != WeaponLib.max_damage(photon):
+			partials += 1
+	ok(misses > 0, "a long torpedo shot can miss")
+	eq(partials, 0, "a torpedo that connects scores in full")
+	near(float(misses) / 400.0, 1.0 - WeaponLib.hit_chance_at(photon, 18.0),
+		"miss rate tracks the band's hit chance", 0.08)
+
+	near(WeaponLib.longest_range(), 22.0, "the arc chart scale comes from the catalog")
+
+	# A shot resolved through a ship carries the same numbers.
+	var shooter = _fresh_ship()
+	var mark = _fresh_ship()
+	mark.pos = shooter.pos + Vector2(0.0, 3.0)
+	var fit: Variant = shooter.fit
+	near(fit.expected_into(0, 0.0), float(fit.alpha_into(0)),
+		"expected damage at point blank equals the projected alpha")
+	ok(fit.expected_into(0, 9.0) < float(fit.alpha_into(0)),
+		"the same broadside is worth less at range")
 
 
 func test_movement_and_weapons() -> void:

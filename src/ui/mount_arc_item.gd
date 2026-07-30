@@ -21,7 +21,7 @@ func setup(mount: Dictionary, fit: ShipFit) -> void:
 		lines.append("empty")
 	else:
 		var line: String = "%s  rng %d  dmg %d" % [
-			String(w["name"]), int(w["range"]), int(w["damage"])]
+			String(w["name"]), int(WeaponModel.max_range(w)), WeaponModel.max_damage(w)]
 		if bool(w.get("special", false)) and w.has("override_field"):
 			line += "  OVERRIDES to %s" % Sectors.label_for_sectors(fit.effective_field(mount))
 		lines.append(line)
