@@ -14,7 +14,7 @@ config_version=5
 config/name="The Federation"
 config/description="Tactical space MMO. Pre-production."
 run/main_scene="res://scenes/main.tscn"
-config/features=PackedStringArray("4.5", "C#", "Forward Plus")
+config/features=PackedStringArray("4.7", "C#", "Forward Plus")
 ; No config/icon yet. Godot's default new-project icon is an .svg, and
 ; CLAUDE.md section 3 requires art assets to be delivered as .png, so the
 ; icon is left unset until a real .png icon exists.

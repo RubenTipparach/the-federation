@@ -18,7 +18,7 @@ How the project gets from a commit to a playable build on itch.io.
         +--> scripts/deploy-itch.sh      butler push, per target
         |
         v
-   https://rubentipparach.itch.io/the-federation
+   https://ruben-tipparach.itch.io/federation
 ```
 
 **The workflow contains no build logic.** Every step calls a committed script,
@@ -61,8 +61,16 @@ itch.io.
 
 | Trigger | Behavior |
 |---|---|
-| Push to `main` | Builds and deploys `ENABLED_TARGETS`. Skipped for changes only under `docs/` or to `*.md`. |
+| Push to `main` | Builds, verifies, and **deploys**. Skipped for changes only under `docs/` or to `*.md`. |
+| Push to `claude/**` | Builds and verifies. **Never deploys.** Catches a broken export in the pull request instead of on merge. |
 | Manual dispatch | Optional target list, and a `dry_run` checkbox that builds and validates without uploading. |
+
+The deploy step is gated on `github.ref == 'refs/heads/main'`, so a feature
+branch cannot publish to itch.io even with the secret available.
+
+Note that `workflow_dispatch` only becomes available once this workflow file
+exists on the default branch. Until the first merge to `main`, feature branch
+pushes are the only way to run it.
 
 Deploys run one at a time (`concurrency: deploy-itch`) and in progress runs are
 **not** cancelled, because killing a half finished upload would leave a partial
@@ -102,9 +110,9 @@ From the `TARGETS` table in `build.config`:
 | `web` | Web | `html5` | no |
 
 Channel names are chosen so itch.io auto detects the platform from the channel
-name. Desktop targets push a single binary; `macos` and `web` push their whole
-output directory, because those exports produce several files that belong to one
-build.
+name. **Every target pushes its whole output directory**, never a single file: a
+desktop export produces the executable plus a separate `.pck`, and shipping the
+executable alone uploads a build that cannot start. See section 7.
 
 Enabling a target is a one line change to `ENABLED_TARGETS`. `scripts/check-config.sh`
 runs in CI and fails if a target names a preset that does not exist in
@@ -145,9 +153,10 @@ feedback, not casual browser traffic, and desktop builds serve that fine. The
 decision only becomes expensive at M2, when the shipyard is worth showing widely.
 
 **Verify before relying on either direction:** Godot's .NET Web export status has
-been moving, and it was not possible to confirm the current state while writing
-this (see section 7). Check the Godot documentation for the pinned version before
-committing to a plan.
+been moving, and it has not been confirmed for the pinned 4.7.1. Check the Godot
+documentation before committing to a plan. Note that the `web` preset is present
+and `scripts/check-config.sh` validates it, so testing this is a one line change
+to `ENABLED_TARGETS` plus a build.
 
 ### macOS is off for signing reasons
 
@@ -160,41 +169,54 @@ target is off.
 
 ---
 
-## 7. What is verified and what is not
+## 7. What is verified
 
-Stated plainly, because a deploy pipeline that claims to work and does not is
-worse than one that is honest.
+The pipeline was exercised end to end on a real Godot install, not just written.
 
 **Verified by running it:**
-- `butler` installs from `broth.itch.zone` and runs. Confirmed v15.30.0.
-- Target resolution, channel mapping, and the file versus directory push
-  decision, through `DRY_RUN=1` with stand in artifacts.
-- `scripts/check-config.sh` catches both a target with no table row and a preset
-  renamed out from under a target. Negative tested, not just happy path.
-- Version stamping from `git describe`, with the untagged fallback.
-- All scripts pass `bash -n` and `shellcheck --severity=warning`.
-- Both workflow files parse as valid YAML.
+- **Godot 4.7.1.stable.mono installs and runs.** Downloaded from Godot's own
+  endpoint, `downloads.godotengine.org`, which is what godotengine.org/download
+  links to. Preferred over the GitHub releases URLs because it is canonical and
+  stays reachable where egress policy blocks github.com.
+- **Real exports.** Linux (71 MB binary plus a .pck) and Windows (105 MB plus a
+  .pck), both from `export_presets.cfg` as committed.
+- **The exported build boots and runs its scripts.** `scripts/verify-build.sh`
+  runs the Linux binary headless and requires it to print its smoke marker. An
+  export succeeding is not the same as a build that works.
+- `butler` installs from `broth.itch.zone` and runs. v15.30.0.
+- Target resolution, channel mapping, and directory push contents, via
+  `DRY_RUN=1`.
+- `scripts/check-config.sh` negative tested: it catches both a target with no
+  table row and a preset renamed out from under a target.
+- All scripts pass `bash -n` and `shellcheck --severity=warning`. Both workflows
+  parse.
 
-**Not verified, and needs a first real run:**
-- **The Godot half.** `github.com` and `api.github.com` return 403 from the
-  authoring session's egress proxy, so Godot could not be downloaded and no
-  export was ever executed. `scripts/install-godot.sh`, the archive layout
-  handling, and the whole export path are written from the documented behavior
-  and are untested.
-- **The pinned Godot version.** `GODOT_VERSION=4.5` in `build.config` could not
-  be confirmed to exist. `install-godot.sh` prints the URL it tried on failure,
-  so a wrong pin is a loud, one line fix.
-- **`export_presets.cfg`.** Hand written, where Godot normally generates it.
-  Open the project in the editor once and let it re-save the file, so any option
-  keys that differ in the pinned version get corrected. The preset **names** and
-  `export_path` values are what must survive that round trip, since
-  `build.config` refers to them.
-- **The itch.io project page.** `butler` cannot create one. The first push fails
-  until https://rubentipparach.itch.io/the-federation exists.
+**Three real bugs were found by running it, and fixed:**
 
-The first `main` build should be run via manual dispatch with `dry_run` checked.
+1. **The deploy shipped broken builds.** With `binary_format/embed_pck` disabled,
+   a desktop export produces the executable *and* a separate `.pck` holding all
+   game data. The deploy pushed only the executable, so the uploaded build could
+   not start. It now always pushes the target's whole output directory, which is
+   correct for every target and removes a per target special case rather than
+   adding one.
+2. **A crashed import counted as success.** The .NET build of Godot segfaults
+   (SIGSEGV, exit 134) when the SDK is absent, even for a project with no C#
+   files, *and still leaves a partial `.godot/` behind*. The old check looked
+   only for that directory. There is now a `run_godot` wrapper that treats any
+   exit status of 128 or above as a crash, plus an up front check that dotnet is
+   present whenever the flavor is mono.
+3. **An `rm -rf` on a computed path** could have expanded to `./*`. Flagged by
+   shellcheck; the path is now proven to sit inside `builds/` first.
 
----
+**Still unverified:**
+- **The upload itself.** `butler push` has not run against itch.io from here,
+  because the API key correctly lives only in repository secrets. The first
+  deploy from `main` is the real test.
+- **macOS and Web exports.** Presets exist, targets are disabled. See section 6.
+- `export_presets.cfg` was hand written and Godot accepted it, but the editor has
+  not re-saved it. Opening the project once and letting the editor rewrite the
+  file is still worth doing, so any option keys Godot silently ignored get
+  corrected. The preset **names** and `export_path` values must survive that.
 
 ## 8. Fly.io: deliberately deferred
 

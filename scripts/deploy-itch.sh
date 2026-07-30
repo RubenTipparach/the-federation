@@ -27,16 +27,25 @@ push_target() {
   local name="$1" version="$2"
   load_target "$name"
 
-  local push_path="$TARGET_OUTPUT"
-  # Web and macOS ship as a directory of files; desktop targets ship one binary.
-  # butler is happy with either, but pushing the directory keeps sibling files
-  # (pck, data folders, wasm) together in the same build.
-  if [[ "$name" == "web" || "$name" == "macos" ]]; then
-    push_path="$(dirname "$TARGET_OUTPUT")"
-  fi
+  # Always push the target's whole output directory, never the single artifact.
+  #
+  # This is not a convenience. With binary_format/embed_pck disabled, a Godot
+  # desktop export produces the executable AND a separate .pck holding all game
+  # data. Pushing only the executable uploads a build that cannot start.
+  # Verified: a linux export produced the-federation.x86_64 plus
+  # the-federation.pck, and an earlier version of this script shipped only the
+  # former. Web and macOS exports likewise spread across several files.
+  #
+  # Pushing the directory is correct for every target, so there is no per target
+  # special case to get wrong.
+  local push_path
+  push_path="$(dirname "$TARGET_OUTPUT")"
 
-  [[ -e "$push_path" ]] || die \
-    "nothing to push for '$name' at $push_path. Run scripts/build.sh $name first."
+  # The primary artifact is what proves the export ran, so check for it by name
+  # rather than just checking that the directory exists.
+  [[ -s "$TARGET_OUTPUT" ]] || die \
+    "nothing to push for '$name': $TARGET_OUTPUT is missing or empty.
+       Run scripts/build.sh $name first."
 
   local slug="$ITCH_USER/$ITCH_GAME:$TARGET_CHANNEL"
   step "Pushing $name to $slug (version $version)"

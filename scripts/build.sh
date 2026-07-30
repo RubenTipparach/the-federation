@@ -22,10 +22,11 @@ import_project() {
   # mono flavor) before any export will succeed. On a clean checkout this does
   # not exist, and exporting without it produces an empty or broken package.
   #
-  # --import can report a nonzero status while still having done the work, so
-  # the result is checked by looking for .godot/ rather than by exit code.
+  # .godot/ existing is NOT sufficient evidence that the import worked: a
+  # crashed import leaves a partial one behind. run_godot distinguishes a crash
+  # from the harmless nonzero status Godot returns for warnings.
   step "Importing project"
-  "$GODOT_BIN" --headless --path "$REPO_ROOT" --import >&2 2>&1 || true
+  run_godot --headless --path "$REPO_ROOT" --import
   [[ -d "$REPO_ROOT/.godot" ]] || die "import did not produce .godot/, cannot export"
   log "import complete"
 }
@@ -55,9 +56,10 @@ build_target() {
   [[ "$EXPORT_MODE" == "debug" ]] && flag="--export-debug"
 
   # Godot returns nonzero for export warnings as well as failures, so success
-  # is judged by whether the artifact actually exists and is non-empty.
-  "$GODOT_BIN" --headless --path "$REPO_ROOT" \
-    "$flag" "$TARGET_PRESET" "$TARGET_OUTPUT" >&2 2>&1 || true
+  # is judged by whether the artifact exists and is non-empty. run_godot still
+  # aborts on a crash.
+  run_godot --headless --path "$REPO_ROOT" \
+    "$flag" "$TARGET_PRESET" "$TARGET_OUTPUT"
 
   [[ -s "$TARGET_OUTPUT" ]] || die \
     "export produced no artifact at $TARGET_OUTPUT
@@ -80,6 +82,7 @@ main() {
   require_godot_project
   [[ -x "$GODOT_BIN" ]] || die \
     "Godot not installed at $GODOT_BIN. Run scripts/install-godot.sh first."
+  require_dotnet_for_mono
 
   step "Building version $(build_version) for: ${targets[*]}"
 

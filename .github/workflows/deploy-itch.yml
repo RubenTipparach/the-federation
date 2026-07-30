@@ -6,7 +6,9 @@ name: Deploy to itch.io
 
 on:
   push:
-    branches: [main]
+    # main deploys. Feature branches build and verify without deploying, so
+    # a broken export is caught in the pull request rather than on merge.
+    branches: [main, "claude/**"]
     # Documentation only changes do not need a build.
     paths-ignore:
       - "docs/**"
@@ -82,6 +84,12 @@ jobs:
       - name: Build
         run: ./scripts/build.sh ${{ github.event.inputs.targets }}
 
+      # An export that succeeds is not the same as a build that works. This
+      # boots the exported Linux binary headless and requires it to print its
+      # smoke marker, which catches a missing .pck or a runtime script error.
+      - name: Verify the build boots
+        run: ./scripts/verify-build.sh
+
       # Kept regardless of whether the upload succeeds, so a failed deploy
       # still leaves something to inspect.
       - name: Upload artifacts
@@ -94,6 +102,7 @@ jobs:
 
       - name: Check for itch.io credentials
         id: creds
+        if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
         env:
           BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
         run: |
@@ -104,8 +113,11 @@ jobs:
             echo "present=true" >> "$GITHUB_OUTPUT"
           fi
 
+      # Gated on main so a feature branch can never publish to itch.io.
       - name: Deploy to itch.io
-        if: steps.creds.outputs.present == 'true'
+        if: |
+          steps.creds.outputs.present == 'true' &&
+          (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch')
         env:
           BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
           DRY_RUN: ${{ github.event.inputs.dry_run == 'true' && '1' || '0' }}
@@ -121,5 +133,6 @@ jobs:
             echo "|---|---|"
             echo "| Version | \`$(git describe --tags --dirty 2>/dev/null || echo "r$(git rev-list --count HEAD)-$(git rev-parse --short HEAD)")\` |"
             echo "| Targets | \`${{ github.event.inputs.targets || steps.config.outputs.targets }}\` |"
-            echo "| Credentials | ${{ steps.creds.outputs.present == 'true' && 'present' || 'MISSING, upload skipped' }} |"
+            echo "| Credentials | ${{ steps.creds.outputs.present == 'true' && 'present' || 'not checked or missing' }} |"
+            echo "| Deployed | ${{ (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch') && 'yes, if credentials present' || 'no, not main' }} |"
           } >> "$GITHUB_STEP_SUMMARY"

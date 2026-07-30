@@ -11,22 +11,33 @@
 source "$(dirname "${BASH_SOURCE[0]}")/lib/common.sh"
 load_config
 
-readonly RELEASE_BASE="https://github.com/godotengine/godot/releases/download"
+# Godot's own download endpoint, which is what godotengine.org/download links
+# to. Preferred over github.com/godotengine/godot/releases because it is the
+# canonical entry point, it redirects to Godot's object storage, and it stays
+# reachable in environments whose egress policy blocks github.com.
+readonly DOWNLOAD_BASE="https://downloads.godotengine.org"
 
-# Godot's release assets are named differently for the two flavors.
-editor_archive_name() {
+# Build a download URL for one asset slug.
+asset_url() {
+  local slug="$1" platform="$2"
+  printf '%s/?version=%s&flavor=%s&slug=%s&platform=%s' \
+    "$DOWNLOAD_BASE" "$GODOT_VERSION" "$GODOT_RELEASE" "$slug" "$platform"
+}
+
+# Asset slugs differ between the two flavors.
+editor_url() {
   if [[ "$GODOT_FLAVOR" == "mono" ]]; then
-    printf 'Godot_v%s-%s_mono_linux_x86_64.zip' "$GODOT_VERSION" "$GODOT_RELEASE"
+    asset_url "mono_linux_x86_64.zip" "linux.64"
   else
-    printf 'Godot_v%s-%s_linux.x86_64.zip' "$GODOT_VERSION" "$GODOT_RELEASE"
+    asset_url "linux.x86_64.zip" "linux.64"
   fi
 }
 
-templates_archive_name() {
+templates_url() {
   if [[ "$GODOT_FLAVOR" == "mono" ]]; then
-    printf 'Godot_v%s-%s_mono_export_templates.tpz' "$GODOT_VERSION" "$GODOT_RELEASE"
+    asset_url "mono_export_templates.tpz" "templates"
   else
-    printf 'Godot_v%s-%s_export_templates.tpz' "$GODOT_VERSION" "$GODOT_RELEASE"
+    asset_url "export_templates.tpz" "templates"
   fi
 }
 
@@ -38,18 +49,17 @@ fetch() {
   curl -sSL --fail --retry 3 --retry-delay 2 -o "$out" "$url" || die \
     "download failed: $url
        Check GODOT_VERSION, GODOT_RELEASE, and GODOT_FLAVOR in build.config
-       against the actual Godot release assets."
+       against the versions listed at https://godotengine.org/download/linux/"
 }
 
 install_editor() {
   step "Installing Godot $GODOT_VERSION-$GODOT_RELEASE ($GODOT_FLAVOR)"
-  local dest archive tag
+  local dest archive
   dest="$(dirname "$GODOT_BIN")"
   mkdir -p "$dest"
   archive="$dest/godot.zip"
-  tag="$GODOT_VERSION-$GODOT_RELEASE"
 
-  fetch "$RELEASE_BASE/$tag/$(editor_archive_name)" "$archive"
+  fetch "$(editor_url)" "$archive"
   unzip -q -o "$archive" -d "$dest" || die "Godot archive did not unpack"
   rm -f "$archive"
 
@@ -87,8 +97,7 @@ install_templates() {
   local tmp archive
   tmp="$(mktemp -d)"
   archive="$tmp/templates.tpz"
-  fetch "$RELEASE_BASE/$GODOT_VERSION-$GODOT_RELEASE/$(templates_archive_name)" \
-    "$archive"
+  fetch "$(templates_url)" "$archive"
 
   # A .tpz is a zip whose contents live under a single "templates" directory.
   unzip -q -o "$archive" -d "$tmp" || die "template archive did not unpack"

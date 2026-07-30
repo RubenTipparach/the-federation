@@ -40,9 +40,9 @@ Pre-production. No gameplay exists yet. What is in the repository:
 - A **deploy pipeline** for itch.io, triggered on merge to `main`. See
   [docs/08-build-and-deploy.md](docs/08-build-and-deploy.md), including a plain
   account of which parts are verified and which are not.
-- A **minimal Godot project shell** (`project.godot`, `export_presets.cfg`, and a
-  placeholder `scenes/main.tscn` carrying no gameplay) so the pipeline has
-  something to export. M1 replaces the placeholder.
+- A **minimal Godot project** (Godot 4.7.1, .NET flavor) whose only content is a
+  build pipeline smoke test: it reports engine version and platform on screen and
+  to stdout, so a deployed build can be verified. No gameplay. M1 replaces it.
 
 Fly.io deployment is deliberately deferred until the prototype mechanics are
 understood. See [docs/08-build-and-deploy.md](docs/08-build-and-deploy.md) section 8.

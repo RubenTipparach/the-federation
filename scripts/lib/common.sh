@@ -182,6 +182,35 @@ require_env() {
   [[ -n "${!1:-}" ]] || die "required environment variable not set: $1"
 }
 
+# The .NET build of Godot does not fail cleanly when the SDK is absent: it
+# segfaults (SIGSEGV, exit 134) while still creating a partial .godot/
+# directory, even for a project containing no C# files at all. Verified against
+# Godot 4.7.1.stable.mono. Check up front so the failure names its cause.
+require_dotnet_for_mono() {
+  [[ "$GODOT_FLAVOR" != "mono" ]] && return 0
+  command -v dotnet >/dev/null 2>&1 || die \
+    "GODOT_FLAVOR is 'mono' but dotnet is not on PATH.
+       Godot's .NET build crashes rather than erroring cleanly without it.
+       Install the .NET SDK (${DOTNET_VERSION:-8.0.x}), or set
+       GODOT_FLAVOR=\"standard\" in build.config if the project has no C# yet."
+}
+
+# Run Godot, tolerating the nonzero status it returns for benign export
+# warnings, but never tolerating a crash.
+#
+# A status of 128+N means the process died on signal N. Treating every nonzero
+# status as "probably just warnings" would silently accept a segfault, which is
+# exactly the failure mode observed when dotnet is missing.
+run_godot() {
+  local status=0
+  "$GODOT_BIN" "$@" >&2 || status=$?
+  if (( status >= 128 )); then
+    die "Godot crashed with exit $status (signal $((status - 128))) running:
+       $GODOT_BIN $*"
+  fi
+  return 0
+}
+
 require_godot_project() {
   [[ -f "$REPO_ROOT/project.godot" ]] \
     || die "no project.godot at repository root, nothing to export"
