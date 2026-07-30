@@ -38,6 +38,13 @@ func bind_ship(state: ShipState, friendly: bool) -> void:
 		var seg: MeshInstance3D = $Shields.get_node("S%d" % f)
 		seg.rotation.y = deg_to_rad(float(f) * 60.0)
 		seg.scale = Vector3(SHIELD_RING_RADIUS, 1, SHIELD_RING_RADIUS)
+	# The hull mesh is named by the hull's own data, so a Federation cruiser and
+	# a Kthaari raider are two committed .obj files and one placement path
+	# (CLAUDE.md 2 and 5.1). No geometry is built here.
+	var mesh_path: String = String(state.fit.hull().get("mesh", ""))
+	if not mesh_path.is_empty() and ResourceLoader.exists(mesh_path):
+		$Hull.mesh = load(mesh_path)
+
 	# Bigger hulls read bigger: scale by tonnage, presentation only.
 	var tonnage: float = float(state.fit.hull()["tonnage"])
 	var s: float = clampf(0.8 + tonnage / 200.0 * 0.8, 0.8, 1.8)

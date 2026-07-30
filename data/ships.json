@@ -1,9 +1,11 @@
 {
-  "_comment": "Hull catalog. Mounts own the arc: field is the sector list the mount can fire into (12 sectors of 30 degrees, 0 dead ahead, clockwise), families is what may be fitted, size caps the weapon size. Internals rows define the SSD grid and the damage table: each entry is [code, boxes, family] with an optional mount id linking a weapon system to its mount, so destroying the boxes disables the weapon. base_load is what the bare hull consumes from each budget before weapons.",
+  "_comment": "Hull catalog. Mounts own the arc: field is the sector list the mount can fire into (12 sectors of 30 degrees, 0 dead ahead, clockwise), families is what may be fitted, size caps the weapon size. base_load is what the bare hull consumes from each budget before weapons. mesh names the committed .obj the tactical view instances for this hull.",
+  "_internals": "Internals are grouped the way the ship systems display shows them and the way damage resolves. sectors is six lists, one per shield facing, numbered 1 to 6 from the bow clockwise, and each entry is [code, boxes, family] with an optional mount id linking a weapon to its mount so destroying the boxes disables it. core is the shared hull volume behind every facing: it has no shield of its own and only takes damage once the struck sector has nothing left, which is Federation Commander's hull rule generalised to six sections. See docs/09-reference-federation-commander.md.",
   "hulls": {
     "wayfarer": {
       "name": "Wayfarer Mk III", "cls": "Heavy Cruiser", "tonnage": 120, "playable": true,
       "note": "Broadside beams, recursive shields. 5 mounts.",
+      "mesh": "res://assets/meshes/hull_cruiser.obj",
       "budgets": { "space": 140, "power": 42, "mass": 140, "crew": 145 },
       "base_load": { "space": 85, "mass": 104, "crew": 110, "power_draw": 21 },
       "shield_per_facing": 24,
@@ -15,16 +17,22 @@
         { "id": "M4", "pos": "Starboard waist", "size": "Medium", "families": ["beam"], "field": [2, 3, 4], "default": "ph1" },
         { "id": "M5", "pos": "Aft", "size": "Light", "families": ["beam", "drone"], "field": [5, 6, 7], "default": "ph3" }
       ],
-      "internals": [
-        [["PH-1", 4, "weapon", "M2"], ["PH-1", 4, "weapon", "M3"], ["PHOT", 3, "weapon", "M1"], ["PH-1", 4, "weapon", "M4"], ["PH-3", 2, "weapon", "M5"]],
-        [["HULL", 6, "hull"], ["BRDG", 2, "control"], ["LAB", 2, "control"], ["TRAN", 2, "control"], ["HULL", 6, "hull"]],
-        [["WARP", 8, "power"], ["IMP", 4, "power"], ["AUX", 2, "power"], ["BTTY", 2, "power"], ["WARP", 8, "power"]],
-        [["SHTL", 2, "control"], ["TRAC", 2, "control"], ["PRB", 1, "control"], ["DRN", 2, "control"], ["ARMR", 4, "hull"]]
-      ]
+      "internals": {
+        "sectors": [
+          [["PHOT", 3, "weapon", "M1"], ["BRDG", 2, "control"]],
+          [["PH-1", 4, "weapon", "M2"], ["TRAN", 2, "control"]],
+          [["PH-1", 4, "weapon", "M4"], ["WARP", 8, "power"], ["TRAC", 2, "control"]],
+          [["PH-3", 2, "weapon", "M5"], ["IMP", 4, "power"], ["AUX", 2, "power"], ["SHTL", 2, "control"], ["DRN", 2, "control"]],
+          [["WARP", 8, "power"], ["BTTY", 2, "power"], ["PRB", 1, "control"]],
+          [["PH-1", 4, "weapon", "M3"], ["LAB", 2, "control"]]
+        ],
+        "core": [["HULL", 12, "hull"], ["ARMR", 4, "hull"]]
+      }
     },
     "kestrel": {
       "name": "Kestrel", "cls": "Destroyer", "tonnage": 60, "playable": true,
       "note": "Forward disruptors. Fast, fragile boarding specialist.",
+      "mesh": "res://assets/meshes/hull_cruiser.obj",
       "budgets": { "space": 72, "power": 24, "mass": 70, "crew": 68 },
       "base_load": { "space": 44, "mass": 44, "crew": 52, "power_draw": 12 },
       "shield_per_facing": 14,
@@ -34,16 +42,22 @@
         { "id": "M2", "pos": "Fore starboard", "size": "Medium", "families": ["beam", "disruptor"], "field": [0, 1, 2], "default": "disruptor" },
         { "id": "M3", "pos": "Dorsal", "size": "Light", "families": ["beam", "drone"], "field": [3, 4, 5, 6, 7, 8], "default": "ph3" }
       ],
-      "internals": [
-        [["DISR", 4, "weapon", "M1"], ["DISR", 4, "weapon", "M2"], ["PH-3", 2, "weapon", "M3"]],
-        [["HULL", 4, "hull"], ["BRDG", 1, "control"], ["TRAN", 2, "control"]],
-        [["WARP", 5, "power"], ["IMP", 2, "power"], ["BTTY", 1, "power"]],
-        [["MRNE", 4, "control"], ["TRAC", 1, "control"], ["ARMR", 2, "hull"]]
-      ]
+      "internals": {
+        "sectors": [
+          [["BRDG", 1, "control"]],
+          [["DISR", 4, "weapon", "M2"]],
+          [["PH-3", 2, "weapon", "M3"], ["TRAC", 1, "control"]],
+          [["WARP", 5, "power"], ["IMP", 2, "power"]],
+          [["BTTY", 1, "power"], ["MRNE", 4, "control"]],
+          [["DISR", 4, "weapon", "M1"], ["TRAN", 2, "control"]]
+        ],
+        "core": [["HULL", 4, "hull"], ["ARMR", 2, "hull"]]
+      }
     },
     "ironhold": {
       "name": "Ironhold", "cls": "Battlecruiser", "tonnage": 200, "playable": true,
       "note": "Lance platform. Slow, armored, murderous ahead.",
+      "mesh": "res://assets/meshes/hull_cruiser.obj",
       "budgets": { "space": 200, "power": 60, "mass": 205, "crew": 240 },
       "base_load": { "space": 120, "mass": 148, "crew": 168, "power_draw": 28 },
       "shield_per_facing": 34,
@@ -55,16 +69,22 @@
         { "id": "M4", "pos": "Stbd battery", "size": "Medium", "families": ["beam"], "field": [2, 3, 4], "default": "ph1" },
         { "id": "M5", "pos": "Aft", "size": "Light", "families": ["beam", "drone"], "field": [5, 6, 7], "default": "drone" }
       ],
-      "internals": [
-        [["LNCE", 5, "weapon", "M1"], ["PHOT", 3, "weapon", "M2"], ["PH-1", 4, "weapon", "M3"], ["PH-1", 4, "weapon", "M4"], ["DRN", 2, "weapon", "M5"]],
-        [["HULL", 8, "hull"], ["BRDG", 2, "control"], ["TRAN", 3, "control"], ["HULL", 8, "hull"]],
-        [["WARP", 10, "power"], ["IMP", 5, "power"], ["AUX", 3, "power"], ["BTTY", 3, "power"]],
-        [["ARMR", 6, "hull"], ["TRAC", 2, "control"], ["MRNE", 6, "control"], ["ARMR", 6, "hull"]]
-      ]
+      "internals": {
+        "sectors": [
+          [["LNCE", 5, "weapon", "M1"], ["BRDG", 2, "control"]],
+          [["PHOT", 3, "weapon", "M2"], ["TRAN", 3, "control"]],
+          [["PH-1", 4, "weapon", "M4"], ["WARP", 10, "power"]],
+          [["DRN", 2, "weapon", "M5"], ["IMP", 5, "power"], ["AUX", 3, "power"]],
+          [["BTTY", 3, "power"], ["MRNE", 6, "control"], ["TRAC", 2, "control"]],
+          [["PH-1", 4, "weapon", "M3"]]
+        ],
+        "core": [["HULL", 16, "hull"], ["ARMR", 12, "hull"]]
+      }
     },
     "bloodletter": {
       "name": "Kthaari Bloodletter", "cls": "Heavy Cruiser", "tonnage": 130, "playable": false, "ai": true,
       "note": "Disruptors and drones. Heavy hull, weak rear arc. Aggressive.",
+      "mesh": "res://assets/meshes/hull_raider.obj",
       "budgets": { "space": 150, "power": 44, "mass": 150, "crew": 150 },
       "base_load": { "space": 92, "mass": 110, "crew": 112, "power_draw": 22 },
       "shield_per_facing": 24,
@@ -75,16 +95,22 @@
         { "id": "M3", "pos": "Dorsal rack", "size": "Light", "families": ["drone"], "field": [9, 10, 11, 0, 1, 2, 3], "default": "drone" },
         { "id": "M4", "pos": "Aft", "size": "Light", "families": ["beam"], "field": [5, 6], "default": "ph3" }
       ],
-      "internals": [
-        [["DISR", 4, "weapon", "M1"], ["DISR", 4, "weapon", "M2"], ["DRN", 3, "weapon", "M3"], ["PH-3", 2, "weapon", "M4"]],
-        [["HULL", 5, "hull"], ["BRDG", 2, "control"], ["TRAN", 2, "control"]],
-        [["WARP", 5, "power"], ["IMP", 3, "power"], ["BTTY", 2, "power"]],
-        [["ARMR", 2, "hull"]]
-      ]
+      "internals": {
+        "sectors": [
+          [["DRN", 3, "weapon", "M3"], ["BRDG", 2, "control"]],
+          [["DISR", 4, "weapon", "M2"]],
+          [["WARP", 5, "power"]],
+          [["PH-3", 2, "weapon", "M4"], ["IMP", 3, "power"]],
+          [["BTTY", 2, "power"], ["TRAN", 2, "control"]],
+          [["DISR", 4, "weapon", "M1"]]
+        ],
+        "core": [["HULL", 5, "hull"], ["ARMR", 2, "hull"]]
+      }
     },
     "talon": {
       "name": "Kthaari Talon", "cls": "Frigate", "tonnage": 40, "playable": false, "ai": true,
       "note": "Escort screen. Quick, thin skinned, single disruptor.",
+      "mesh": "res://assets/meshes/hull_raider.obj",
       "budgets": { "space": 50, "power": 18, "mass": 48, "crew": 46 },
       "base_load": { "space": 30, "mass": 30, "crew": 34, "power_draw": 9 },
       "shield_per_facing": 10,
@@ -93,11 +119,17 @@
         { "id": "M1", "pos": "Fore", "size": "Medium", "families": ["disruptor", "beam"], "field": [11, 0, 1], "default": "disruptor" },
         { "id": "M2", "pos": "Aft", "size": "Light", "families": ["beam"], "field": [5, 6, 7], "default": "ph3" }
       ],
-      "internals": [
-        [["DISR", 3, "weapon", "M1"], ["PH-3", 2, "weapon", "M2"]],
-        [["HULL", 3, "hull"], ["BRDG", 1, "control"]],
-        [["WARP", 3, "power"], ["IMP", 2, "power"]]
-      ]
+      "internals": {
+        "sectors": [
+          [["DISR", 3, "weapon", "M1"], ["BRDG", 1, "control"]],
+          [],
+          [["WARP", 3, "power"]],
+          [["PH-3", 2, "weapon", "M2"], ["IMP", 2, "power"]],
+          [],
+          []
+        ],
+        "core": [["HULL", 3, "hull"]]
+      }
     }
   }
 }

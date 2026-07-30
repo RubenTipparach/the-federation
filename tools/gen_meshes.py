@@ -130,6 +130,136 @@ def beam():
     o.write("beam.obj", "Unit beam quad from origin to +Z, scaled to length and width in code")
 
 
+
+# ---- solid building blocks ---------------------------------------------------
+#
+# The two ship hulls below are assembled from these. They are still authored
+# geometry: this script writes .obj files to disk which are committed and
+# imported, and nothing here runs at play time (CLAUDE.md sections 2 and 5.1).
+
+
+def extrude(o, outline, y0, y1, cap=True):
+    """Extrude an XZ polygon between two heights. Outline is convex, or at
+    least fannable from its first vertex, and wound clockwise seen from above."""
+    top = [o.vert(x, y1, z) for (x, z) in outline]
+    bot = [o.vert(x, y0, z) for (x, z) in outline]
+    if cap:
+        up = o.normal(0, 1, 0)
+        down = o.normal(0, -1, 0)
+        for i in range(1, len(outline) - 1):
+            o.tri(top[0], top[i + 1], top[i], up)
+            o.tri(bot[0], bot[i], bot[i + 1], down)
+    for i in range(len(outline)):
+        j = (i + 1) % len(outline)
+        (x0, z0), (x1, z1) = outline[i], outline[j]
+        ex, ez = x1 - x0, z1 - z0
+        ln = math.hypot(ex, ez) or 1.0
+        n = o.normal(ez / ln, 0, -ex / ln)
+        o.tri(top[i], bot[i], bot[j], n)
+        o.tri(top[i], bot[j], top[j], n)
+
+
+def ellipse_outline(cx, cz, rx, rz, steps):
+    pts = []
+    for i in range(steps):
+        a = 2.0 * math.pi * i / steps
+        pts.append((cx + math.sin(a) * rx, cz + math.cos(a) * rz))
+    return pts
+
+
+def box_outline(x0, z0, x1, z1):
+    return [(x0, z1), (x1, z1), (x1, z0), (x0, z0)]
+
+
+def spindle(o, cx, cz, half_len, radius, y_center, segs=10, taper=0.45):
+    """A nacelle: a tapered tube lying along +Z, built as a ring of quads."""
+    rings = []
+    for k in range(segs + 1):
+        t = k / segs
+        z = cz - half_len + 2.0 * half_len * t
+        # Fat in the middle, tapered at both ends, blunter at the front.
+        shape = math.sin(math.pi * min(1.0, max(0.0, t))) ** 0.5
+        r = radius * (taper + (1.0 - taper) * shape)
+        ring = []
+        for i in range(8):
+            a = 2.0 * math.pi * i / 8
+            ring.append(o.vert(cx + math.cos(a) * r, y_center + math.sin(a) * r, z))
+        rings.append(ring)
+    for k in range(segs):
+        for i in range(8):
+            j = (i + 1) % 8
+            a = 2.0 * math.pi * (i + 0.5) / 8
+            n = o.normal(math.cos(a), math.sin(a), 0)
+            o.tri(rings[k][i], rings[k + 1][i], rings[k + 1][j], n)
+            o.tri(rings[k][i], rings[k + 1][j], rings[k][j], n)
+
+
+def hull_cruiser():
+    """Federation inspired: a broad saucer forward, a slim neck, an engineering
+    body aft, and two nacelles held out on pylons. Nose at +Z, deck at y=0.
+
+    This is our own design in that tradition, not a copy of any published ship
+    (CLAUDE.md section 10). Proportions are chosen so the six shield facings
+    read clearly from directly above, which is the camera this game uses."""
+    o = Obj()
+
+    # Saucer, forward. Slightly egg shaped so the bow reads at a glance.
+    extrude(o, ellipse_outline(0.0, 1.45, 1.55, 1.25, 24), 0.10, 0.46)
+    # Bridge dome, a smaller disc on top of the saucer.
+    extrude(o, ellipse_outline(0.0, 1.55, 0.42, 0.36, 12), 0.46, 0.62)
+    # Neck down to the engineering body.
+    extrude(o, box_outline(-0.34, -0.55, 0.34, 0.55), 0.06, 0.40)
+    # Engineering body, aft, tapering to a stern shutter.
+    extrude(o, [
+        (-0.62, 0.30), (0.62, 0.30), (0.78, -0.90),
+        (0.48, -2.05), (-0.48, -2.05), (-0.78, -0.90),
+    ], 0.0, 0.50)
+    # Pylons out to the nacelles.
+    extrude(o, [(-1.02, -0.75), (-0.55, -0.55), (-0.55, -1.25), (-1.02, -1.45)], 0.14, 0.34)
+    extrude(o, [(0.55, -0.55), (1.02, -0.75), (1.02, -1.45), (0.55, -1.25)], 0.14, 0.34)
+    # Nacelles, running fore and aft outboard of the body.
+    spindle(o, -1.32, -0.55, 1.35, 0.30, 0.30)
+    spindle(o, 1.32, -0.55, 1.35, 0.30, 0.30)
+
+    o.write("hull_cruiser.obj", "Federation inspired cruiser, saucer and two nacelles, nose at +Z")
+
+
+def hull_raider():
+    """Klingon inspired: a small command head thrust forward on a long neck,
+    a heavy aft body, and two wings swept back and angled down with weapon pods
+    at the tips. Nose at +Z, deck at y=0.
+
+    Again our own design in that tradition. The silhouette is deliberately the
+    opposite of the cruiser: mass at the back, a narrow front, and wings that
+    make the flanks look wide while the actual profile stays thin."""
+    o = Obj()
+
+    # Command head, forward and small.
+    extrude(o, ellipse_outline(0.0, 2.35, 0.52, 0.66, 14), 0.16, 0.52)
+    # Neck, long and narrow.
+    extrude(o, box_outline(-0.22, 0.35, 0.22, 1.85), 0.20, 0.42)
+    # Main body, wide at the stern.
+    extrude(o, [
+        (-0.52, 0.60), (0.52, 0.60), (0.86, -0.60),
+        (0.70, -1.85), (-0.70, -1.85), (-0.86, -0.60),
+    ], 0.0, 0.54)
+    # Wings, swept back from the body and dropped below the deck line so the
+    # ship reads as predatory from the tactical camera.
+    extrude(o, [
+        (-0.80, -0.20), (-0.62, -0.62), (-2.15, -1.85), (-2.30, -1.35),
+    ], -0.16, 0.06)
+    extrude(o, [
+        (0.62, -0.62), (0.80, -0.20), (2.30, -1.35), (2.15, -1.85),
+    ], -0.16, 0.06)
+    # Wingtip weapon pods.
+    spindle(o, -2.16, -1.52, 0.52, 0.20, -0.05, segs=8)
+    spindle(o, 2.16, -1.52, 0.52, 0.20, -0.05, segs=8)
+    # Stern shutter, a raised block over the drive.
+    extrude(o, box_outline(-0.46, -1.80, 0.46, -1.15), 0.54, 0.74)
+
+    o.write("hull_raider.obj", "Klingon inspired raider, forward head and swept wings, nose at +Z")
+
+
 def hull():
     # A chevron capital ship silhouette pointing +Z, with thickness so it
     # shades as a body rather than a sticker. Grey placeholder per the M1
@@ -174,6 +304,8 @@ def hull():
 
 def main():
     os.makedirs(OUT, exist_ok=True)
+    hull_cruiser()
+    hull_raider()
     wedge30()
     arc_segment()
     ring()

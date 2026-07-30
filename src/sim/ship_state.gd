@@ -10,6 +10,10 @@ extends RefCounted
 ## +Z, clockwise seen from above. No Node dependencies: the sim must run and
 ## test headless without a scene tree (CLAUDE.md 5.2).
 
+## Sector index of the hull core: the shared volume behind every facing. It has
+## no shield and is only reachable once a struck sector has been stripped.
+const CORE: int = -1
+
 var fit: ShipFit
 var rng: RandomNumberGenerator
 
@@ -36,6 +40,17 @@ var battery: float = 0.0
 var alive: bool = true
 
 
+static func _make_system(entry: Array, sector: int) -> Dictionary:
+	return {
+		"code": String(entry[0]),
+		"boxes_max": int(entry[1]),
+		"boxes": int(entry[1]),
+		"family": String(entry[2]),
+		"mount_id": String(entry[3]) if entry.size() > 3 else "",
+		"sector": sector,
+	}
+
+
 static func create(p_fit: ShipFit, p_rng: RandomNumberGenerator, ai_ship: bool = false) -> ShipState:
 	var s: ShipState = ShipState.new()
 	s.fit = p_fit
@@ -44,18 +59,14 @@ static func create(p_fit: ShipFit, p_rng: RandomNumberGenerator, ai_ship: bool =
 	s.shield_max = float(h["shield_per_facing"])
 	for i in range(Sectors.FACING_COUNT):
 		s.shields.append(s.shield_max)
-	var row: int = 0
-	for row_data in h["internals"]:
-		for entry in row_data:
-			s.systems.append({
-				"code": String(entry[0]),
-				"boxes_max": int(entry[1]),
-				"boxes": int(entry[1]),
-				"family": String(entry[2]),
-				"mount_id": String(entry[3]) if entry.size() > 3 else "",
-				"row": row,
-			})
-		row += 1
+	var internals: Dictionary = h["internals"]
+	var facing: int = 0
+	for sector_rows in internals["sectors"]:
+		for entry in sector_rows:
+			s.systems.append(ShipState._make_system(entry, facing))
+		facing += 1
+	for entry in internals["core"]:
+		s.systems.append(ShipState._make_system(entry, ShipState.CORE))
 	for m in p_fit.mounts():
 		s.weapons_rt.append({
 			"mount": m,
@@ -105,6 +116,23 @@ func total_boxes_max() -> int:
 	var n: int = 0
 	for sys in systems:
 		n += int(sys["boxes_max"])
+	return n
+
+
+## Living systems in one sector, or in the core when asked for CORE.
+func systems_in(sector: int) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for sys in systems:
+		if int(sys["sector"]) == sector:
+			out.append(sys)
+	return out
+
+
+func boxes_in(sector: int) -> int:
+	var n: int = 0
+	for sys in systems:
+		if int(sys["sector"]) == sector:
+			n += int(sys["boxes"])
 	return n
 
 
@@ -246,27 +274,35 @@ func apply_damage(world_bearing: float, amount: float) -> Array[String]:
 	else:
 		lines.append("Facing #%d already down" % [facing + 1])
 	if remaining > 0.0:
-		lines.append_array(apply_internal(remaining))
+		lines.append_array(apply_internal(remaining, facing))
 	return lines
 
 
-## Weighted internal damage. Public so the SSD dry dock demo and tests can
-## exercise the bleed rule directly.
+## Internal damage from a hit that arrived through one facing. The struck
+## sector takes it first, the hull core takes what a stripped sector cannot,
+## and only when both are gone does damage carry into the neighbouring sectors
+## (docs/09, Federation Commander 3D and 5J). Public so the dry dock demo and
+## the tests exercise exactly the rule a battle uses.
 ##
 ## Boxes are integers and bleed through is often fractional (a shield holding
 ## 0.3 leaves 7.7 of an 8 damage shot). Rounding the fraction UP would make
 ## the shield's remnant worth nothing, so the fractional part becomes a
 ## proportional chance of one extra box: on average the boxes destroyed equal
 ## the damage dealt, and an integer amount destroys exactly that many.
-func apply_internal(amount: float) -> Array[String]:
+func apply_internal(amount: float, facing: int = 0) -> Array[String]:
 	var lines: Array[String] = []
 	var boxes_to_take: int = int(floorf(amount))
 	if rng.randf() < amount - float(boxes_to_take):
 		boxes_to_take += 1
 	while boxes_to_take > 0:
+		var source: int = _damage_source(facing)
+		if source == CORE and boxes_in(CORE) <= 0:
+			alive = false
+			lines.append("SHIP DESTROYED, no systems remain")
+			break
 		var living: Array[Dictionary] = []
 		var total: int = 0
-		for sys in systems:
+		for sys in systems_in(source):
 			if int(sys["boxes"]) > 0:
 				living.append(sys)
 				total += int(sys["boxes"])
@@ -287,11 +323,30 @@ func apply_internal(amount: float) -> Array[String]:
 		boxes_to_take -= take
 		if int(pick["boxes"]) <= 0:
 			lines.append("%s DESTROYED" % [String(pick["code"])])
+			if source == facing and boxes_in(facing) <= 0:
+				lines.append("SECTOR #%d STRIPPED, the hull core is exposed" % [facing + 1])
 		else:
 			lines.append("%s takes %d, %d left" % [String(pick["code"]), take, int(pick["boxes"])])
 	if total_boxes() <= 0:
 		alive = false
 	return lines
+
+
+## Where the next box comes from: struck sector, then the core, then the
+## nearest facing still holding anything. Federation Commander 3E only calls a
+## ship lost when every non-shield box is gone, so damage keeps landing until
+## that is true.
+func _damage_source(facing: int) -> int:
+	if boxes_in(facing) > 0:
+		return facing
+	if boxes_in(CORE) > 0:
+		return CORE
+	for step in range(1, 4):
+		for candidate in [posmod(facing + step, Sectors.FACING_COUNT),
+				posmod(facing - step, Sectors.FACING_COUNT)]:
+			if boxes_in(int(candidate)) > 0:
+				return int(candidate)
+	return CORE
 
 
 ## Spend the battery to restore one facing (docs/01 section 4 reinforcement).

@@ -44,6 +44,7 @@ func _initialize() -> void:
 	test_fit()
 	test_power()
 	test_damage()
+	test_sector_damage()
 	test_falloff()
 	test_movement_and_weapons()
 	test_battle_and_ai()
@@ -170,7 +171,7 @@ func test_damage() -> void:
 
 	# Destroying a weapon's boxes disables its mount.
 	var hulk = _fresh_ship()
-	hulk.apply_internal(200.0)
+	hulk.apply_internal(200.0, 0)
 	eq(hulk.total_boxes(), 0, "massive internal damage empties the ship")
 	ok(not hulk.alive, "a ship with no boxes is destroyed")
 	ok(hulk.mount_disabled(0), "weapon mounts are disabled with their boxes gone")
@@ -180,16 +181,16 @@ func test_damage() -> void:
 	# stay exact. With amount 0.0 nothing may happen.
 	var frac_ship = _fresh_ship("wayfarer", 11)
 	var before: int = frac_ship.total_boxes()
-	frac_ship.apply_internal(0.0)
+	frac_ship.apply_internal(0.0, 0)
 	eq(frac_ship.total_boxes(), before, "zero bleed destroys nothing")
-	frac_ship.apply_internal(5.0)
+	frac_ship.apply_internal(5.0, 0)
 	eq(frac_ship.total_boxes(), before - 5, "integer bleed destroys exactly its amount")
 	var lo: int = 0
 	var hi: int = 0
 	for trial in range(40):
 		var t = _fresh_ship("wayfarer", 100 + trial)
 		var b0: int = t.total_boxes()
-		t.apply_internal(7.7)
+		t.apply_internal(7.7, 0)
 		var lost: int = b0 - t.total_boxes()
 		ok(lost == 7 or lost == 8, "fractional bleed 7.7 destroys 7 or 8 boxes")
 		if lost == 7:
@@ -205,6 +206,75 @@ func test_damage() -> void:
 	ok(def.reinforce(3, CatalogLib.tuning()), "reinforce fires with a charged battery")
 	near(def.shields[3], 8.0, "reinforce restores the tuned amount")
 	ok(not def.reinforce(3, CatalogLib.tuning()), "battery is spent after one reinforce")
+
+
+func test_sector_damage() -> void:
+	print("\n== sector damage ==")
+	var ship = _fresh_ship()
+	eq(ship.boxes_in(0) + ship.boxes_in(1) + ship.boxes_in(2) + ship.boxes_in(3)
+		+ ship.boxes_in(4) + ship.boxes_in(5) + ship.boxes_in(ShipLib.CORE),
+		ship.total_boxes(), "every box belongs to exactly one sector or the core")
+	eq(ship.boxes_in(ShipLib.CORE), 16, "the wayfarer core is hull plus armor")
+
+	# A downed facing exposes its own sector and nothing else.
+	var flanked = _fresh_ship("wayfarer", 3)
+	var other_before: Array[int] = []
+	for f in range(6):
+		other_before.append(flanked.boxes_in(f))
+	var core_before: int = flanked.boxes_in(ShipLib.CORE)
+	flanked.shields[1] = 0.0
+	flanked.apply_internal(4.0, 1)
+	eq(flanked.boxes_in(1), other_before[1] - 4, "the struck sector loses exactly the bleed")
+	eq(flanked.boxes_in(ShipLib.CORE), core_before, "the core is untouched while the sector holds")
+	for f in [0, 2, 3, 4, 5]:
+		eq(flanked.boxes_in(f), other_before[f], "sector %d is untouched" % (f + 1))
+
+	# Strip a sector and the hull core takes the rest, in full.
+	var stripped = _fresh_ship("wayfarer", 5)
+	var sector_size: int = stripped.boxes_in(1)
+	stripped.apply_internal(float(sector_size) + 5.0, 1)
+	eq(stripped.boxes_in(1), 0, "the sector is stripped bare")
+	eq(stripped.boxes_in(ShipLib.CORE), 16 - 5, "the overflow lands on the hull core")
+	ok(stripped.alive, "a ship with a hollow sector is still fighting")
+
+	# Only when the core is gone too does damage carry to the neighbours.
+	var gutted = _fresh_ship("wayfarer", 9)
+	var spill: int = gutted.boxes_in(1) + gutted.boxes_in(ShipLib.CORE)
+	var neighbours_before: int = gutted.boxes_in(0) + gutted.boxes_in(2)
+	var far_before: int = gutted.boxes_in(3) + gutted.boxes_in(4) + gutted.boxes_in(5)
+	gutted.apply_internal(float(spill) + 3.0, 1)
+	eq(gutted.boxes_in(1), 0, "sector emptied")
+	eq(gutted.boxes_in(ShipLib.CORE), 0, "core emptied")
+	eq(gutted.boxes_in(0) + gutted.boxes_in(2), neighbours_before - 3,
+		"the adjacent facings take exactly what is left over")
+	eq(gutted.boxes_in(3) + gutted.boxes_in(4) + gutted.boxes_in(5), far_before,
+		"the far side of the ship is not touched while neighbours hold")
+	ok(gutted.alive, "neighbours still holding means the ship lives")
+
+	# A weapon dies with the sector it sits in.
+	var silenced = _fresh_ship("wayfarer", 21)
+	silenced.apply_internal(float(silenced.boxes_in(1)), 1)
+	var m2_index: int = -1
+	for i in range(silenced.weapons_rt.size()):
+		if String(silenced.weapons_rt[i]["mount"]["id"]) == "M2":
+			m2_index = i
+	ok(m2_index >= 0 and silenced.mount_disabled(m2_index),
+		"stripping the starboard bow silences the mount that lives there")
+
+	# The talon has empty sectors on purpose: bleed through goes straight to the
+	# core rather than vanishing.
+	var frigate = _fresh_ship("talon", 4)
+	eq(frigate.boxes_in(1), 0, "the talon carries nothing behind facing 2")
+	var frigate_core: int = frigate.boxes_in(ShipLib.CORE)
+	frigate.apply_internal(2.0, 1)
+	eq(frigate.boxes_in(ShipLib.CORE), frigate_core - 2, "an empty sector passes damage to the core")
+
+	# Every hull's totals survived the regrouping.
+	for id in CatalogLib.hulls().keys():
+		var s2 = ShipLib.create(FitLib.create_default(String(id)),
+			RandomNumberGenerator.new(), false)
+		ok(s2.total_boxes() > 0, "%s has internals" % [String(id)])
+		eq(s2.boxes_in(ShipLib.CORE) > 0, true, "%s has a hull core" % [String(id)])
 
 
 func test_falloff() -> void:

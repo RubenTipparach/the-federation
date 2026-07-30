@@ -97,15 +97,17 @@ func _rebuild_internals() -> void:
 	for child in grid.get_children():
 		child.queue_free()
 	_boxes = []
+	# One row per shield facing, then the hull core, which is the order the
+	# approved plate reads in and the order damage resolves in.
 	var row_nodes: Dictionary = {}
 	for sys in _demo.systems:
-		var row: int = int(sys["row"])
-		if not row_nodes.has(row):
+		var sector: int = int(sys["sector"])
+		if not row_nodes.has(sector):
 			var row_node: HBoxContainer = SYS_ROW.instantiate()
 			grid.add_child(row_node)
-			row_nodes[row] = row_node
+			row_nodes[sector] = row_node
 		var box: Panel = SYS_BOX.instantiate()
-		row_nodes[row].add_child(box)
+		row_nodes[sector].add_child(box)
 		_boxes.append(box)
 
 
