@@ -45,6 +45,13 @@ func bind_ship(state: ShipState, friendly: bool) -> void:
 	if not mesh_path.is_empty() and ResourceLoader.exists(mesh_path):
 		$Hull.mesh = load(mesh_path)
 
+	# A hull that ships its own painted material keeps it. Only untextured
+	# hulls fall back to the allegiance tint, so a painted ship looks painted
+	# rather than being flooded with team colour.
+	var material_path: String = String(state.fit.hull().get("material", ""))
+	if not material_path.is_empty() and ResourceLoader.exists(material_path):
+		$Hull.material_override = load(material_path)
+
 	# Bigger hulls read bigger: scale by tonnage, presentation only.
 	var tonnage: float = float(state.fit.hull()["tonnage"])
 	var s: float = clampf(0.8 + tonnage / 200.0 * 0.8, 0.8, 1.8)

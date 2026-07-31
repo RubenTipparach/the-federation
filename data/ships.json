@@ -31,9 +31,10 @@
       }
     },
     "kestrel": {
-      "name": "Kestrel", "cls": "Destroyer", "tonnage": 60, "playable": true,
+      "name": "Kestrel", "cls": "Frigate", "tonnage": 60, "playable": true,
       "note": "Forward disruptors. Fast, fragile boarding specialist.",
-      "mesh": "res://assets/meshes/hull_cruiser.obj",
+      "mesh": "res://assets/meshes/hull_frigate.obj",
+      "material": "res://assets/materials/mat_hull_frigate.tres",
       "cargo_space": 16,
       "budgets": { "space": 72, "power": 24, "mass": 70, "crew": 68 },
       "base_load": { "space": 44, "mass": 44, "crew": 52, "power_draw": 12 },

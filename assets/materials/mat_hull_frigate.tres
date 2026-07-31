@@ -1,0 +1,18 @@
+[gd_resource type="StandardMaterial3D" load_steps=3 format=3]
+
+; The frigate's painted look: one diffuse atlas and one emissive lights map,
+; matching the author's own ship art in docs/examples/ship-art. Unshaded is
+; deliberately off: the flat panels want a little shading to read as a hull
+; from the tactical camera, but the light map does the windows and the drive.
+
+[ext_resource type="Texture2D" path="res://assets/textures/hull_frigate_diffuse.png" id="1"]
+[ext_resource type="Texture2D" path="res://assets/textures/hull_frigate_lights.png" id="2"]
+
+[resource]
+albedo_texture = ExtResource("1")
+texture_filter = 0
+roughness = 0.75
+metallic = 0.05
+emission_enabled = true
+emission_energy_multiplier = 1.8
+emission_texture = ExtResource("2")
