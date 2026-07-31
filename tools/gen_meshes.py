@@ -10,6 +10,12 @@
 # generates geometry; it only instances these files, rotates them in 30 degree
 # steps, and scales them (CLAUDE.md section 5.1, placement only).
 #
+# Winding: every triangle's cross product agrees with its declared normal,
+# the convention every DCC tool writes and the one shared with shiplib.slab.
+# Anything else shades inside out in Godot: the fitting screen's directional
+# light proved it on the frigate, going from black to lit the moment the
+# winding matched the normals.
+#
 # Usage: python3 tools/gen_meshes.py
 
 import math
@@ -66,8 +72,8 @@ def flat_fan(o, deg_from, deg_to, radius, steps, y=0.0):
         x, z = bearing_xz(d, radius)
         ring.append(o.vert(x, y, z))
     for i in range(steps):
-        # Wind so the up face is counter clockwise seen from +Y.
-        o.tri(center, ring[i + 1], ring[i], n)
+        # Wound so the triangle cross product points up, with the normal.
+        o.tri(center, ring[i], ring[i + 1], n)
 
 
 def flat_band(o, deg_from, deg_to, r0, r1, steps, y=0.0):
@@ -81,8 +87,8 @@ def flat_band(o, deg_from, deg_to, r0, r1, steps, y=0.0):
         inner.append(o.vert(xi, y, zi))
         outer.append(o.vert(xo, y, zo))
     for i in range(steps):
-        o.tri(inner[i], outer[i + 1], outer[i], n)
-        o.tri(inner[i], inner[i + 1], outer[i + 1], n)
+        o.tri(inner[i], outer[i], outer[i + 1], n)
+        o.tri(inner[i], outer[i + 1], inner[i + 1], n)
 
 
 def wedge30():
@@ -147,14 +153,25 @@ def extrude(o, outline, y0, y1, cap=True):
         up = o.normal(0, 1, 0)
         down = o.normal(0, -1, 0)
         for i in range(1, len(outline) - 1):
-            o.tri(top[0], top[i + 1], top[i], up)
-            o.tri(bot[0], bot[i], bot[i + 1], down)
+            # A fan over a slightly concave outline flips some triangles, so
+            # wind each one from its own signed area to keep the cross with
+            # the cap normal.
+            (x0, z0) = outline[0]
+            (xi, zi) = outline[i]
+            (xj, zj) = outline[i + 1]
+            ccw_up = ((xi - x0) * (zj - z0) - (xj - x0) * (zi - z0)) < 0
+            if ccw_up:
+                o.tri(top[0], top[i], top[i + 1], up)
+                o.tri(bot[0], bot[i + 1], bot[i], down)
+            else:
+                o.tri(top[0], top[i + 1], top[i], up)
+                o.tri(bot[0], bot[i], bot[i + 1], down)
     for i in range(len(outline)):
         j = (i + 1) % len(outline)
         (x0, z0), (x1, z1) = outline[i], outline[j]
         ex, ez = x1 - x0, z1 - z0
         ln = math.hypot(ex, ez) or 1.0
-        n = o.normal(ez / ln, 0, -ex / ln)
+        n = o.normal(-ez / ln, 0, ex / ln)
         o.tri(top[i], bot[i], bot[j], n)
         o.tri(top[i], bot[j], top[j], n)
 
@@ -190,8 +207,8 @@ def spindle(o, cx, cz, half_len, radius, y_center, segs=10, taper=0.45):
             j = (i + 1) % 8
             a = 2.0 * math.pi * (i + 0.5) / 8
             n = o.normal(math.cos(a), math.sin(a), 0)
-            o.tri(rings[k][i], rings[k + 1][i], rings[k + 1][j], n)
-            o.tri(rings[k][i], rings[k + 1][j], rings[k][j], n)
+            o.tri(rings[k][i], rings[k + 1][j], rings[k + 1][i], n)
+            o.tri(rings[k][i], rings[k][j], rings[k + 1][j], n)
 
 
 def hull_cruiser():
@@ -224,88 +241,34 @@ def hull_cruiser():
     o.write("hull_cruiser.obj", "Federation inspired cruiser, saucer and two nacelles, nose at +Z")
 
 
-def hull_raider():
-    """Klingon inspired: a small command head thrust forward on a long neck,
-    a heavy aft body, and two wings swept back and angled down with weapon pods
-    at the tips. Nose at +Z, deck at y=0.
-
-    Again our own design in that tradition. The silhouette is deliberately the
-    opposite of the cruiser: mass at the back, a narrow front, and wings that
-    make the flanks look wide while the actual profile stays thin."""
-    o = Obj()
-
-    # Command head, forward and small.
-    extrude(o, ellipse_outline(0.0, 2.35, 0.52, 0.66, 14), 0.16, 0.52)
-    # Neck, long and narrow.
-    extrude(o, box_outline(-0.22, 0.35, 0.22, 1.85), 0.20, 0.42)
-    # Main body, wide at the stern.
-    extrude(o, [
-        (-0.52, 0.60), (0.52, 0.60), (0.86, -0.60),
-        (0.70, -1.85), (-0.70, -1.85), (-0.86, -0.60),
-    ], 0.0, 0.54)
-    # Wings, swept back from the body and dropped below the deck line so the
-    # ship reads as predatory from the tactical camera.
-    extrude(o, [
-        (-0.80, -0.20), (-0.62, -0.62), (-2.15, -1.85), (-2.30, -1.35),
-    ], -0.16, 0.06)
-    extrude(o, [
-        (0.62, -0.62), (0.80, -0.20), (2.30, -1.35), (2.15, -1.85),
-    ], -0.16, 0.06)
-    # Wingtip weapon pods.
-    spindle(o, -2.16, -1.52, 0.52, 0.20, -0.05, segs=8)
-    spindle(o, 2.16, -1.52, 0.52, 0.20, -0.05, segs=8)
-    # Stern shutter, a raised block over the drive.
-    extrude(o, box_outline(-0.46, -1.80, 0.46, -1.15), 0.54, 0.74)
-
-    o.write("hull_raider.obj", "Klingon inspired raider, forward head and swept wings, nose at +Z")
-
-
 def hull():
     # A chevron capital ship silhouette pointing +Z, with thickness so it
     # shades as a body rather than a sticker. Grey placeholder per the M1
     # scope: it is not an art milestone.
+    #
+    # The outline runs nose, starboard, tail, port so it winds the same way
+    # as every other extruded outline. It is concave at the tail notch, but
+    # extrude's fan from the nose vertex stays inside this particular shape.
     o = Obj()
-    outline = [
+    extrude(o, [
         (0.0, 3.0),      # nose
-        (-0.7, 0.6),     # port shoulder
-        (-2.0, -1.6),    # port wingtip
-        (-0.9, -1.2),    # port engine root
-        (0.0, -1.9),     # tail notch
-        (0.9, -1.2),     # stbd engine root
-        (2.0, -1.6),     # stbd wingtip
         (0.7, 0.6),      # stbd shoulder
-    ]
-    top_y = 0.55
-    bot_y = 0.0
-    top = [o.vert(x, top_y, z) for (x, z) in outline]
-    bot = [o.vert(x, bot_y, z) for (x, z) in outline]
-    up = o.normal(0, 1, 0)
-    down = o.normal(0, -1, 0)
-
-    # Cap faces as fans from the nose. The outline is concave at the tail
-    # notch, but a fan from the nose vertex stays inside this particular shape.
-    for i in range(1, len(outline) - 1):
-        o.tri(top[0], top[i + 1], top[i], up)
-        o.tri(bot[0], bot[i], bot[i + 1], down)
-
-    # Side walls with true face normals.
-    for i in range(len(outline)):
-        j = (i + 1) % len(outline)
-        (x0, z0), (x1, z1) = outline[i], outline[j]
-        ex, ez = x1 - x0, z1 - z0
-        ln = math.hypot(ex, ez) or 1.0
-        # Outward normal for clockwise-from-above winding.
-        n = o.normal(ez / ln, 0, -ex / ln)
-        o.tri(top[i], bot[i], bot[j], n)
-        o.tri(top[i], bot[j], top[j], n)
-
+        (2.0, -1.6),     # stbd wingtip
+        (0.9, -1.2),     # stbd engine root
+        (0.0, -1.9),     # tail notch
+        (-0.9, -1.2),    # port engine root
+        (-2.0, -1.6),    # port wingtip
+        (-0.7, 0.6),     # port shoulder
+    ], 0.0, 0.55)
     o.write("hull_placeholder.obj", "Placeholder capital ship hull, nose at +Z")
 
 
 def main():
+    # The raider hull is no longer written here: it became a painted, atlas
+    # mapped ship in tools/gen_ship_raider.py, the same treatment the frigate
+    # gets in tools/gen_ship_frigate.py.
     os.makedirs(OUT, exist_ok=True)
     hull_cruiser()
-    hull_raider()
     wedge30()
     arc_segment()
     ring()

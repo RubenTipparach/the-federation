@@ -1,0 +1,17 @@
+[gd_resource type="StandardMaterial3D" load_steps=3 format=3]
+
+; The Kthaari raider's painted look, in the style of the author's R6 sheets:
+; a near black hull whose warm exhaust trails and purple engine grilles come
+; from the combined lights map. Nearest filtering keeps the pixels square.
+
+[ext_resource type="Texture2D" path="res://assets/textures/hull_raider_diffuse.png" id="1"]
+[ext_resource type="Texture2D" path="res://assets/textures/hull_raider_lights.png" id="2"]
+
+[resource]
+albedo_texture = ExtResource("1")
+texture_filter = 0
+roughness = 0.75
+metallic = 0.05
+emission_enabled = true
+emission_energy_multiplier = 1.4
+emission_texture = ExtResource("2")

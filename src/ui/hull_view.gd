@@ -16,6 +16,14 @@ func show_hull(hull: Dictionary) -> void:
 		return
 	mesh_node.visible = true
 	mesh_node.mesh = load(path)
+	# A hull that ships a painted material shows it here too: the SSD is the
+	# identity view, and the identity includes the paint. Unpainted hulls keep
+	# the dim plate material authored in the scene.
+	var material_path: String = String(hull.get("material", ""))
+	if not material_path.is_empty() and ResourceLoader.exists(material_path):
+		mesh_node.material_override = load(material_path)
+	else:
+		mesh_node.material_override = null
 	# The mesh is drawn to fill the frame it is given: hulls differ in length by
 	# more than three to one, so a fixed camera size would leave a frigate as a
 	# speck. Tonnage only nudges it, so a battlecruiser still reads as bigger.

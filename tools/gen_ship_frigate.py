@@ -1,308 +1,355 @@
 #!/usr/bin/env python3
-# Generates the committed frigate: mesh, diffuse atlas, and emissive lights map.
+# Generates the committed frigate: mesh, pixel art diffuse atlas, and emissive
+# lights maps, in the style of the author's R1 starship sheets.
 #
-# Style target is the author's own ship art in docs/examples/ship-art: a low
-# poly hull, ONE small hand painted atlas rather than PBR maps, flat panels with
-# hard black outlines, an off white hull with charcoal panelling and steel blue
-# accents, and a separate mostly black lights map carrying only windows, strip
-# lighting, and the deflector.
+# Style source: docs/examples/ship-art/old_ships/R1-Starship-A. The palette is
+# loaded from those PNGs at build time and the finished maps are verified
+# against them before anything is written: every pixel must be a sheet color,
+# the lights map stays within a sheet-like budget, the engine layer is a
+# subset of the combined lights map, and every painted pixel sits inside its
+# atlas rect.
 #
-# Silhouette is a frigate in the Okinawa tradition: saucer forward and dominant,
-# a short angular spine, a small engineering body, and two nacelles held high on
-# swept pylons. See docs/12-ship-design-language.md. No geometry from any
-# reference model is used, only its proportions.
+# The R1 look, measured from the sheets:
+#   - steel blue hull plates over the same blue as the atlas background, with
+#     chunky dark gray armor slabs; 1px purple-dark outlines
+#   - top lit bevels: a light ridge under a line's top and left, a darker
+#     step above its bottom and right; fills flat otherwise
+#   - rivet dots along plate edges, dashed borders on the red machinery
+#   - ladders of alternating bars for engine blocks and vents
+#   - windows are sparse single yellow pixels; some of them glow
+#   - engines are red bells: a dark red ring, salmon glow, warm white core
+#   - subtle single-pixel wear on the big armor slabs only
+#
+# Silhouette is a frigate in the Okinawa tradition (docs/12): saucer forward
+# and dominant, short angular spine, small engineering body, two nacelles held
+# high on swept pylons. No geometry or pixels from any reference are copied.
 #
 # Per CLAUDE.md sections 2 and 3 this writes .obj and .png to disk. Run it and
-# commit what it writes.
+# commit what it writes. Preview with tools/render_preview.py.
 #
 # Usage: python3 tools/gen_ship_frigate.py
 
 import math
 import os
-import struct
-import zlib
+import random
 
-HERE = os.path.dirname(__file__)
+from shiplib import (Px, Obj, circle_mask, disc_outline, octagon_mask,
+                     read_png_colors, rect_mask, rings, slab, verify)
+
+HERE = os.path.dirname(os.path.abspath(__file__))
 MESH_OUT = os.path.join(HERE, "..", "assets", "meshes")
 TEX_OUT = os.path.join(HERE, "..", "assets", "textures")
+ART = os.path.join(HERE, "..", "docs", "examples", "ship-art", "old_ships",
+                   "R1-Starship-A")
+REF_DIFF = os.path.join(ART, "R1_ship2_diff4-2-export.png")
+REF_ENG = os.path.join(ART, "R1_ship2_em_eng_glow.png")
+REF_HULL_EM = os.path.join(ART, "R1_ship2_em_hull_lighting.png")
 
 TEX = 256
+RNG = random.Random(11)
 
-# The palette, sampled from the author's Ship_1_finish atlas.
-HULL_LIGHT = (222, 226, 230)
-HULL_MID = (170, 178, 187)
-HULL_DARK = (58, 66, 74)
-PANEL = (38, 44, 52)
-ACCENT = (108, 158, 178)
-ACCENT_DEEP = (52, 96, 116)
-RUST = (150, 66, 52)
-OUTLINE = (12, 14, 18)
+# Roles into the R1 palette. Every value must exist in the reference sheets;
+# check_palette() fails the build on a color that drifted, which keeps this
+# list honest without copying the sheet wholesale.
+BASE = (68, 87, 134)           # hull base and atlas background, like the sheet
+OUTLINE = (34, 32, 52)         # purple-dark plate outlines
+DEEP = (20, 20, 45)            # darkest: grooves, bay interiors
+P_BLUE = (107, 127, 166)       # blue hull panel
+P_BLUE_LIGHT = (120, 144, 193) # its top lit ridge
+P_BLUE_SHADE = (95, 116, 165)  # its shaded step
+B2 = (87, 103, 144)            # quieter blue panel
+GRAY_D = (76, 76, 76)          # armor slab
+GRAY_D_WORN = (75, 75, 75)     # its single pixel wear step
+GRAY = (105, 106, 106)         # armor lit face
+GRAY_L = (170, 170, 170)       # armor ridge
+SILVER = (192, 192, 192)       # engine bell ring
+WHITE = (228, 228, 228)        # engine bell
+MAUVE = (132, 126, 135)        # trim plate
+RED = (172, 50, 50)            # machinery
+RED_D = (143, 52, 52)
+RED_SH = (115, 54, 53)
+YELLOW = (251, 242, 54)        # window pixels
+ACCENT = (99, 155, 255)        # bright blue accent strips
 
-GLOW_WINDOW = (198, 232, 244)
-GLOW_ENGINE = (120, 214, 208)
-GLOW_MARK = (232, 150, 70)
+DIFFUSE_ROLES = (
+    BASE, OUTLINE, DEEP, P_BLUE, P_BLUE_LIGHT, P_BLUE_SHADE, B2, GRAY_D,
+    GRAY_D_WORN, GRAY, GRAY_L, SILVER, WHITE, MAUVE, RED, RED_D, RED_SH,
+    YELLOW, ACCENT)
+
+GLOW_RING = (104, 42, 35)      # engine bell: dark ring
+GLOW_RED = (194, 77, 63)       # salmon glow
+GLOW_RED_LIGHT = (238, 148, 138)
+GLOW_WARM = (246, 231, 207)    # warm white core
+GLOW_YELLOW = (255, 248, 1)    # lit windows
+LIGHTS_ROLES = (GLOW_RING, GLOW_RED, GLOW_RED_LIGHT, GLOW_WARM, GLOW_YELLOW)
+
+# Top lit bevel maps for the one-pass shader in shiplib.
+BEVEL_DARK = {OUTLINE, DEEP}
+BEVEL_LIGHT = {P_BLUE: P_BLUE_LIGHT, B2: P_BLUE, GRAY_D: GRAY, GRAY: GRAY_L}
+BEVEL_SHADE = {P_BLUE: P_BLUE_SHADE}
+
+# ---- atlas layout -----------------------------------------------------------
+#
+# Pixel rects, shared by the painter and the UV mapper. Caps and walls get
+# separate rects so a wall is a designed strip rather than a squashed cap.
+R_SAUCER = (4, 4, 124, 124)
+R_SAUCER_RIM = (4, 130, 124, 148)
+R_NACELLE_SIDE = (4, 154, 124, 178)
+R_NACELLE_TOP = (132, 4, 164, 124)
+R_SPINE = (172, 4, 236, 64)
+R_SPINE_SIDE = (172, 70, 236, 86)
+R_BODY = (172, 94, 236, 154)
+R_BODY_SIDE = (172, 160, 236, 176)
+R_PYLON = (172, 182, 236, 214)
+R_BRIDGE = (132, 132, 164, 164)
+R_BRIDGE_SIDE = (132, 170, 164, 186)
+R_NACELLE_AFT = (132, 192, 164, 216)
+R_NACELLE_FORE = (132, 222, 164, 246)
+R_BODY_AFT = (172, 220, 236, 244)
+ALL_RECTS = (
+    R_SAUCER, R_SAUCER_RIM, R_NACELLE_SIDE, R_NACELLE_TOP, R_SPINE,
+    R_SPINE_SIDE, R_BODY, R_BODY_SIDE, R_PYLON, R_BRIDGE, R_BRIDGE_SIDE,
+    R_NACELLE_AFT, R_NACELLE_FORE, R_BODY_AFT)
+
+
+def check_palette():
+    sheet = read_png_colors(REF_DIFF)
+    for role in DIFFUSE_ROLES:
+        assert role in sheet, "diffuse role %r is not an R1 color" % (role,)
+    lit = read_png_colors(REF_ENG) | read_png_colors(REF_HULL_EM, min_count=15)
+    for role in LIGHTS_ROLES:
+        assert role in lit, "lights role %r is not an R1 glow color" % (role,)
+    return sheet, lit
+
+
+# ---- painting helpers -------------------------------------------------------
+
+
+def window_run(d, l, x, y, count, step, lit_every=2, vertical=False):
+    """Sparse single yellow window pixels the way R1 places them; every
+    lit_every-th one glows in the lights map."""
+    for i in range(count):
+        wx = x + (0 if vertical else i * step)
+        wy = y + (i * step if vertical else 0)
+        d.put(wx, wy, YELLOW)
+        if i % lit_every == 0:
+            l.put(wx, wy, GLOW_YELLOW)
+
+
+def red_bell(d, layer, x0, y0, w, h, r):
+    """An R1 engine bell: red housing with a dashed border, a silver ringed
+    white bell, and the layered red glow in the emissive layer."""
+    d.shape(x0, y0, rect_mask(w, h), RED, line=OUTLINE, width=1)
+    d.dash(x0 + 1, y0 + 1, w - 2, RED_D)
+    d.dash(x0 + 1, y0 + h - 2, w - 2, RED_D)
+    d.dash(x0 + 1, y0 + 1, h - 2, RED_D, vertical=True)
+    d.dash(x0 + w - 2, y0 + 1, h - 2, RED_D, vertical=True)
+    cx, cy = x0 + w // 2, y0 + h // 2
+    d.shape(cx - r, cy - r, octagon_mask(r), WHITE, line=SILVER, width=1)
+    d.stamp(cx - 2, cy - 2, octagon_mask(2), GRAY)
+    layer.frame(cx - r, cy - r, octagon_mask(r), GLOW_RING, width=1)
+    layer.stamp(cx - r + 1, cy - r + 1, octagon_mask(r - 1), GLOW_RED)
+    layer.stamp(cx - r + 3, cy - r + 3, octagon_mask(r - 3), GLOW_RED_LIGHT)
+    layer.stamp(cx - 1, cy - 1, octagon_mask(1), GLOW_WARM)
+
+
+def rivet_ring(d, cx, cy, r, count, offset=0.0):
+    """Rivet dots following a circular plate edge."""
+    for i in range(count):
+        a = offset + 2.0 * math.pi * i / count
+        d.put(int(cx + math.cos(a) * r), int(cy + math.sin(a) * r), OUTLINE)
+
+
+# ---- the atlases, painted together ------------------------------------------
+
+
+def paint():
+    """Paints the diffuse, combined lights, and engine layer in one pass, so
+    a lit window's glow is placed by the same code that painted the window."""
+    d = Px(TEX, background=BASE)
+    l = Px(TEX)
+    e = Px(TEX)
+
+    # Saucer cap: blue plate disc, two ring frames, a gray armor hub, riveted
+    # and asymmetrically panelled.
+    cx, cy = 64, 64
+    d.shape(cx - 58, cy - 58, circle_mask(58), P_BLUE, line=OUTLINE)
+    d.frame(cx - 46, cy - 46, octagon_mask(46), OUTLINE)
+    d.frame(cx - 28, cy - 28, octagon_mask(28), OUTLINE)
+    rivet_ring(d, cx, cy, 52, 12, offset=0.1)
+    rivet_ring(d, cx, cy, 37, 8, offset=0.4)
+    d.shape(cx - 16, cy - 16, octagon_mask(16), GRAY_D, line=OUTLINE)
+    d.rivet_row(cx - 10, cy - 13, 4, 7, OUTLINE)
+    d.rivet_row(cx - 10, cy + 12, 4, 7, OUTLINE)
+    d.shape(cx - 7, cy - 7, octagon_mask(7), GRAY, line=OUTLINE)
+    d.stamp(cx - 1, cy - 1, octagon_mask(1), DEEP)
+    # Inner ring details.
+    d.shape(40, 30, rect_mask(14, 10, (2, 0, 0, 2)), B2, line=OUTLINE)
+    d.shape(84, 76, rect_mask(12, 9), GRAY_D, line=OUTLINE)
+    d.rivet_row(86, 78, 3, 4, OUTLINE)
+    window_run(d, l, 50, 96, 3, 3)
+    window_run(d, l, 88, 46, 3, 3, vertical=True)
+    d.vline(76, 30, 7, ACCENT)
+    # Outer ring details.
+    d.frame(56, 10, rect_mask(16, 9, (0, 3, 3, 0)), OUTLINE)
+    d.frame(16, 74, rect_mask(10, 9), OUTLINE)
+    d.shape(96, 88, rect_mask(9, 7), MAUVE, line=OUTLINE)
+    window_run(d, l, 30, 40, 2, 3)
+    window_run(d, l, 84, 22, 3, 3)
+    d.fill((44, 108, 50, 111), RED)
+    d.frame(43, 107, rect_mask(8, 5), OUTLINE)
+
+    # Saucer rim wall: blue band, rivets under the lip, a sparse window row.
+    d.shape(4, 130, rect_mask(120, 18), P_BLUE, line=OUTLINE)
+    d.rivet_row(10, 133, 16, 7, OUTLINE)
+    window_run(d, l, 14, 138, 18, 6)
+    d.vline(46, 132, 5, ACCENT)
+    d.vline(94, 132, 5, ACCENT)
+
+    # Nacelle cap: armor slab, aft at the rect's top. A lit left face, a
+    # ladder of intake ribs, riveted seams, one accent strip.
+    d.shape(132, 4, rect_mask(32, 120, (2, 2, 5, 5)), GRAY_D, line=OUTLINE)
+    d.fill((134, 8, 139, 118), GRAY)
+    d.ribs((141, 10, 159, 34), GRAY, GRAY_D, period=3)
+    d.hline(134, 40, 26, DEEP)
+    d.rivet_row(136, 43, 5, 6, OUTLINE)
+    d.hline(134, 92, 26, DEEP)
+    d.rivet_row(136, 95, 5, 6, OUTLINE)
+    d.vline(154, 46, 40, ACCENT)
+    d.speckle((134, 42, 162, 118), {GRAY_D: GRAY_D_WORN}, 0.05, RNG)
+
+    # Nacelle flank: armor with the long deep groove and a bright leader.
+    d.shape(4, 154, rect_mask(120, 24, (3, 3, 3, 3)), GRAY_D, line=OUTLINE)
+    d.fill((10, 162, 112, 169), DEEP)
+    d.hline(14, 165, 30, ACCENT)
+    d.rivet_row(12, 157, 14, 8, OUTLINE)
+    window_run(d, l, 100, 173, 2, 4)
+    d.speckle((6, 156, 122, 176), {GRAY_D: GRAY_D_WORN}, 0.04, RNG)
+
+    # Spine cap: quiet blue deck, armored walkway, vent ladder.
+    d.shape(172, 4, rect_mask(64, 60, (3, 3, 2, 2)), B2, line=OUTLINE)
+    d.shape(197, 10, rect_mask(14, 44, (2, 2, 2, 2)), GRAY_D, line=OUTLINE)
+    d.rivet_row(200, 13, 3, 4, OUTLINE)
+    d.rivet_row(200, 50, 3, 4, OUTLINE)
+    d.ribs((176, 44, 190, 56), B2, DEEP, period=2)
+    window_run(d, l, 190, 16, 3, 9, vertical=True)
+    d.hline(214, 24, 16, DEEP)
+    d.rivet_row(216, 27, 3, 5, OUTLINE)
+
+    # Spine walls: blue band with a short window run.
+    d.shape(172, 70, rect_mask(64, 16), B2, line=OUTLINE)
+    window_run(d, l, 196, 77, 4, 6)
+    d.hline(176, 73, 12, DEEP)
+
+    # Engineering body cap: armor base, blue quarter panel, machinery.
+    d.shape(172, 94, rect_mask(64, 60, (2, 2, 4, 4)), GRAY_D, line=OUTLINE)
+    d.fill((175, 97, 180, 150), GRAY)
+    d.shape(184, 100, rect_mask(22, 18, (0, 4, 0, 0)), P_BLUE, line=OUTLINE)
+    window_run(d, l, 188, 104, 3, 4)
+    d.fill((222, 100, 232, 108), RED)
+    d.frame(221, 99, rect_mask(12, 10), OUTLINE)
+    d.dash(222, 100, 10, RED_D)
+    d.ribs((214, 134, 232, 148), GRAY, GRAY_D, period=3)
+    d.rivet_row(184, 142, 4, 6, OUTLINE)
+    d.hline(182, 126, 34, DEEP)
+    d.rivet_row(186, 129, 5, 6, OUTLINE)
+    d.shape(210, 112, rect_mask(10, 8), MAUVE, line=OUTLINE)
+    d.speckle((174, 96, 234, 152), {GRAY_D: GRAY_D_WORN}, 0.04, RNG)
+
+    # Body walls: blue band with the engineering window run.
+    d.shape(172, 160, rect_mask(64, 16), P_BLUE, line=OUTLINE)
+    window_run(d, l, 182, 167, 8, 6)
+    d.rivet_row(178, 162, 8, 7, OUTLINE)
+
+    # Pylons: armor, swept, one deep stripe and a riveted edge.
+    d.shape(172, 182, rect_mask(64, 32, (0, 10, 0, 10)), GRAY_D, line=OUTLINE)
+    d.fill((176, 186, 218, 190), GRAY)
+    d.fill((178, 196, 224, 200), DEEP)
+    d.rivet_row(180, 204, 6, 7, OUTLINE)
+    d.speckle((174, 184, 232, 212), {GRAY_D: GRAY_D_WORN}, 0.04, RNG)
+
+    # Bridge: blue octagon cap over an armor core.
+    d.shape(132, 132, octagon_mask(14), P_BLUE, line=OUTLINE)
+    d.shape(143, 143, octagon_mask(5), GRAY_D, line=OUTLINE)
+    d.put(148, 140, YELLOW)
+    d.shape(132, 170, rect_mask(32, 16), P_BLUE, line=OUTLINE)
+    window_run(d, l, 138, 177, 4, 6, lit_every=1)
+
+    # Nacelle stern: the R1 red engine bell, glowing in the engine layer.
+    red_bell(d, e, 132, 192, 32, 24, 7)
+
+    # Nacelle bow: gray intake dome, unlit.
+    d.shape(132, 222, rect_mask(32, 24, (3, 3, 3, 3)), GRAY_D, line=OUTLINE)
+    d.shape(142, 228, octagon_mask(6), GRAY, line=SILVER, width=1)
+    d.stamp(146, 232, octagon_mask(2), DEEP)
+    d.rivet_row(136, 226, 4, 7, OUTLINE)
+
+    # Body stern: deep shuttle bay between two red impulse housings whose
+    # cores glow in the hull lights layer.
+    d.shape(172, 220, rect_mask(64, 24), GRAY_D, line=OUTLINE)
+    d.shape(192, 224, rect_mask(24, 16, (2, 2, 0, 0)), DEEP, line=OUTLINE)
+    d.ribs((196, 227, 212, 237), GRAY_D, DEEP, period=2, vertical=True)
+    for bx in (177, 219):
+        d.fill((bx, 226, bx + 10, 238), RED)
+        d.frame(bx - 1, 225, rect_mask(12, 14), OUTLINE)
+        d.dash(bx, 226, 10, RED_D)
+        d.dash(bx, 237, 10, RED_D)
+        d.fill((bx + 3, 230, bx + 7, 234), RED_SH)
+        l.fill((bx + 4, 231, bx + 6, 233), GLOW_RED)
+
+    d.bevel(BEVEL_DARK, BEVEL_LIGHT, BEVEL_SHADE)
+
+    # The combined lights map is the hull layer plus the engine layer, the
+    # way the R1 sheets keep a separate em_eng_glow alongside em_hull.
+    for i, px in enumerate(e.px):
+        if px[:3] != (0, 0, 0):
+            l.px[i] = px
+    return d, l, e
 
 
 # ---- mesh -------------------------------------------------------------------
 
 
-class Obj:
-    """OBJ writer with texture coordinates, so one atlas can paint the hull."""
-
-    def __init__(self):
-        self.v = []
-        self.vt = []
-        self.vn = []
-        self.f = []
-
-    def vert(self, x, y, z):
-        self.v.append((x, y, z))
-        return len(self.v)
-
-    def uv(self, u, w):
-        self.vt.append((u, w))
-        return len(self.vt)
-
-    def normal(self, x, y, z):
-        self.vn.append((x, y, z))
-        return len(self.vn)
-
-    def tri(self, a, b, c, n, ta, tb, tc):
-        self.f.append(((a, ta, n), (b, tb, n), (c, tc, n)))
-
-    def write(self, name, comment):
-        path = os.path.join(MESH_OUT, name)
-        with open(path, "w") as f:
-            f.write("# %s\n# Generated by tools/gen_ship_frigate.py. Edit the script.\n"
-                    % comment)
-            for v in self.v:
-                f.write("v %.6f %.6f %.6f\n" % v)
-            for t in self.vt:
-                f.write("vt %.6f %.6f\n" % t)
-            for n in self.vn:
-                f.write("vn %.6f %.6f %.6f\n" % n)
-            for face in self.f:
-                f.write("f %d/%d/%d %d/%d/%d %d/%d/%d\n" % (
-                    face[0][0], face[0][1], face[0][2],
-                    face[1][0], face[1][1], face[1][2],
-                    face[2][0], face[2][1], face[2][2]))
-        print("wrote %s  (%d verts, %d tris)" % (name, len(self.v), len(self.f)))
-
-
-def uv_in(o, rect, u, w):
-    """Map 0..1 within an atlas rect given in pixels."""
-    x0, y0, x1, y1 = rect
-    return o.uv((x0 + (x1 - x0) * u) / TEX, 1.0 - (y0 + (y1 - y0) * w) / TEX)
-
-
-def slab(o, outline, y0, y1, rect_top, rect_side):
-    """Extrude an XZ polygon, planar mapping the caps into rect_top and the
-    walls into rect_side. Outline is wound clockwise seen from above."""
-    xs = [p[0] for p in outline]
-    zs = [p[1] for p in outline]
-    minx, maxx = min(xs), max(xs)
-    minz, maxz = min(zs), max(zs)
-    span_x = (maxx - minx) or 1.0
-    span_z = (maxz - minz) or 1.0
-
-    top, bot, tuv = [], [], []
-    for (x, z) in outline:
-        top.append(o.vert(x, y1, z))
-        bot.append(o.vert(x, y0, z))
-        tuv.append(uv_in(o, rect_top, (x - minx) / span_x, (z - minz) / span_z))
-
-    up = o.normal(0, 1, 0)
-    down = o.normal(0, -1, 0)
-    for i in range(1, len(outline) - 1):
-        o.tri(top[0], top[i + 1], top[i], up, tuv[0], tuv[i + 1], tuv[i])
-        o.tri(bot[0], bot[i], bot[i + 1], down, tuv[0], tuv[i], tuv[i + 1])
-
-    for i in range(len(outline)):
-        j = (i + 1) % len(outline)
-        (x0, z0), (x1, z1) = outline[i], outline[j]
-        ex, ez = x1 - x0, z1 - z0
-        ln = math.hypot(ex, ez) or 1.0
-        n = o.normal(ez / ln, 0, -ex / ln)
-        a = uv_in(o, rect_side, 0.0, 0.0)
-        b = uv_in(o, rect_side, 1.0, 0.0)
-        c = uv_in(o, rect_side, 1.0, 1.0)
-        d = uv_in(o, rect_side, 0.0, 1.0)
-        o.tri(top[i], bot[i], bot[j], n, d, a, b)
-        o.tri(top[i], bot[j], top[j], n, d, b, c)
-
-
-def disc_outline(cx, cz, rx, rz, steps):
-    return [(cx + math.sin(2 * math.pi * i / steps) * rx,
-             cz + math.cos(2 * math.pi * i / steps) * rz) for i in range(steps)]
-
-
-def box(x0, z0, x1, z1):
-    return [(x0, z1), (x1, z1), (x1, z0), (x0, z0)]
-
-
-# Atlas rectangles, in pixels. Keeping them named makes the painter and the
-# mapper agree without either guessing.
-R_SAUCER = (8, 8, 120, 120)
-R_SAUCER_RIM = (8, 124, 120, 140)
-R_SPINE = (128, 8, 200, 72)
-R_BODY = (128, 80, 200, 144)
-R_NACELLE = (8, 148, 120, 196)
-R_PYLON = (128, 152, 200, 196)
-R_TRIM = (208, 8, 248, 248)
-
-
 def build_mesh():
-    o = Obj()
-    # Saucer, forward and dominant: a frigate is mostly saucer.
-    slab(o, disc_outline(0.0, 1.55, 1.32, 1.12, 16), 0.10, 0.42, R_SAUCER, R_SAUCER_RIM)
+    o = Obj(MESH_OUT)
+    # Saucer, forward and dominant.
+    slab(o, disc_outline(0.0, 1.55, 1.32, 1.12, 16), 0.10, 0.42,
+         R_SAUCER, R_SAUCER_RIM, TEX)
     # Bridge blister.
-    slab(o, disc_outline(0.0, 1.62, 0.30, 0.26, 8), 0.42, 0.56, R_TRIM, R_TRIM)
-    # Angular spine running aft, narrowing.
+    slab(o, disc_outline(0.0, 1.62, 0.30, 0.26, 8), 0.42, 0.56,
+         R_BRIDGE, R_BRIDGE_SIDE, TEX)
+    # Angular spine running aft.
     slab(o, [(-0.34, 0.62), (0.34, 0.62), (0.24, -1.20), (-0.24, -1.20)],
-         0.14, 0.38, R_SPINE, R_SPINE)
-    # Small engineering body with a cut stern.
+         0.14, 0.38, R_SPINE, R_SPINE_SIDE, TEX)
+    # Engineering body with a cut stern carrying the shuttle bay.
     slab(o, [(-0.46, -0.60), (0.46, -0.60), (0.38, -1.72), (-0.38, -1.72)],
-         0.02, 0.44, R_BODY, R_BODY)
+         0.02, 0.44, R_BODY, R_BODY_SIDE, TEX, rect_aft=R_BODY_AFT)
     # Pylons, swept back and rising outboard.
     slab(o, [(-0.44, -0.55), (-0.30, -0.72), (-1.02, -1.30), (-1.16, -1.10)],
-         0.30, 0.46, R_PYLON, R_PYLON)
+         0.30, 0.46, R_PYLON, R_PYLON, TEX)
     slab(o, [(0.30, -0.72), (0.44, -0.55), (1.16, -1.10), (1.02, -1.30)],
-         0.30, 0.46, R_PYLON, R_PYLON)
-    # Nacelles: long, flat sided, blunt in front, sitting above the deck.
+         0.30, 0.46, R_PYLON, R_PYLON, TEX)
+    # Nacelles, above the deck line, blunt bow and cut stern.
     for side in (-1.0, 1.0):
         cx = 1.12 * side
         slab(o, [(cx - 0.17, 0.72), (cx + 0.17, 0.72),
                  (cx + 0.21, -1.62), (cx - 0.21, -1.62)],
-             0.46, 0.74, R_NACELLE, R_NACELLE)
+             0.46, 0.74, R_NACELLE_TOP, R_NACELLE_SIDE, TEX,
+             rect_aft=R_NACELLE_AFT, rect_fore=R_NACELLE_FORE)
     o.write("hull_frigate.obj", "Okinawa inspired frigate, nose at +Z, atlas mapped")
-
-
-# ---- texture ----------------------------------------------------------------
-
-
-class Paint:
-    """A tiny RGBA painter: flat fills with hard outlines, which is what the
-    reference art does. No gradients and no anti aliasing, deliberately."""
-
-    def __init__(self, size):
-        self.size = size
-        self.px = [(0, 0, 0, 0)] * (size * size)
-
-    def put(self, x, y, rgba):
-        if 0 <= x < self.size and 0 <= y < self.size:
-            self.px[y * self.size + x] = rgba
-
-    def rect(self, x0, y0, x1, y1, rgb, outline=OUTLINE):
-        for y in range(int(y0), int(y1)):
-            for x in range(int(x0), int(x1)):
-                edge = (x in (int(x0), int(x1) - 1) or y in (int(y0), int(y1) - 1))
-                self.put(x, y, (outline + (255,)) if (edge and outline) else rgb + (255,))
-
-    def band(self, x0, y0, x1, y1, rgb):
-        for y in range(int(y0), int(y1)):
-            for x in range(int(x0), int(x1)):
-                self.put(x, y, rgb + (255,))
-
-    def dots(self, x0, y0, count, step, rgb, vertical=False):
-        for i in range(count):
-            x = x0 + (0 if vertical else i * step)
-            y = y0 + (i * step if vertical else 0)
-            self.put(int(x), int(y), rgb + (255,))
-            self.put(int(x) + 1, int(y), rgb + (255,))
-
-    def save(self, path):
-        rows = []
-        for y in range(self.size):
-            row = bytearray([0])
-            for x in range(self.size):
-                row += bytes(self.px[y * self.size + x])
-            rows.append(bytes(row))
-        raw = b"".join(rows)
-
-        def chunk(tag, data):
-            return (struct.pack(">I", len(data)) + tag + data
-                    + struct.pack(">I", zlib.crc32(tag + data) & 0xFFFFFFFF))
-
-        png = (b"\x89PNG\r\n\x1a\n"
-               + chunk(b"IHDR", struct.pack(">IIBBBBB", self.size, self.size, 8, 6, 0, 0, 0))
-               + chunk(b"IDAT", zlib.compress(raw, 9))
-               + chunk(b"IEND", b""))
-        with open(path, "wb") as f:
-            f.write(png)
-        print("wrote %s" % os.path.basename(path))
-
-
-def paint_diffuse():
-    p = Paint(TEX)
-
-    # Saucer: light hull, a darker inner ring, and radial panel seams.
-    x0, y0, x1, y1 = R_SAUCER
-    p.rect(x0, y0, x1, y1, HULL_LIGHT)
-    p.rect(x0 + 14, y0 + 14, x1 - 14, y1 - 14, HULL_MID)
-    p.rect(x0 + 38, y0 + 38, x1 - 38, y1 - 38, HULL_DARK)
-    p.rect(x0 + 50, y0 + 50, x1 - 50, y1 - 50, ACCENT_DEEP)
-    for i in range(6):
-        p.band(x0 + 8 + i * 18, y0 + 6, x0 + 9 + i * 18, y1 - 6, OUTLINE)
-    p.rect(*R_SAUCER_RIM, HULL_MID)
-    p.band(R_SAUCER_RIM[0], R_SAUCER_RIM[1] + 7, R_SAUCER_RIM[2],
-           R_SAUCER_RIM[1] + 9, ACCENT)
-
-    # Spine and body: charcoal panelling with steel blue service strips.
-    p.rect(*R_SPINE, PANEL)
-    p.band(R_SPINE[0] + 10, R_SPINE[1] + 8, R_SPINE[0] + 18, R_SPINE[3] - 8, ACCENT_DEEP)
-    p.band(R_SPINE[2] - 18, R_SPINE[1] + 8, R_SPINE[2] - 10, R_SPINE[3] - 8, ACCENT_DEEP)
-    p.rect(*R_BODY, HULL_DARK)
-    p.rect(R_BODY[0] + 12, R_BODY[1] + 12, R_BODY[2] - 12, R_BODY[3] - 26, PANEL)
-    p.band(R_BODY[0] + 6, R_BODY[3] - 18, R_BODY[2] - 6, R_BODY[3] - 10, RUST)
-
-    # Nacelles: light shell, deep accent grille down the middle.
-    p.rect(*R_NACELLE, HULL_LIGHT)
-    p.band(R_NACELLE[0] + 6, R_NACELLE[1] + 16, R_NACELLE[2] - 6,
-           R_NACELLE[1] + 32, ACCENT_DEEP)
-    p.band(R_NACELLE[0] + 6, R_NACELLE[1] + 20, R_NACELLE[2] - 6,
-           R_NACELLE[1] + 28, ACCENT)
-    p.rect(R_NACELLE[0], R_NACELLE[3] - 10, R_NACELLE[2], R_NACELLE[3], HULL_DARK)
-
-    # Pylons and a trim block for the small parts.
-    p.rect(*R_PYLON, HULL_MID)
-    p.band(R_PYLON[0] + 8, R_PYLON[1] + 10, R_PYLON[2] - 8, R_PYLON[1] + 14, PANEL)
-    p.rect(*R_TRIM, HULL_MID)
-    p.rect(R_TRIM[0] + 6, R_TRIM[1] + 6, R_TRIM[2] - 6, R_TRIM[1] + 40, ACCENT_DEEP)
-    p.rect(R_TRIM[0] + 6, R_TRIM[1] + 48, R_TRIM[2] - 6, R_TRIM[1] + 84, RUST)
-
-    p.save(os.path.join(TEX_OUT, "hull_frigate_diffuse.png"))
-
-
-def paint_lights():
-    """Mostly black, like the reference lights map: only windows, strip
-    lighting, the deflector, and the drive glow are lit."""
-    p = Paint(TEX)
-    p.band(0, 0, TEX, TEX, (0, 0, 0))
-
-    # Saucer windows in two arcs, and the deflector as a bright disc.
-    for i in range(10):
-        p.dots(R_SAUCER[0] + 16 + i * 9, R_SAUCER[1] + 26, 1, 0, GLOW_WINDOW)
-        p.dots(R_SAUCER[0] + 16 + i * 9, R_SAUCER[3] - 28, 1, 0, GLOW_WINDOW)
-    p.rect(R_SAUCER[0] + 48, R_SAUCER[1] + 48, R_SAUCER[0] + 64,
-           R_SAUCER[1] + 64, GLOW_ENGINE, outline=None)
-
-    # Spine service lights, engineering marker, nacelle grille.
-    p.dots(R_SPINE[0] + 14, R_SPINE[1] + 14, 8, 6, GLOW_WINDOW, vertical=True)
-    p.dots(R_BODY[0] + 18, R_BODY[1] + 20, 5, 8, GLOW_MARK, vertical=True)
-    p.band(R_NACELLE[0] + 8, R_NACELLE[1] + 21, R_NACELLE[2] - 8,
-           R_NACELLE[1] + 27, GLOW_ENGINE)
-    p.band(R_NACELLE[0] + 8, R_NACELLE[3] - 8, R_NACELLE[2] - 8,
-           R_NACELLE[3] - 4, GLOW_MARK)
-
-    p.save(os.path.join(TEX_OUT, "hull_frigate_lights.png"))
 
 
 def main():
     os.makedirs(MESH_OUT, exist_ok=True)
     os.makedirs(TEX_OUT, exist_ok=True)
     build_mesh()
-    paint_diffuse()
-    paint_lights()
+    sheet, lit_sheet = check_palette()
+    d, l, e = paint()
+    verify(d, l, e, sheet, lit_sheet, ALL_RECTS, TEX, background=BASE,
+           lit_budget=(0.0008, 0.02))
+    d.save(os.path.join(TEX_OUT, "hull_frigate_diffuse.png"))
+    l.save(os.path.join(TEX_OUT, "hull_frigate_lights.png"))
+    e.save(os.path.join(TEX_OUT, "hull_frigate_engines.png"))
 
 
 if __name__ == "__main__":
