@@ -3,9 +3,11 @@
 # lights maps, in the style of the author's R6 starship sheets. This is the
 # Kthaari hull, flown by the Bloodletter and the Talon.
 #
-# Style source: docs/examples/ship-art/old_ships/R6-Starship-A. The palette is
-# loaded from those PNGs at build time and the finished maps are verified
-# against them before anything is written, the same gates as the frigate.
+# Color comes from the project palette in data/palette.json (CLAUDE.md 3.1):
+# this file names roles, never hex values. The finished maps pass the same
+# gates as the frigate before anything is written.
+#
+# Shape vocabulary source: docs/examples/ship-art/old_ships/R6-Starship-A.
 #
 # The R6 look, measured from the sheets and refined by critique passes:
 #   - authored at the sheets' native 128 grid and exported 2x nearest
@@ -41,50 +43,42 @@
 import os
 import random
 
-from shiplib import (Px, Obj, octagon_mask, read_png_colors, rect_mask, slab,
-                     verify)
+from shiplib import Px, Obj, load_palette, octagon_mask, rect_mask, slab, verify
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 MESH_OUT = os.path.join(HERE, "..", "assets", "meshes")
 TEX_OUT = os.path.join(HERE, "..", "assets", "textures")
-ART = os.path.join(HERE, "..", "docs", "examples", "ship-art", "old_ships",
-                   "R6-Starship-A")
-REF_DIFF = os.path.join(ART, "R6_Starship_A_Diffuse.png")
-REF_EM = os.path.join(ART, "R6_Starship_A_em_lighting.png")
-REF_ENG = os.path.join(ART, "R6_Starship_A_em_engine.png")
+PALETTE = os.path.join(HERE, "..", "data", "palette.json")
 
 # Authored at the R6 sheets' native grid, exported 2x for the engine.
 TEX = 128
 SCALE = 2
 RNG = random.Random(6)
 
-# Roles into the R6 palette, asserted against the sheets at build time.
-HULL = (23, 14, 25)            # the purple-black hull
-OUTLINE = (8, 5, 9)            # deep black outlines
-PANEL = (47, 33, 59)           # purple panel lines and ridges
-PLUM = (59, 33, 55)            # dark plum, grille gradient step
-PLATE = (67, 58, 96)           # purple plate faces
-PLATE_L = (79, 82, 119)        # lighter purple
-STEEL = (101, 115, 140)        # armor shadow
-STEEL_L = (124, 148, 161)      # armor field
-LIGHT = (160, 185, 186)        # armor ridge lines
-PALE = (192, 209, 204)         # rare top highlights
-STEEL_D = (57, 67, 77)         # deep armor shade
-GREEN = (33, 59, 37)           # wing panels
-GREEN_L = (58, 96, 74)
-GREEN_D = (35, 43, 37)
-ORANGE = (228, 148, 58)        # exhaust trail body
-CREAM = (245, 237, 186)        # trail core
-RUST = (154, 99, 72)           # trail fringe
-RED = (134, 55, 47)            # warning ticks
+# Roles, resolved through data/palette.json. Nothing here is a hex value.
+ROLE, ALLOWED = load_palette(PALETTE, "raider")
+HULL = ROLE["hull"]            # the near black hull
+OUTLINE = ROLE["outline"]      # deepest black, silhouette and frames
+PANEL = ROLE["panel"]          # panel lines and hull ridges
+PLATE = ROLE["plate"]          # plate faces and dithered runs
+PLATE_L = ROLE["plate_light"]
+STEEL_L = ROLE["armor"]        # armor field
+LIGHT = ROLE["armor_ridge"]    # armor ridge lines
+PALE = ROLE["armor_pale"]      # rare top highlights
+STEEL = ROLE["armor_shadow"]
+STEEL_D = ROLE["armor_deep"]
+GREEN = ROLE["green"]          # wing panels
+GREEN_L = ROLE["green_light"]
+GREEN_D = ROLE["green_dark"]
+RUST = ROLE["rust"]            # trail fringe
+ORANGE = ROLE["orange"]        # trail body
+CREAM = ROLE["cream"]          # trail core
+RED = ROLE["red"]              # warning ticks
+GLOW_YELLOW = ROLE["window"]   # lit windows
 
-DIFFUSE_ROLES = (
-    HULL, OUTLINE, PANEL, PLUM, PLATE, PLATE_L, STEEL, STEEL_L, LIGHT, PALE,
-    STEEL_D, GREEN, GREEN_L, GREEN_D, ORANGE, CREAM, RUST, RED)
-
-GLOW_YELLOW = (255, 219, 0)    # lit windows
-GRILLE_RAMP = (PANEL, PLUM, PLATE, PLATE_L, STEEL, STEEL_L)
-LIGHTS_ROLES = (ORANGE, CREAM, RUST, GLOW_YELLOW) + GRILLE_RAMP
+# The grille gradient, ordered dark to light; the painter dithers between
+# neighbouring steps.
+GRILLE_RAMP = ROLE["grille_ramp"]
 
 BEVEL_DARK = {OUTLINE}
 BEVEL_LIGHT = {STEEL_L: LIGHT, GREEN: GREEN_L, PLATE: PLATE_L, HULL: PANEL}
@@ -109,16 +103,6 @@ ALL_RECTS = (
     R_WING, R_WING_EDGE, R_WING_TRAIL, R_BODY, R_BODY_SIDE, R_BODY_AFT,
     R_HEAD, R_HEAD_SIDE, R_BOOM, R_BOOM_SIDE, R_POD, R_POD_AFT, R_POD_FORE,
     R_POD_SIDE)
-
-
-def check_palette():
-    sheet = read_png_colors(REF_DIFF)
-    for role in DIFFUSE_ROLES:
-        assert role in sheet, "diffuse role %r is not an R6 color" % (role,)
-    lit = read_png_colors(REF_EM) | read_png_colors(REF_ENG)
-    for role in LIGHTS_ROLES:
-        assert role in lit, "lights role %r is not an R6 glow color" % (role,)
-    return sheet, lit
 
 
 # ---- R6 painting vocabulary -------------------------------------------------
@@ -196,7 +180,10 @@ def engine_grille(d, layers, rect):
 
 
 def paint():
-    d = Px(TEX, background=(0, 0, 0))
+    # The atlas gutter is the palette's black rather than pure black, so any
+    # bleed at a UV seam stays in family, the way the frigate's gutter is its
+    # hull base.
+    d = Px(TEX, background=OUTLINE)
     l = Px(TEX)
     e = Px(TEX)
 
@@ -368,9 +355,8 @@ def main():
     os.makedirs(MESH_OUT, exist_ok=True)
     os.makedirs(TEX_OUT, exist_ok=True)
     build_mesh()
-    sheet, lit_sheet = check_palette()
     d, l, e = paint()
-    verify(d, l, e, sheet, lit_sheet, ALL_RECTS, TEX,
+    verify(d, l, e, ALLOWED, ALL_RECTS, TEX, background=OUTLINE,
            lit_budget=(0.002, 0.05))
     d.save(os.path.join(TEX_OUT, "hull_raider_diffuse.png"), scale=SCALE)
     l.save(os.path.join(TEX_OUT, "hull_raider_lights.png"), scale=SCALE)

@@ -2,12 +2,13 @@
 # Generates the committed frigate: mesh, pixel art diffuse atlas, and emissive
 # lights maps, in the style of the author's R1 starship sheets.
 #
-# Style source: docs/examples/ship-art/old_ships/R1-Starship-A. The palette is
-# loaded from those PNGs at build time and the finished maps are verified
-# against them before anything is written: every pixel must be a sheet color,
-# the lights map stays within a sheet-like budget, the engine layer is a
-# subset of the combined lights map, and every painted pixel sits inside its
-# atlas rect.
+# Color comes from the project palette in data/palette.json (CLAUDE.md 3.1):
+# this file names roles, never hex values. The finished maps are verified
+# before anything is written: every pixel must be a palette entry, the lights
+# map stays within budget, the engine layer is a subset of the combined
+# lights map, and every painted pixel sits inside its atlas rect.
+#
+# Shape vocabulary source: docs/examples/ship-art/old_ships/R1-Starship-A.
 #
 # The R1 look, measured from the sheets and refined by critique passes:
 #   - authored at the sheets' native 128 grid and exported 2x nearest, so
@@ -42,55 +43,47 @@ import math
 import os
 import random
 
-from shiplib import (Px, Obj, circle_mask, disc_outline, octagon_mask,
-                     read_png_colors, rect_mask, rings, slab, verify)
+from shiplib import (Px, Obj, circle_mask, disc_outline, load_palette,
+                     octagon_mask, rect_mask, rings, slab, verify)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 MESH_OUT = os.path.join(HERE, "..", "assets", "meshes")
 TEX_OUT = os.path.join(HERE, "..", "assets", "textures")
-ART = os.path.join(HERE, "..", "docs", "examples", "ship-art", "old_ships",
-                   "R1-Starship-A")
-REF_DIFF = os.path.join(ART, "R1_ship2_diff4-2-export.png")
-REF_ENG = os.path.join(ART, "R1_ship2_em_eng_glow.png")
-REF_HULL_EM = os.path.join(ART, "R1_ship2_em_hull_lighting.png")
+PALETTE = os.path.join(HERE, "..", "data", "palette.json")
 
 # Authored at the R1 sheets' native grid, exported 2x for the engine.
 TEX = 128
 SCALE = 2
 RNG = random.Random(11)
 
-# Roles into the R1 palette. Every value must exist in the reference sheets;
-# check_palette() fails the build on a color that drifted.
-BASE = (68, 87, 134)           # hull base and atlas background, like the sheet
-OUTLINE = (34, 32, 52)         # purple-dark: silhouette, machinery, rails
-DEEP = (20, 20, 45)            # tiny dark window slits only
-P_BLUE = (107, 127, 166)       # blue hull plate
-P_LIGHT = (120, 144, 193)      # its top lit ridge
-P_SHADOW = (87, 103, 144)      # its bottom shadow
-GRAY = (105, 106, 106)         # machinery fill
-GRAY_D = (76, 76, 76)          # machinery shadow
-GRAY_L = (170, 170, 170)       # machinery ridge, silver rivets
-STEP = (148, 148, 148)         # stepped highlight
-STEP2 = (167, 165, 168)        # stepped highlight, warm
-MAUVE = (132, 126, 135)        # occasional pale rivet
-SILVER = (192, 192, 192)       # engine bell ring
-WHITE = (228, 228, 228)        # bell plus specular
-RED = (172, 50, 50)            # machinery red
-RED_D = (143, 52, 52)
-RED_SH = (115, 54, 53)
-YELLOW = (251, 242, 54)        # window pixels
-ACCENT = (99, 155, 255)        # bright blue capsules and sparks
+# Roles, resolved through data/palette.json. Nothing here is a hex value:
+# retuning the ship's color means editing that file, not this one.
+ROLE, ALLOWED = load_palette(PALETTE, "frigate")
+BASE = ROLE["base"]              # hull base and atlas background
+OUTLINE = ROLE["outline"]        # silhouette, machinery borders, rails
+DEEP = ROLE["deep"]              # tiny dark window slits only
+P_BLUE = ROLE["plate"]           # hull plate
+P_LIGHT = ROLE["plate_light"]    # its top lit ridge
+P_SHADOW = ROLE["plate_shadow"]  # its bottom shadow
+GRAY = ROLE["machinery"]         # machinery fill
+GRAY_D = ROLE["machinery_shadow"]
+GRAY_L = ROLE["machinery_ridge"] # machinery ridge, and the rivet dots
+STEP = ROLE["step"]              # stepped highlight
+STEP2 = ROLE["step_warm"]
+MAUVE = ROLE["rivet_pale"]       # occasional pale rivet
+SILVER = ROLE["silver"]          # engine bell ring
+WHITE = ROLE["specular"]         # bell plus specular
+RED = ROLE["red"]                # machinery red
+RED_D = ROLE["red_dark"]
+RED_SH = ROLE["red_shadow"]
+YELLOW = ROLE["window"]          # window pixels
+ACCENT = ROLE["accent"]          # capsule strips and plate edge sparks
 
-DIFFUSE_ROLES = (
-    BASE, OUTLINE, DEEP, P_BLUE, P_LIGHT, P_SHADOW, GRAY, GRAY_D, GRAY_L,
-    STEP, STEP2, MAUVE, SILVER, WHITE, RED, RED_D, RED_SH, YELLOW, ACCENT)
-
-GLOW_HALO = (104, 42, 35)      # engine bell: wide dark halo
-GLOW_RED = (194, 77, 63)       # salmon glow
-GLOW_LIGHT = (238, 148, 138)
-GLOW_CORE = (246, 231, 207)    # warm white core
-GLOW_YELLOW = (255, 248, 1)    # lit windows
-LIGHTS_ROLES = (GLOW_HALO, GLOW_RED, GLOW_LIGHT, GLOW_CORE, GLOW_YELLOW)
+GLOW_HALO = ROLE["glow_halo"]    # engine bell: wide dark halo
+GLOW_RED = ROLE["glow_mid"]
+GLOW_LIGHT = ROLE["glow_light"]
+GLOW_CORE = ROLE["glow_core"]    # hot core
+GLOW_YELLOW = ROLE["glow_window"]
 
 # ---- atlas layout (logical 128 grid) ----------------------------------------
 R_SAUCER = (2, 2, 62, 62)
@@ -111,16 +104,6 @@ ALL_RECTS = (
     R_SAUCER, R_SAUCER_RIM, R_NACELLE_SIDE, R_NACELLE_TOP, R_SPINE,
     R_SPINE_SIDE, R_BODY, R_BODY_SIDE, R_PYLON, R_BRIDGE, R_BRIDGE_SIDE,
     R_NACELLE_AFT, R_NACELLE_FORE, R_BODY_AFT)
-
-
-def check_palette():
-    sheet = read_png_colors(REF_DIFF)
-    for role in DIFFUSE_ROLES:
-        assert role in sheet, "diffuse role %r is not an R1 color" % (role,)
-    lit = read_png_colors(REF_ENG) | read_png_colors(REF_HULL_EM, min_count=15)
-    for role in LIGHTS_ROLES:
-        assert role in lit, "lights role %r is not an R1 glow color" % (role,)
-    return sheet, lit
 
 
 # ---- R1 painting vocabulary -------------------------------------------------
@@ -395,8 +378,8 @@ def paint():
     ladder(d, (98, 112, 106, 120))
     for bx in (89, 110):
         red_block(d, bx, 112, 5, 8)
-        d.fill((bx + 2, y_core(112, 8), bx + 3, y_core(112, 8) + 2), RED_SH)
-        l.fill((bx + 2, y_core(112, 8), bx + 3, y_core(112, 8) + 2), GLOW_RED)
+        d.fill((bx + 2, 115, bx + 3, 117), RED_SH)
+        l.fill((bx + 2, 115, bx + 3, 117), GLOW_RED)
 
     # The combined lights map is the hull layer plus the engine layer, the
     # way the R1 sheets keep a separate em_eng_glow alongside em_hull.
@@ -404,10 +387,6 @@ def paint():
         if px[:3] != (0, 0, 0):
             l.px[i] = px
     return d, l, e
-
-
-def y_core(y0, h):
-    return y0 + h // 2 - 1
 
 
 # ---- mesh -------------------------------------------------------------------
@@ -446,9 +425,8 @@ def main():
     os.makedirs(MESH_OUT, exist_ok=True)
     os.makedirs(TEX_OUT, exist_ok=True)
     build_mesh()
-    sheet, lit_sheet = check_palette()
     d, l, e = paint()
-    verify(d, l, e, sheet, lit_sheet, ALL_RECTS, TEX, background=BASE,
+    verify(d, l, e, ALLOWED, ALL_RECTS, TEX, background=BASE,
            lit_budget=(0.0008, 0.03))
     d.save(os.path.join(TEX_OUT, "hull_frigate_diffuse.png"), scale=SCALE)
     l.save(os.path.join(TEX_OUT, "hull_frigate_lights.png"), scale=SCALE)

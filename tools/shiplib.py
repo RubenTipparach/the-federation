@@ -6,74 +6,46 @@
 # their palette roles, atlas layout, painting, and silhouette; everything
 # mechanical lives here.
 #
-# Style source is the author's own sheets in docs/examples/ship-art. Each
-# generator loads its palette from the sheet it replicates (read_png_colors)
-# and verifies the finished maps against it (verify), so a color that drifts
-# from the artist's fails the build instead of shipping.
+# Color comes from data/palette.json, the project palette (CLAUDE.md 3.1).
+# Generators name roles, the file says what those roles are painted in, and
+# verify() fails the build on any pixel that is not a palette entry, so a
+# color cannot drift in unnoticed. The painting vocabulary still comes from
+# the author's sheets in docs/examples/ship-art; only the color does not.
 
+import json
 import math
 import struct
 import zlib
 
-# ---- reading reference palettes ---------------------------------------------
+# ---- the project palette ----------------------------------------------------
 
 
-def read_png_colors(path, min_count=1):
-    """The set of RGB colors in an 8-bit non interlaced PNG (truecolor, with
-    or without alpha, or palette indexed), optionally dropping colors rarer
-    than min_count (scaling artifacts in some sheets). A minimal reader so
-    palettes come from the artist's sheets, not from hand copied constants."""
-    data = open(path, "rb").read()
-    assert data[:8] == b"\x89PNG\r\n\x1a\n", path
-    pos, idat, width, height, ctype = 8, b"", 0, 0, None
-    plte = []
-    while pos < len(data):
-        length, tag = struct.unpack(">I4s", data[pos:pos + 8])
-        body = data[pos + 8:pos + 8 + length]
-        if tag == b"IHDR":
-            width, height, bit, ctype, _, _, inter = struct.unpack(
-                ">IIBBBBB", body)
-            assert bit == 8 and inter == 0 and ctype in (2, 3, 6), \
-                "unsupported PNG flavor in %s" % path
-        elif tag == b"PLTE":
-            plte = [tuple(body[i:i + 3]) for i in range(0, len(body), 3)]
-        elif tag == b"IDAT":
-            idat += body
-        pos += 12 + length
-    raw = zlib.decompress(idat)
-    channels = {2: 3, 3: 1, 6: 4}[ctype]
-    stride = width * channels
-    prev = bytearray(stride)
-    counts = {}
-    off = 0
-    for _ in range(height):
-        filt = raw[off]
-        off += 1
-        line = bytearray(raw[off:off + stride])
-        off += stride
-        for i in range(stride):
-            a = line[i - channels] if i >= channels else 0
-            b = prev[i]
-            c = prev[i - channels] if i >= channels else 0
-            if filt == 1:
-                line[i] = (line[i] + a) & 255
-            elif filt == 2:
-                line[i] = (line[i] + b) & 255
-            elif filt == 3:
-                line[i] = (line[i] + (a + b) // 2) & 255
-            elif filt == 4:
-                p = a + b - c
-                pa, pb, pc = abs(p - a), abs(p - b), abs(p - c)
-                pred = a if (pa <= pb and pa <= pc) else (b if pb <= pc else c)
-                line[i] = (line[i] + pred) & 255
-        for x in range(0, stride, channels):
-            if ctype == 3:
-                key = plte[line[x]]
-            else:
-                key = (line[x], line[x + 1], line[x + 2])
-            counts[key] = counts.get(key, 0) + 1
-        prev = line
-    return {c for c, n in counts.items() if n >= min_count}
+def load_palette(path, ship):
+    """One ship's role map plus the whole palette, read from the committed
+    config file. Returns (roles, palette): roles maps a role name to an RGB
+    tuple (or a tuple of them, for ramps), palette is every allowed color.
+
+    A role naming a color the palette does not have raises here rather than
+    painting something off palette, which is the point of the indirection."""
+    with open(path) as f:
+        data = json.load(f)
+    colors = {}
+    for name, value in data["colors"].items():
+        text = value.lstrip("#")
+        colors[name] = (int(text[0:2], 16), int(text[2:4], 16),
+                        int(text[4:6], 16))
+
+    def resolve(name):
+        assert name in colors, "%r is not a palette color" % (name,)
+        return colors[name]
+
+    roles = {}
+    for role, value in data["ships"][ship].items():
+        if isinstance(value, list):
+            roles[role] = tuple(resolve(n) for n in value)
+        else:
+            roles[role] = resolve(value)
+    return roles, set(colors.values())
 
 
 # ---- masks ------------------------------------------------------------------
@@ -308,20 +280,23 @@ class Px:
 # ---- verification -----------------------------------------------------------
 
 
-def verify(diffuse, lights, engines, sheet, lit_sheet, rects, tex,
+def verify(diffuse, lights, engines, palette, rects, tex,
            background=(0, 0, 0), lit_budget=(0.0008, 0.02)):
     """The gates every painted ship passes before anything is written:
-    palette exactness against the artist's sheets, the lit pixel budget,
-    the engine layer being a subset of the combined lights map, and every
-    painted pixel sitting inside its atlas rect."""
+    palette exactness against data/palette.json, the lit pixel budget, the
+    engine layer being a subset of the combined lights map, and every
+    painted pixel sitting inside its atlas rect.
+
+    Pure black is allowed on the emissive maps because it is their empty
+    value, not a painted color."""
 
     def offenders(canvas, allowed):
         return {px[:3] for px in canvas.px if px[:3] not in allowed}
 
-    bad = offenders(diffuse, sheet | {background})
+    bad = offenders(diffuse, palette | {background})
     assert not bad, "off palette diffuse colors: %r" % (bad,)
-    bad = offenders(lights, lit_sheet | {(0, 0, 0)})
-    bad |= offenders(engines, lit_sheet | {(0, 0, 0)})
+    bad = offenders(lights, palette | {(0, 0, 0)})
+    bad |= offenders(engines, palette | {(0, 0, 0)})
     assert not bad, "off palette light colors: %r" % (bad,)
 
     lit = sum(1 for px in lights.px if px[:3] != (0, 0, 0))

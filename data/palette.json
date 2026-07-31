@@ -1,0 +1,126 @@
+{
+  "note": [
+    "The project palette: Waldgeist, adopted for now. Every pixel of committed",
+    "ship art must be one of these colors: tools/shiplib.py verify() fails the",
+    "build on anything else, so a color cannot drift in unnoticed.",
+    "",
+    "Colors live here rather than in the generators (CLAUDE.md 5.4), and the role",
+    "maps below live here too, because which palette entry plays 'hull plate' is",
+    "exactly the kind of thing a designer retunes. The generators name roles, not",
+    "hex values.",
+    "",
+    "The painting vocabulary still comes from the author's own sheets in",
+    "docs/examples/ship-art: R1-Starship-A for the frigate (blue on blue plate",
+    "bevels, silver rivets, dashed red machinery) and R6-Starship-A for the",
+    "raider (near black hull, purple panel work, dithered grilles, warm plumes).",
+    "This file changes what those shapes are painted in, not what they are."
+  ],
+
+  "colors": {
+    "gold": "#a6884a",
+    "gold_deep": "#906c30",
+    "bronze": "#825337",
+    "clay": "#83473d",
+    "clay_deep": "#66352e",
+    "maroon": "#562923",
+    "wine": "#612638",
+    "bark": "#46332c",
+
+    "cream": "#e3ddd1",
+    "bone": "#bdbbae",
+    "taupe": "#af9e94",
+    "taupe_deep": "#907c75",
+
+    "olive_light": "#a29f7e",
+    "olive": "#969372",
+    "olive_deep": "#78735d",
+    "drab": "#696353",
+    "drab_deep": "#4f493b",
+    "moss_light": "#727234",
+    "moss": "#675f30",
+    "moss_deep": "#57562a",
+
+    "green_light": "#73804b",
+    "green": "#5f7b53",
+    "teal": "#3b6d62",
+    "teal_deep": "#32534a",
+
+    "gray_blue_light": "#879ea3",
+    "gray_blue": "#798a92",
+    "teal_gray": "#5e7e8b",
+    "blue_light": "#4e7499",
+    "blue": "#245273",
+
+    "moss_gray": "#595c55",
+    "gunmetal": "#4b4e4f",
+    "char": "#323230",
+    "ink": "#212528",
+
+    "indigo": "#3e4055",
+    "plum": "#382d35",
+    "slate": "#323b42",
+    "navy": "#1f2d36",
+    "navy_deep": "#141f25",
+    "black": "#0b1016"
+  },
+
+  "ships": {
+    "frigate": {
+      "base": "indigo",
+      "outline": "navy_deep",
+      "deep": "black",
+
+      "plate": "blue_light",
+      "plate_light": "gray_blue",
+      "plate_shadow": "blue",
+      "accent": "gray_blue_light",
+
+      "machinery": "gunmetal",
+      "machinery_shadow": "char",
+      "machinery_ridge": "bone",
+      "step": "taupe",
+      "step_warm": "taupe_deep",
+      "rivet_pale": "taupe_deep",
+
+      "silver": "taupe",
+      "specular": "cream",
+
+      "red": "clay",
+      "red_dark": "clay_deep",
+      "red_shadow": "maroon",
+
+      "window": "gold",
+      "glow_window": "gold",
+      "glow_halo": "maroon",
+      "glow_mid": "clay",
+      "glow_light": "gold",
+      "glow_core": "cream"
+    },
+
+    "raider": {
+      "hull": "ink",
+      "outline": "black",
+      "panel": "plum",
+      "plate": "indigo",
+      "plate_light": "gunmetal",
+
+      "armor": "gray_blue",
+      "armor_ridge": "gray_blue_light",
+      "armor_pale": "bone",
+      "armor_shadow": "teal_gray",
+      "armor_deep": "slate",
+
+      "green": "teal_deep",
+      "green_light": "teal",
+      "green_dark": "navy",
+
+      "rust": "bronze",
+      "orange": "gold",
+      "cream": "cream",
+      "red": "clay",
+      "window": "gold",
+
+      "grille_ramp": ["plum", "wine", "indigo", "gunmetal", "teal_gray", "gray_blue"]
+    }
+  }
+}
