@@ -1,0 +1,330 @@
+fileFormatVersion: 2
+guid: b6c14fbb50887af4eaa72bfe451d1134
+ModelImporter:
+  serializedVersion: 21202
+  internalIDToNameTable: []
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Access Lights
+    second: {fileID: 2100000, guid: d53c9264a27bf124fb0200af69c261b0, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Access Lights Shuttle Bay
+    second: {fileID: 2100000, guid: 9e298b7b62d73794e80c7f27517f9262, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: AurboretumLight
+    second: {fileID: 2100000, guid: 182ee99437ffb724b9a6bb3691ed091f, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: BlackDecal
+    second: {fileID: 2100000, guid: 76172b45d46b3ed4e893818e0776a983, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: BlueGreen Hull
+    second: {fileID: 2100000, guid: 75cf33b55aad8534da322b33316a0b7a, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: BrassMetal
+    second: {fileID: 2100000, guid: 9e675d41191d63540848aa7d9080d0c1, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Copper Metal
+    second: {fileID: 2100000, guid: 1b1e4a6a631af9b4f9f4d57540ad6867, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Dark Hull
+    second: {fileID: 2100000, guid: ebfa33f9f6c00df48a7d887bd6734d52, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: DarkBlueHull
+    second: {fileID: 2100000, guid: ecea77f304483ad4f8b9e3df7959ff44, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: DarkGreen Hull
+    second: {fileID: 2100000, guid: a896b9db1429db04093257bf5df040b9, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: DarkGreenHull-ICS
+    second: {fileID: 2100000, guid: 35ff2af4349d4ee45b6204f05cdedd73, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Default Hull
+    second: {fileID: 2100000, guid: 03a29e8e82d12554eafc1de1ca85c69e, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Deflector Light
+    second: {fileID: 2100000, guid: fe417ea33dee8d54faa762e05bc9031c, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: DeflectorGlass
+    second: {fileID: 2100000, guid: 4e7558e2f703eb44f9b3d0425c373fb5, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: FlatBlack
+    second: {fileID: 2100000, guid: 48f6af1bb605b7d499750ec582f17c38, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Green Nav Light
+    second: {fileID: 2100000, guid: a9edccb1ed32a1042a5131289259a025, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: IES Light
+    second: {fileID: 2100000, guid: 6fd1b85b12e0a3243983cbd68d6dce19, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: ImpulseDiffuser
+    second: {fileID: 2100000, guid: 83e0b8f5931db894287e68f16d6e8f91, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: ImpulseEngine
+    second: {fileID: 2100000, guid: 07116def5cc85324c9b323fc6cde2243, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: ImpulseGlass
+    second: {fileID: 2100000, guid: 5bb1645e9d53b354687c06ee4217cfa4, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: ImpulseGrill
+    second: {fileID: 2100000, guid: f62ef0c1dfbf4584ab91edf925ee2674, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Interior Lights
+    second: {fileID: 2100000, guid: 46fc522b04594f94dbb1376c2e4c7adb, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Interior Red
+    second: {fileID: 2100000, guid: 8d28439feae460841b6e435edbf3e130, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Interiors
+    second: {fileID: 2100000, guid: 6deb6962f500e154bb436754fbbdfe1d, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Light Glass
+    second: {fileID: 2100000, guid: 7593f1965bb86454ebab969a888c5b7f, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Nacelle Grills
+    second: {fileID: 2100000, guid: 76b17ecde715bcf4b93ae80690dafc23, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Nacelle Lighting
+    second: {fileID: 2100000, guid: b9068de9b76d80a4f9b90efc32172a5f, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: NacelleInnerLights
+    second: {fileID: 2100000, guid: 075586588ef0b184392744a3e8a5ece6, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Phaser Turrets
+    second: {fileID: 2100000, guid: f17b504ec90d03a49a989280c0520973, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: RCS Glass
+    second: {fileID: 2100000, guid: e72c92ebb07b4dc48b0e83d54b21d234, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: RCS Lights
+    second: {fileID: 2100000, guid: 8778dc39a84d61b46a08e079815a7e7f, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Red Decal
+    second: {fileID: 2100000, guid: 4f31d92eb5431c74bb5a40815112d660, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Red Hull
+    second: {fileID: 2100000, guid: 6d73fdda511529a47bdcc7b118ebd753, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Red Nav Light
+    second: {fileID: 2100000, guid: 833532f592ebaad43ae4d190906019bb, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Sensor Hull
+    second: {fileID: 2100000, guid: b94d52012ca8cab4f9807f941baf72ba, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Sensor Strips
+    second: {fileID: 2100000, guid: 7d8ac3a812ff3434facee207e6a72dd4, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: ShuttleBayAccents
+    second: {fileID: 2100000, guid: 14f429d6c2fe5504a95d4b2be4fae070, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Spot Lite Source
+    second: {fileID: 2100000, guid: 0364a2175c7d1684cacca981b2dab14e, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Strobe Nav Lights
+    second: {fileID: 2100000, guid: 83db6a23a7c0e5540b1e66957f5ec878, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: TorpedoLights
+    second: {fileID: 2100000, guid: 523473bbf7a29d34998042157cd21f92, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Trees
+    second: {fileID: 2100000, guid: b34eb0cc5e5401041b6c23fa255de3d6, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: White Nav Lights
+    second: {fileID: 2100000, guid: 41ce8d880592088458d698d7edfd5e5d, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: WhiteDecal
+    second: {fileID: 2100000, guid: 131a671a16cfcb846b6f35fd0c7da871, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Window Glass
+    second: {fileID: 2100000, guid: 3519941b21331524dbcf53ae0021d37e, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Yellow_Orange Hull
+    second: {fileID: 2100000, guid: c8228a28b567c9842acf2f5bc92a2dce, type: 2}
+  materials:
+    materialImportMode: 2
+    materialName: 0
+    materialSearch: 1
+    materialLocation: 1
+  animations:
+    legacyGenerateAnimations: 4
+    bakeSimulation: 0
+    resampleCurves: 1
+    optimizeGameObjects: 0
+    removeConstantScaleCurves: 1
+    motionNodeName: 
+    rigImportErrors: 
+    rigImportWarnings: 
+    animationImportErrors: 
+    animationImportWarnings: 
+    animationRetargetingWarnings: 
+    animationDoRetargetingWarnings: 0
+    importAnimatedCustomProperties: 0
+    importConstraints: 0
+    animationCompression: 1
+    animationRotationError: 0.5
+    animationPositionError: 0.5
+    animationScaleError: 0.5
+    animationWrapMode: 0
+    extraExposedTransformPaths: []
+    extraUserProperties: []
+    clipAnimations: []
+    isReadable: 0
+  meshes:
+    lODScreenPercentages: []
+    globalScale: 1
+    meshCompression: 0
+    addColliders: 0
+    useSRGBMaterialColor: 1
+    sortHierarchyByName: 1
+    importVisibility: 1
+    importBlendShapes: 1
+    importCameras: 1
+    importLights: 1
+    nodeNameCollisionStrategy: 1
+    fileIdsGeneration: 2
+    swapUVChannels: 0
+    generateSecondaryUV: 0
+    useFileUnits: 1
+    keepQuads: 0
+    weldVertices: 1
+    bakeAxisConversion: 0
+    preserveHierarchy: 0
+    skinWeightsMode: 0
+    maxBonesPerVertex: 4
+    minBoneWeight: 0.001
+    optimizeBones: 0
+    meshOptimizationFlags: -1
+    indexFormat: 0
+    secondaryUVAngleDistortion: 8
+    secondaryUVAreaDistortion: 15.000001
+    secondaryUVHardAngle: 88
+    secondaryUVMarginMethod: 1
+    secondaryUVMinLightmapResolution: 40
+    secondaryUVMinObjectScale: 1
+    secondaryUVPackMargin: 4
+    useFileScale: 1
+  tangentSpace:
+    normalSmoothAngle: 60
+    normalImportMode: 0
+    tangentImportMode: 3
+    normalCalculationMode: 4
+    legacyComputeAllNormalsFromSmoothingGroupsWhenMeshHasBlendShapes: 0
+    blendShapeNormalImportMode: 1
+    normalSmoothingSource: 0
+  referencedClips: []
+  importAnimation: 1
+  humanDescription:
+    serializedVersion: 3
+    human: []
+    skeleton: []
+    armTwist: 0.5
+    foreArmTwist: 0.5
+    upperLegTwist: 0.5
+    legTwist: 0.5
+    armStretch: 0.05
+    legStretch: 0.05
+    feetSpacing: 0
+    globalScale: 1
+    rootMotionBoneName: 
+    hasTranslationDoF: 0
+    hasExtraRoot: 0
+    skeletonHasParents: 1
+  lastHumanDescriptionAvatarSource: {instanceID: 0}
+  autoGenerateAvatarMappingIfUnspecified: 1
+  animationType: 2
+  humanoidOversampling: 1
+  avatarSetup: 0
+  addHumanoidExtraRootOnlyWhenUsingAvatar: 1
+  additionalBone: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
