@@ -282,6 +282,12 @@ Two rules for using it:
   inherits from its ancestors. Never copy their wording or their ships into this
   repository.
 
+**Ship shapes have their own reference.** `docs/12-ship-design-language.md` records
+how the ships of that era are built: three kinds of volume recombined, empire read
+from proportion rather than detail, class read from part count, and silhouette
+designed for a top down camera. It names the models it was drawn from and states
+plainly that none of them are in this repository.
+
 Reference material for other systems belongs in the same place: a numbered document
 under `docs/`, with the source named and linked, and a line in this section pointing
 at it.
