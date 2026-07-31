@@ -1,0 +1,37 @@
+[gd_resource type="Sky" load_steps=4 format=3]
+
+; The starfield sky, shared by any scene that wants space behind it rather
+; than a flat fill. Tuning lives here as shader parameters, which is the
+; resource case CLAUDE.md section 5.4 allows: a material's uniforms genuinely
+; require a Godot resource, and this file is committed and diffable.
+;
+; process_mode 0 is AUTOMATIC and radiance_size 1 is 64px: the shader does not
+; read TIME, so the radiance cubemap is built once and never updated, and it
+; is only feeding ambient reflections.
+
+[ext_resource type="Shader" path="res://assets/shaders/sky_stars.gdshader" id="1"]
+[ext_resource type="Texture2D" path="res://assets/textures/sky_ramps.png" id="2"]
+
+[sub_resource type="ShaderMaterial" id="sky_mat"]
+shader = ExtResource("1")
+shader_parameter/ramps = ExtResource("2")
+shader_parameter/quantize = 420.0
+shader_parameter/nebula_scale = 6.5
+shader_parameter/nebula_floor = 0.36
+shader_parameter/nebula_contrast = 1.6
+shader_parameter/nebula_warp = 0.7
+shader_parameter/nebula_mix_scale = 1.7
+shader_parameter/nebula_warm_bias = 0.5
+shader_parameter/near_scale = 95.0
+shader_parameter/near_density = 0.08
+shader_parameter/near_radius = 0.26
+shader_parameter/far_scale = 210.0
+shader_parameter/far_density = 0.1
+shader_parameter/far_radius = 0.3
+shader_parameter/star_cut = 0.3
+shader_parameter/star_dim_cut = 0.06
+
+[resource]
+sky_material = SubResource("sky_mat")
+process_mode = 0
+radiance_size = 1

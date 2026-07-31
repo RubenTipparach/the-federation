@@ -62,6 +62,22 @@ LC_ALL=C.UTF-8 grep -rnP '\x{2014}|\x{2013}' \
 - If a lossy or compressed format is needed for shipping, it is generated from the `.png`
   at build time. The `.png` remains the committed source.
 
+### 3.1 The palette
+
+**We are using the Waldgeist palette for now.** It lives in `data/palette.json`, which is
+the single authority: named colors, plus the role map each generator paints from.
+
+- **Never invent a color.** Every pixel of committed art must be a palette entry. Do not
+  sample one from a reference image, do not nudge one to taste, do not add a "just this
+  once" accent.
+- **Name roles, not hex values.** Generators and gameplay code ask for `plate` or
+  `armor_ridge`; only `data/palette.json` says what those are. This is section 5.4 applied
+  to color, and it is what makes a palette swap a one file change.
+- **The build enforces it.** `tools/shiplib.py` `verify()` fails on any off palette pixel
+  before an asset is written, so a stray color cannot reach a commit.
+- Swapping palettes later means editing `data/palette.json` and regenerating. If the new
+  palette lacks a color a role needs, change the role map, not the art code.
+
 ---
 
 ## 4. Architecture and Code Quality
@@ -281,6 +297,12 @@ Two rules for using it:
   Amarillo Design Bureau. What we inherit is system design, the way any tactical game
   inherits from its ancestors. Never copy their wording or their ships into this
   repository.
+
+**Ship shapes have their own reference.** `docs/12-ship-design-language.md` records
+how the ships of that era are built: three kinds of volume recombined, empire read
+from proportion rather than detail, class read from part count, and silhouette
+designed for a top down camera. It names the models it was drawn from and states
+plainly that none of them are in this repository.
 
 Reference material for other systems belongs in the same place: a numbered document
 under `docs/`, with the source named and linked, and a line in this section pointing

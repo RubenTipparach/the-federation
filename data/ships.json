@@ -31,9 +31,10 @@
       }
     },
     "kestrel": {
-      "name": "Kestrel", "cls": "Destroyer", "tonnage": 60, "playable": true,
+      "name": "Kestrel", "cls": "Frigate", "tonnage": 60, "playable": true,
       "note": "Forward disruptors. Fast, fragile boarding specialist.",
-      "mesh": "res://assets/meshes/hull_cruiser.obj",
+      "mesh": "res://assets/meshes/hull_frigate.obj",
+      "material": "res://assets/materials/mat_hull_frigate.tres",
       "cargo_space": 16,
       "budgets": { "space": 72, "power": 24, "mass": 70, "crew": 68 },
       "base_load": { "space": 44, "mass": 44, "crew": 52, "power_draw": 12 },
@@ -88,6 +89,7 @@
       "name": "Kthaari Bloodletter", "cls": "Heavy Cruiser", "tonnage": 130, "playable": false, "ai": true,
       "note": "Disruptors and drones. Heavy hull, weak rear arc. Aggressive.",
       "mesh": "res://assets/meshes/hull_raider.obj",
+      "material": "res://assets/materials/mat_hull_raider.tres",
       "cargo_space": 30,
       "budgets": { "space": 150, "power": 44, "mass": 150, "crew": 150 },
       "base_load": { "space": 92, "mass": 110, "crew": 112, "power_draw": 22 },
@@ -115,6 +117,7 @@
       "name": "Kthaari Talon", "cls": "Frigate", "tonnage": 40, "playable": false, "ai": true,
       "note": "Escort screen. Quick, thin skinned, single disruptor.",
       "mesh": "res://assets/meshes/hull_raider.obj",
+      "material": "res://assets/materials/mat_hull_raider.tres",
       "cargo_space": 12,
       "budgets": { "space": 50, "power": 18, "mass": 48, "crew": 46 },
       "base_load": { "space": 30, "mass": 30, "crew": 34, "power_draw": 9 },

@@ -1,0 +1,166 @@
+{
+  "note": [
+    "The project palette: Waldgeist, adopted for now. Every pixel of committed",
+    "ship art must be one of these colors: tools/shiplib.py verify() fails the",
+    "build on anything else, so a color cannot drift in unnoticed.",
+    "",
+    "Colors live here rather than in the generators (CLAUDE.md 5.4), and the role",
+    "maps below live here too, because which palette entry plays 'hull plate' is",
+    "exactly the kind of thing a designer retunes. The generators name roles, not",
+    "hex values.",
+    "",
+    "The painting vocabulary still comes from the author's own sheets in",
+    "docs/examples/ship-art: R1-Starship-A for the frigate (blue on blue plate",
+    "bevels, silver rivets, dashed red machinery) and R6-Starship-A for the",
+    "raider (near black hull, purple panel work, dithered grilles, warm plumes).",
+    "This file changes what those shapes are painted in, not what they are."
+  ],
+
+  "colors": {
+    "gold": "#a6884a",
+    "gold_deep": "#906c30",
+    "bronze": "#825337",
+    "clay": "#83473d",
+    "clay_deep": "#66352e",
+    "maroon": "#562923",
+    "wine": "#612638",
+    "bark": "#46332c",
+
+    "cream": "#e3ddd1",
+    "bone": "#bdbbae",
+    "taupe": "#af9e94",
+    "taupe_deep": "#907c75",
+
+    "olive_light": "#a29f7e",
+    "olive": "#969372",
+    "olive_deep": "#78735d",
+    "drab": "#696353",
+    "drab_deep": "#4f493b",
+    "moss_light": "#727234",
+    "moss": "#675f30",
+    "moss_deep": "#57562a",
+
+    "green_light": "#73804b",
+    "green": "#5f7b53",
+    "teal": "#3b6d62",
+    "teal_deep": "#32534a",
+
+    "gray_blue_light": "#879ea3",
+    "gray_blue": "#798a92",
+    "teal_gray": "#5e7e8b",
+    "blue_light": "#4e7499",
+    "blue": "#245273",
+
+    "moss_gray": "#595c55",
+    "gunmetal": "#4b4e4f",
+    "char": "#323230",
+    "ink": "#212528",
+
+    "indigo": "#3e4055",
+    "plum": "#382d35",
+    "slate": "#323b42",
+    "navy": "#1f2d36",
+    "navy_deep": "#141f25",
+    "black": "#0b1016"
+  },
+
+  "ships": {
+    "frigate": {
+      "base": "indigo",
+      "outline": "navy_deep",
+      "deep": "black",
+
+      "plate": "blue_light",
+      "plate_light": "gray_blue",
+      "plate_shadow": "blue",
+      "accent": "gray_blue_light",
+
+      "machinery": "gunmetal",
+      "machinery_shadow": "char",
+      "machinery_ridge": "bone",
+      "step": "taupe",
+      "step_warm": "taupe_deep",
+      "rivet_pale": "taupe_deep",
+
+      "silver": "taupe",
+      "specular": "cream",
+
+      "red": "clay",
+      "red_dark": "clay_deep",
+      "red_shadow": "maroon",
+
+      "window": "gold",
+      "glow_window": "gold",
+      "glow_halo": "maroon",
+      "glow_mid": "clay",
+      "glow_light": "gold",
+      "glow_core": "cream"
+    },
+
+    "raider": {
+      "hull": "clay_deep",
+      "outline": "plum",
+      "panel": "clay",
+      "plate": "bronze",
+      "plate_light": "gold_deep",
+
+      "armor": "olive",
+      "armor_ridge": "olive_light",
+      "armor_pale": "bone",
+      "armor_shadow": "olive_deep",
+      "armor_deep": "drab_deep",
+
+      "green": "green",
+      "green_light": "green_light",
+      "green_dark": "moss_deep",
+
+      "plume_edge": "teal",
+      "plume_mid": "teal_gray",
+      "plume_core": "gray_blue_light",
+
+      "mark": "moss_light",
+      "window": "gold",
+
+      "grille_ramp": ["bark", "teal_deep", "teal", "teal_gray", "gray_blue", "gray_blue_light"]
+    }
+  },
+
+  "ramps_note": [
+    "Lookup ramps for the sky shader, baked to assets/textures/sky_ramps.png by",
+    "tools/gen_ramps.py. The shader never blends two colors together: it picks a",
+    "step from a ramp, so every pixel it draws is a palette entry and the sky",
+    "bands the way hand painted pixel art does.",
+    "",
+    "One row per ramp, all the same length. Repeat a color to widen its band:",
+    "the four blacks at the head of each nebula ramp are what keeps most of the",
+    "sky empty so the ships stay readable on top of it.",
+    "",
+    "star_dim is indexed by the same value as star, so a star's faint outer",
+    "step is a darker shade of its own color rather than a generic gray."
+  ],
+
+  "ramps": {
+    "nebula_cool": [
+      "black", "black", "black", "black", "navy_deep", "navy_deep",
+      "navy", "navy", "slate", "slate", "teal_deep", "teal_deep",
+      "teal", "teal", "teal_gray", "teal_gray"
+    ],
+    "nebula_warm": [
+      "black", "black", "black", "black", "navy_deep", "navy_deep",
+      "plum", "plum", "plum", "wine", "wine", "maroon",
+      "maroon", "clay_deep", "clay_deep", "clay"
+    ],
+    "star_dim": [
+      "gray_blue", "taupe_deep", "teal_gray", "bronze",
+      "gray_blue", "taupe_deep", "taupe_deep", "teal_gray",
+      "gray_blue", "drab", "bronze", "teal_gray",
+      "gray_blue", "taupe_deep", "teal_deep", "bronze"
+    ],
+    "star": [
+      "cream", "bone", "gray_blue_light", "gold",
+      "cream", "bone", "taupe", "gray_blue_light",
+      "cream", "bone", "gold", "gray_blue_light",
+      "cream", "bone", "teal", "gold"
+    ]
+  }
+}

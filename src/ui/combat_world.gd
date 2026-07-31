@@ -59,19 +59,40 @@ func orbit(delta_az_deg: float, delta_pitch_deg: float) -> void:
 	set_pitch(_pitch_deg + delta_pitch_deg)
 
 
+## The point the camera orbits: the player's ship, so turning and closing keep
+## the ship in the middle instead of sliding it off the edge of the arena.
+func pivot() -> Vector3:
+	if _battle == null or _battle.ships.is_empty():
+		return Vector3.ZERO
+	var p: Vector2 = _battle.player().pos
+	return Vector3(p.x, 0.0, p.y)
+
+
 func _apply_camera() -> void:
 	var az: float = deg_to_rad(_az_deg)
 	var el: float = deg_to_rad(_pitch_deg)
-	var pos: Vector3 = Vector3(
+	var focus: Vector3 = pivot()
+	var pos: Vector3 = focus + Vector3(
 		cos(el) * sin(az), sin(el), cos(el) * cos(az)) * _distance
 	$Camera.position = pos
 	# At exactly 90 degrees the camera looks along -Y and the default up axis
 	# is degenerate, so use +Z as up there: bearing 000 points up the screen,
 	# matching the plan inset convention.
 	if _pitch_deg > 89.0:
-		$Camera.look_at_from_position(pos, Vector3.ZERO, Vector3(0, 0, 1))
+		$Camera.look_at_from_position(pos, focus, Vector3(0, 0, 1))
 	else:
-		$Camera.look_at_from_position(pos, Vector3.ZERO, Vector3.UP)
+		$Camera.look_at_from_position(pos, focus, Vector3.UP)
+
+
+## Called every frame by the screen: the camera stays on the player and both
+## ships lean into their turns.
+func follow_pivot(delta: float = 0.0) -> void:
+	_apply_camera()
+	if delta > 0.0:
+		for rig_name in ["PlayerRig", "EnemyRig"]:
+			var rig: Node = get_node_or_null(rig_name)
+			if rig != null:
+				rig.update_bank(delta)
 
 
 func update_visuals(delta: float, events: Array[Dictionary]) -> void:

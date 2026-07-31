@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c278sve3m27u1"
-path="res://.godot/imported/auxp.png-03feb86b9d015ce8a37bb2a6ba4e302d.ctex"
+uid="uid://dykekhkijgwt8"
+path="res://.godot/imported/hull_frigate_diffuse.png-0c847d1e0e89f0d5673c0caa29f7a0c4.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/icons/auxp.png"
-dest_files=["res://.godot/imported/auxp.png-03feb86b9d015ce8a37bb2a6ba4e302d.ctex"]
+source_file="res://assets/textures/hull_frigate_diffuse.png"
+dest_files=["res://.godot/imported/hull_frigate_diffuse.png-0c847d1e0e89f0d5673c0caa29f7a0c4.ctex"]
 
 [params]
 
@@ -37,4 +37,4 @@ process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
-detect_3d/compress_to=1
+detect_3d/compress_to=0

@@ -1,0 +1,3 @@
+Godot must not import anything under docs/. The examples tree carries .fbx,
+.blend, .psd, and Unity assets that are reference material, not game content,
+and scanning them breaks the headless import pass.

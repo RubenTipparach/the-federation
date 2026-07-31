@@ -17,6 +17,13 @@ const CHIP_COLORS: Dictionary = {
 func paint(display_name: String, reason: String, charge: float) -> void:
 	$Name.text = display_name
 	$Name.add_theme_color_override("font_color", Palette.FG)
+	# The capacitor is the thing a captain watches: a bar that fills, and a
+	# chip that says why the shot cannot be taken when it is full.
+	var bar: ProgressBar = $Cap
+	bar.value = clampf(charge, 0.0, 1.0)
+	var full: bool = charge >= 1.0
+	bar.modulate = Palette.OK if reason == "bears" else (
+		Palette.CYAN if full else Palette.CYAN_DIM)
 	var chip: String = "RDY" if reason == "bears" else reason.to_upper()
 	if reason == "charging":
 		chip = "%d%%" % int(charge * 100.0)

@@ -275,7 +275,10 @@ func test_replay() -> void:
 	var live = _scripted_battle(true)
 	var log = live.log
 	ok(log != null, "a battle can be recorded")
-	ok(log.commands.size() >= 9, "every command is written down")
+	# Only the orders that took effect are recorded, so this is fewer than the
+	# script issued: a fire order with nothing bearing changed nothing.
+	ok(log.commands.size() >= 5, "the orders that took effect are written down")
+	ok(log.commands.size() <= 11, "and the ones that did nothing are not")
 	eq(int(log.commands[0][0]), 0, "commands carry the tick they were given on")
 	eq(String(log.commands[0][2]), "order", "and the kind")
 
@@ -325,6 +328,22 @@ func test_replay() -> void:
 	eq(int(loaded.dt * 1000.0), int(log.dt * 1000.0), "the step size is part of the setup")
 	eq(String(loaded.player_hull), "wayfarer", "the design is part of the setup")
 	eq(String(loaded.enemy_hull), "bloodletter", "and so is the opponent")
+
+
+	# Only valid commands are recorded: a refused order is not part of the
+	# battle, and replaying it would diverge from what happened.
+	var strict = BattleLib.create_duel(FitLib.create_default("wayfarer"), "talon", 8)
+	strict.log = LogLib.create(strict.player().fit, "talon", 8, 1.0 / 30.0)
+	ok(strict.apply_command(0, "order", [90.0, 1.0]), "a helm order is valid")
+	eq(strict.log.commands.size(), 1, "and is recorded")
+	strict.player().shields[0] = strict.player().shield_max
+	ok(not strict.apply_command(0, "transfer_shield", [1, 0]),
+		"a transfer into a full facing is refused")
+	eq(strict.log.commands.size(), 1, "and is not recorded")
+	ok(not strict.apply_command(0, "fire", [0]), "an uncharged weapon cannot fire")
+	eq(strict.log.commands.size(), 1, "and that is not recorded either")
+	ok(not strict.apply_command(9, "order", [0.0, 0.0]), "an unknown actor is refused")
+	eq(strict.log.commands.size(), 1, "and nothing is written for it")
 
 	# Replaying a log must never alter it.
 	var before: int = log.commands.size()

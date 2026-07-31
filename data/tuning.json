@@ -32,7 +32,10 @@
     "seeker_lifetime": 30.0,
     "shield_bias_weight": 2.5,
     "shield_transfer_amount": 5.0,
-    "replay_step": 0.03333333333333333
+    "replay_step": 0.03333333333333333,
+    "helm_click_turn_deg": 30.0,
+    "bank_deg_per_turn_rate": 1.1,
+    "bank_ease": 4.0
   },
   "power": {
     "sinks": [

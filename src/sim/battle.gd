@@ -209,7 +209,11 @@ func apply_command(actor: int, kind: String, args: Array, record: bool = true) -
 			if index >= 0 and index < ships.size():
 				set_target(ship, ships[index])
 				ok = true
-	if record and log != null:
+	# Only what actually happened is written down. A fire order that found no
+	# weapon bearing, or a transfer the shields refused, changed nothing, and
+	# recording it would make a replay differ from the battle it came from by
+	# replaying orders that were never carried out.
+	if ok and record and log != null:
 		log.record(tick, actor, kind, args)
 	return ok
 

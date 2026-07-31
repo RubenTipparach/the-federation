@@ -45,11 +45,38 @@ func bind_ship(state: ShipState, friendly: bool) -> void:
 	if not mesh_path.is_empty() and ResourceLoader.exists(mesh_path):
 		$Hull.mesh = load(mesh_path)
 
+	# A hull that ships its own painted material keeps it. Only untextured
+	# hulls fall back to the allegiance tint, so a painted ship looks painted
+	# rather than being flooded with team colour.
+	var material_path: String = String(state.fit.hull().get("material", ""))
+	if not material_path.is_empty() and ResourceLoader.exists(material_path):
+		$Hull.material_override = load(material_path)
+
 	# Bigger hulls read bigger: scale by tonnage, presentation only.
 	var tonnage: float = float(state.fit.hull()["tonnage"])
 	var s: float = clampf(0.8 + tonnage / 200.0 * 0.8, 0.8, 1.8)
 	$Hull.scale = Vector3(s, s, s)
 	refresh()
+
+
+## How far the ship is rolled into its turn, eased so it settles rather than
+## snapping. Presentation only: the sim has no roll, ships fly on a plane.
+var _bank_deg: float = 0.0
+
+
+func update_bank(delta: float) -> void:
+	if _state == null:
+		return
+	var combat: Dictionary = Catalog.tuning()["combat"]
+	# Rolling toward the side it is turning to: a positive turn delta is
+	# clockwise seen from above, which banks the starboard wing down.
+	var want: float = clampf(
+		Sectors.turn_delta(_state.heading, _state.ordered_heading), -90.0, 90.0)
+	var target: float = -want / 90.0 * _state.turn_rate() * float(
+		combat["bank_deg_per_turn_rate"])
+	_bank_deg = lerpf(_bank_deg, target, clampf(
+		delta * float(combat["bank_ease"]), 0.0, 1.0))
+	$Hull.rotation.z = deg_to_rad(_bank_deg)
 
 
 func refresh() -> void:
