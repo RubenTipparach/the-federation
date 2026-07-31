@@ -162,6 +162,7 @@ func _physics_process(delta: float) -> void:
 	elif not paused and not battle.over:
 		events = battle.step(delta)
 	_world().update_visuals(delta, events)
+	_world().follow_pivot(delta)
 	for e in events:
 		# Every event that narrates itself gets narrated: shots, launches,
 		# interceptions, and drones running out of fuel.
@@ -174,6 +175,20 @@ func _physics_process(delta: float) -> void:
 	_refresh_target_label()
 	_position_ship_labels()
 
+
+
+## Clicking to one side of the ship turns it that way. The ship is the anchor,
+## so the gesture is "come left" or "come right" rather than "fly to this
+## point", which is what a helm order actually is.
+func _helm_click(at: Vector2) -> void:
+	var me: ShipState = battle.player()
+	var here: Vector2 = _world().screen_pos(me.pos)
+	var step: float = float(Catalog.tuning()["combat"]["helm_click_turn_deg"])
+	var side: float = 1.0 if at.x >= here.x else -1.0
+	var heading: float = me.ordered_heading + side * step
+	if battle.apply_command(0, "order", [heading, me.ordered_throttle]):
+		_note("Helm: come %s to %03d" % [
+			"starboard" if side > 0.0 else "port", int(Sectors.wrap_deg(heading))])
 
 
 # ---- replay ------------------------------------------------------------------
@@ -298,12 +313,7 @@ func _on_view_input(event: InputEvent) -> void:
 			_drag_moved = 0.0
 		else:
 			if _dragging and _drag_moved < 6.0 and _can_command():
-				var p: Vector2 = world.plane_point(event.position)
-				if is_finite(p.x):
-					var me: ShipState = battle.player()
-					battle.apply_command(0, "order",
-						[Sectors.bearing_between(me.pos, p), me.ordered_throttle])
-					_note("Helm: come to %03d" % int(Sectors.bearing_between(me.pos, p)))
+				_helm_click(event.position)
 			_dragging = false
 	elif event is InputEventMouseMotion and _dragging:
 		_drag_moved += event.relative.length()
@@ -430,7 +440,42 @@ func _show_end(winner: int, reason: String = "") -> void:
 
 # ---- hud ---------------------------------------------------------------------
 
+## Which families have a weapon charged and bearing right now. The fire
+## buttons are lit from this, so a lit button always means a shot will happen
+## and a dark one always means it will not.
+func _ready_families() -> Dictionary:
+	var out: Dictionary = { "beam": false, "heavy": false }
+	if battle == null:
+		return out
+	var me: ShipState = battle.player()
+	var foe: ShipState = battle.target_for(me)
+	for i in range(me.weapons_rt.size()):
+		var w: Dictionary = me.weapons_rt[i]["weapon"]
+		if w.is_empty():
+			continue
+		if not bool(me.fire_check(i, foe.pos)["ok"]):
+			continue
+		var family: String = String(w["family"])
+		if family in ["beam", "disruptor", "special"]:
+			out["beam"] = true
+		else:
+			out["heavy"] = true
+	return out
+
+
+func _sync_fire_buttons() -> void:
+	var ready: Dictionary = _ready_families()
+	var can: bool = _can_command()
+	for pair in [["FireBeams", "beam"], ["FireHeavy", "heavy"]]:
+		var button: Button = $Mid/Actions.get_node(String(pair[0]))
+		var lit: bool = can and bool(ready[String(pair[1])])
+		button.disabled = not lit
+		button.add_theme_color_override("font_color",
+			Palette.OK if lit else Palette.DIM)
+
+
 func _refresh_hud() -> void:
+	_sync_fire_buttons()
 	if battle == null:
 		return
 	var me: ShipState = battle.player()
