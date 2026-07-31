@@ -268,12 +268,17 @@ class Px:
                 if shaded and (at(x, y + 1) in dark or at(x + 1, y) in dark):
                     self.put(x, y, shaded)
 
-    def save(self, path):
+    def save(self, path, scale=1):
+        """Write the canvas as PNG, optionally nearest-neighbour upscaled.
+        The sheets are authored at their reference resolution (128) and
+        exported 2x so every logical pixel stays a fat 2x2 block, the chunk
+        the R1 and R6 sheets are built from."""
+        out = self.size * scale
         rows = []
-        for y in range(self.size):
+        for y in range(out):
             row = bytearray([0])
-            for x in range(self.size):
-                row += bytes(self.px[y * self.size + x])
+            for x in range(out):
+                row += bytes(self.px[(y // scale) * self.size + (x // scale)])
             rows.append(bytes(row))
         raw = b"".join(rows)
 
@@ -282,7 +287,7 @@ class Px:
                     + struct.pack(">I", zlib.crc32(tag + data) & 0xFFFFFFFF))
 
         png = (b"\x89PNG\r\n\x1a\n"
-               + chunk(b"IHDR", struct.pack(">IIBBBBB", self.size, self.size,
+               + chunk(b"IHDR", struct.pack(">IIBBBBB", out, out,
                                             8, 6, 0, 0, 0))
                + chunk(b"IDAT", zlib.compress(raw, 9))
                + chunk(b"IEND", b""))
@@ -290,6 +295,14 @@ class Px:
             f.write(png)
         import os
         print("wrote %s" % os.path.basename(path))
+
+    def parity(self, diffuse):
+        """Make every lit pixel equal its diffuse pixel, the R6 law that a
+        glowing pixel glows with its own painted color. Run after the
+        diffuse's bevel pass so ridges carry into the glow."""
+        for i, px in enumerate(self.px):
+            if px[:3] != (0, 0, 0):
+                self.px[i] = diffuse.px[i]
 
 
 # ---- verification -----------------------------------------------------------

@@ -9,16 +9,25 @@
 # subset of the combined lights map, and every painted pixel sits inside its
 # atlas rect.
 #
-# The R1 look, measured from the sheets:
-#   - steel blue hull plates over the same blue as the atlas background, with
-#     chunky dark gray armor slabs; 1px purple-dark outlines
-#   - top lit bevels: a light ridge under a line's top and left, a darker
-#     step above its bottom and right; fills flat otherwise
-#   - rivet dots along plate edges, dashed borders on the red machinery
-#   - ladders of alternating bars for engine blocks and vents
-#   - windows are sparse single yellow pixels; some of them glow
-#   - engines are red bells: a dark red ring, salmon glow, warm white core
-#   - subtle single-pixel wear on the big armor slabs only
+# The R1 look, measured from the sheets and refined by critique passes:
+#   - authored at the sheets' native 128 grid and exported 2x nearest, so
+#     every logical pixel is the same fat chunk the R1 sheets are built from
+#   - steel blue hull plates over the same blue as the atlas background;
+#     blue panels carry NO black outline: their edges are a top lit ridge
+#     ((120,144,193) with (99,155,255) sparks) and a (87,103,144) shadow on
+#     the bottom and right; black outlines are reserved for the silhouette
+#     and for gray machinery
+#   - gray machinery is mid gray (105,106,106) with a (170,170,170) top
+#     ridge, (76,76,76) shadow, and (148,148,148)/(167,165,168) stepped
+#     highlights; black rivet dots run along machinery borders
+#   - silver (170,170,170) rivet dots, with occasional (132,126,135), run
+#     along blue plate seams
+#   - red machinery carries an alternating black dot border ON the red and
+#     (115,54,53) shading; engine bells get a silver ring, a white plus
+#     specular, and a layered red glow with a wide dark halo
+#   - ladders and vents are light gray rungs on (34,32,52) rails
+#   - windows are a few short vertical runs of single yellow pixels, not
+#     strips; bright blue capsule strips accent some plates
 #
 # Silhouette is a frigate in the Okinawa tradition (docs/12): saucer forward
 # and dominant, short angular spine, small engineering body, two nacelles held
@@ -45,67 +54,59 @@ REF_DIFF = os.path.join(ART, "R1_ship2_diff4-2-export.png")
 REF_ENG = os.path.join(ART, "R1_ship2_em_eng_glow.png")
 REF_HULL_EM = os.path.join(ART, "R1_ship2_em_hull_lighting.png")
 
-TEX = 256
+# Authored at the R1 sheets' native grid, exported 2x for the engine.
+TEX = 128
+SCALE = 2
 RNG = random.Random(11)
 
 # Roles into the R1 palette. Every value must exist in the reference sheets;
-# check_palette() fails the build on a color that drifted, which keeps this
-# list honest without copying the sheet wholesale.
+# check_palette() fails the build on a color that drifted.
 BASE = (68, 87, 134)           # hull base and atlas background, like the sheet
-OUTLINE = (34, 32, 52)         # purple-dark plate outlines
-DEEP = (20, 20, 45)            # darkest: grooves, bay interiors
-P_BLUE = (107, 127, 166)       # blue hull panel
-P_BLUE_LIGHT = (120, 144, 193) # its top lit ridge
-P_BLUE_SHADE = (95, 116, 165)  # its shaded step
-B2 = (87, 103, 144)            # quieter blue panel
-GRAY_D = (76, 76, 76)          # armor slab
-GRAY_D_WORN = (75, 75, 75)     # its single pixel wear step
-GRAY = (105, 106, 106)         # armor lit face
-GRAY_L = (170, 170, 170)       # armor ridge
+OUTLINE = (34, 32, 52)         # purple-dark: silhouette, machinery, rails
+DEEP = (20, 20, 45)            # tiny dark window slits only
+P_BLUE = (107, 127, 166)       # blue hull plate
+P_LIGHT = (120, 144, 193)      # its top lit ridge
+P_SHADOW = (87, 103, 144)      # its bottom shadow
+GRAY = (105, 106, 106)         # machinery fill
+GRAY_D = (76, 76, 76)          # machinery shadow
+GRAY_L = (170, 170, 170)       # machinery ridge, silver rivets
+STEP = (148, 148, 148)         # stepped highlight
+STEP2 = (167, 165, 168)        # stepped highlight, warm
+MAUVE = (132, 126, 135)        # occasional pale rivet
 SILVER = (192, 192, 192)       # engine bell ring
-WHITE = (228, 228, 228)        # engine bell
-MAUVE = (132, 126, 135)        # trim plate
-RED = (172, 50, 50)            # machinery
+WHITE = (228, 228, 228)        # bell plus specular
+RED = (172, 50, 50)            # machinery red
 RED_D = (143, 52, 52)
 RED_SH = (115, 54, 53)
 YELLOW = (251, 242, 54)        # window pixels
-ACCENT = (99, 155, 255)        # bright blue accent strips
+ACCENT = (99, 155, 255)        # bright blue capsules and sparks
 
 DIFFUSE_ROLES = (
-    BASE, OUTLINE, DEEP, P_BLUE, P_BLUE_LIGHT, P_BLUE_SHADE, B2, GRAY_D,
-    GRAY_D_WORN, GRAY, GRAY_L, SILVER, WHITE, MAUVE, RED, RED_D, RED_SH,
-    YELLOW, ACCENT)
+    BASE, OUTLINE, DEEP, P_BLUE, P_LIGHT, P_SHADOW, GRAY, GRAY_D, GRAY_L,
+    STEP, STEP2, MAUVE, SILVER, WHITE, RED, RED_D, RED_SH, YELLOW, ACCENT)
 
-GLOW_RING = (104, 42, 35)      # engine bell: dark ring
+GLOW_HALO = (104, 42, 35)      # engine bell: wide dark halo
 GLOW_RED = (194, 77, 63)       # salmon glow
-GLOW_RED_LIGHT = (238, 148, 138)
-GLOW_WARM = (246, 231, 207)    # warm white core
+GLOW_LIGHT = (238, 148, 138)
+GLOW_CORE = (246, 231, 207)    # warm white core
 GLOW_YELLOW = (255, 248, 1)    # lit windows
-LIGHTS_ROLES = (GLOW_RING, GLOW_RED, GLOW_RED_LIGHT, GLOW_WARM, GLOW_YELLOW)
+LIGHTS_ROLES = (GLOW_HALO, GLOW_RED, GLOW_LIGHT, GLOW_CORE, GLOW_YELLOW)
 
-# Top lit bevel maps for the one-pass shader in shiplib.
-BEVEL_DARK = {OUTLINE, DEEP}
-BEVEL_LIGHT = {P_BLUE: P_BLUE_LIGHT, B2: P_BLUE, GRAY_D: GRAY, GRAY: GRAY_L}
-BEVEL_SHADE = {P_BLUE: P_BLUE_SHADE}
-
-# ---- atlas layout -----------------------------------------------------------
-#
-# Pixel rects, shared by the painter and the UV mapper. Caps and walls get
-# separate rects so a wall is a designed strip rather than a squashed cap.
-R_SAUCER = (4, 4, 124, 124)
-R_SAUCER_RIM = (4, 130, 124, 148)
-R_NACELLE_SIDE = (4, 154, 124, 178)
-R_NACELLE_TOP = (132, 4, 164, 124)
-R_SPINE = (172, 4, 236, 64)
-R_SPINE_SIDE = (172, 70, 236, 86)
-R_BODY = (172, 94, 236, 154)
-R_BODY_SIDE = (172, 160, 236, 176)
-R_PYLON = (172, 182, 236, 214)
-R_BRIDGE = (132, 132, 164, 164)
-R_BRIDGE_SIDE = (132, 170, 164, 186)
-R_NACELLE_AFT = (132, 192, 164, 216)
-R_NACELLE_FORE = (132, 222, 164, 246)
-R_BODY_AFT = (172, 220, 236, 244)
+# ---- atlas layout (logical 128 grid) ----------------------------------------
+R_SAUCER = (2, 2, 62, 62)
+R_SAUCER_RIM = (2, 65, 62, 74)
+R_NACELLE_SIDE = (2, 77, 62, 89)
+R_NACELLE_TOP = (66, 2, 82, 62)
+R_SPINE = (86, 2, 118, 32)
+R_SPINE_SIDE = (86, 35, 118, 43)
+R_BODY = (86, 47, 118, 77)
+R_BODY_SIDE = (86, 80, 118, 88)
+R_PYLON = (86, 91, 118, 107)
+R_BRIDGE = (66, 66, 82, 82)
+R_BRIDGE_SIDE = (66, 85, 82, 93)
+R_NACELLE_AFT = (66, 96, 82, 108)
+R_NACELLE_FORE = (66, 111, 82, 123)
+R_BODY_AFT = (86, 110, 118, 122)
 ALL_RECTS = (
     R_SAUCER, R_SAUCER_RIM, R_NACELLE_SIDE, R_NACELLE_TOP, R_SPINE,
     R_SPINE_SIDE, R_BODY, R_BODY_SIDE, R_PYLON, R_BRIDGE, R_BRIDGE_SIDE,
@@ -122,182 +123,280 @@ def check_palette():
     return sheet, lit
 
 
-# ---- painting helpers -------------------------------------------------------
+# ---- R1 painting vocabulary -------------------------------------------------
 
 
-def window_run(d, l, x, y, count, step, lit_every=2, vertical=False):
-    """Sparse single yellow window pixels the way R1 places them; every
-    lit_every-th one glows in the lights map."""
-    for i in range(count):
-        wx = x + (0 if vertical else i * step)
-        wy = y + (i * step if vertical else 0)
-        d.put(wx, wy, YELLOW)
-        if i % lit_every == 0:
-            l.put(wx, wy, GLOW_YELLOW)
+def erode(mask):
+    depth = rings(mask, 1)
+    return [[on and depth[y][x] == 0 for x, on in enumerate(row)]
+            for y, row in enumerate(mask)]
 
 
-def red_bell(d, layer, x0, y0, w, h, r):
-    """An R1 engine bell: red housing with a dashed border, a silver ringed
-    white bell, and the layered red glow in the emissive layer."""
-    d.shape(x0, y0, rect_mask(w, h), RED, line=OUTLINE, width=1)
-    d.dash(x0 + 1, y0 + 1, w - 2, RED_D)
-    d.dash(x0 + 1, y0 + h - 2, w - 2, RED_D)
-    d.dash(x0 + 1, y0 + 1, h - 2, RED_D, vertical=True)
-    d.dash(x0 + w - 2, y0 + 1, h - 2, RED_D, vertical=True)
-    cx, cy = x0 + w // 2, y0 + h // 2
-    d.shape(cx - r, cy - r, octagon_mask(r), WHITE, line=SILVER, width=1)
-    d.stamp(cx - 2, cy - 2, octagon_mask(2), GRAY)
-    layer.frame(cx - r, cy - r, octagon_mask(r), GLOW_RING, width=1)
-    layer.stamp(cx - r + 1, cy - r + 1, octagon_mask(r - 1), GLOW_RED)
-    layer.stamp(cx - r + 3, cy - r + 3, octagon_mask(r - 3), GLOW_RED_LIGHT)
-    layer.stamp(cx - 1, cy - 1, octagon_mask(1), GLOW_WARM)
+def two_tone(p, x0, y0, mask, fill, light, shadow, spark=None,
+             spark_prob=0.25):
+    """The R1 blue-on-blue panel: no outline, a lit ridge on edges open to
+    the top or left, a shadow on edges open to the bottom or right."""
+    h, w = len(mask), len(mask[0])
+
+    def inside(x, y):
+        return 0 <= x < w and 0 <= y < h and mask[y][x]
+
+    for y, row in enumerate(mask):
+        for x, on in enumerate(row):
+            if not on:
+                continue
+            if not inside(x, y - 1) or not inside(x - 1, y):
+                c = light
+                if spark is not None and RNG.random() < spark_prob:
+                    c = spark
+            elif not inside(x, y + 1) or not inside(x + 1, y):
+                c = shadow
+            else:
+                c = fill
+            p.put(x0 + x, y0 + y, c)
 
 
-def rivet_ring(d, cx, cy, r, count, offset=0.0):
-    """Rivet dots following a circular plate edge."""
+def blue_island(p, x0, y0, mask):
+    """A blue hull island: black silhouette outline, then the R1 ridge and
+    shadow just inside it."""
+    p.shape(x0, y0, mask, P_BLUE, line=OUTLINE)
+    two_tone(p, x0, y0, erode(mask), P_BLUE, P_LIGHT, P_SHADOW,
+             spark=ACCENT, spark_prob=0.08)
+
+
+def blue_panel(p, x0, y0, mask):
+    """A blue-on-blue panel with no outline at all."""
+    two_tone(p, x0, y0, mask, P_BLUE, P_LIGHT, P_SHADOW, spark=ACCENT)
+
+
+def gray_block(p, x0, y0, mask, dots=True):
+    """R1 gray machinery: mid gray fill, black outline with rivet dots, a
+    light top ridge and a dark bottom shadow inside."""
+    p.shape(x0, y0, mask, GRAY, line=OUTLINE)
+    two_tone(p, x0, y0, erode(mask), GRAY, GRAY_L, GRAY_D)
+    if dots:
+        h, w = len(mask), len(mask[0])
+        for x in range(2, w - 2, 3):
+            if mask[0][x]:
+                p.put(x0 + x, y0 + 1, OUTLINE)
+            if mask[h - 1][x]:
+                p.put(x0 + x, y0 + h - 2, OUTLINE)
+
+
+def ridge_ring(p, cx, cy, r, light=P_LIGHT, shadow=P_SHADOW):
+    """A raised ring seam on a blue plate: lit on its upper left arc, shaded
+    on its lower right."""
+    mask = octagon_mask(r)
+    depth = rings(mask, 1)
+    for y, row in enumerate(mask):
+        for x, on in enumerate(row):
+            if on and depth[y][x]:
+                p.put(cx - r + x, cy - r + y,
+                      light if (x - r) + (y - r) < 0 else shadow)
+
+
+def rivet_ring(p, cx, cy, r, count, offset=0.0):
+    """Silver rivet dots following a circular seam, one in four pale."""
     for i in range(count):
         a = offset + 2.0 * math.pi * i / count
-        d.put(int(cx + math.cos(a) * r), int(cy + math.sin(a) * r), OUTLINE)
+        color = MAUVE if i % 4 == 3 else GRAY_L
+        p.put(int(cx + math.cos(a) * r), int(cy + math.sin(a) * r), color)
+
+
+def rivet_row(p, x, y, count, step=3, vertical=False):
+    for i in range(count):
+        color = MAUVE if i % 4 == 3 else GRAY_L
+        p.put(x + (0 if vertical else i * step),
+              y + (i * step if vertical else 0), color)
+
+
+def capsule(p, x, y, length, vertical=False):
+    """A bright blue capsule strip with lighter end caps, the R1 accent."""
+    if vertical:
+        p.vline(x, y, length, ACCENT)
+        p.put(x, y, P_LIGHT)
+        p.put(x, y + length - 1, P_LIGHT)
+    else:
+        p.hline(x, y, length, ACCENT)
+        p.put(x, y, P_LIGHT)
+        p.put(x + length - 1, y, P_LIGHT)
+
+
+def ladder(p, rect):
+    """Light gray rungs on dark rails, the R1 vent block."""
+    x0, y0, x1, y1 = rect
+    p.fill(rect, OUTLINE)
+    step = 0
+    for y in range(y0 + 1, y1 - 1, 2):
+        p.hline(x0 + 1, y, x1 - x0 - 2, GRAY_L if step % 2 == 0 else STEP)
+        step += 1
+
+
+def red_block(p, x0, y0, w, h):
+    """R1 red machinery: red fill, alternating black dot border ON the red,
+    dark red shading on the lower right."""
+    p.fill((x0, y0, x0 + w, y0 + h), RED)
+    p.fill((x0 + w // 2, y0 + h // 2, x0 + w, y0 + h), RED_D)
+    p.fill((x0 + 1, y0 + h - 2, x0 + w, y0 + h), RED_SH)
+    p.fill((x0 + w - 2, y0 + 1, x0 + w, y0 + h), RED_SH)
+    for x in range(x0, x0 + w, 2):
+        p.put(x, y0, OUTLINE)
+        p.put(x + 1 if (x + 1) < x0 + w else x, y0 + h - 1, OUTLINE)
+    for y in range(y0, y0 + h, 2):
+        p.put(x0, y, OUTLINE)
+        p.put(x0 + w - 1, y + 1 if (y + 1) < y0 + h else y, OUTLINE)
+
+
+def window_run(d, l, x, y, count=2):
+    """A short vertical run of yellow window pixels, all lit."""
+    for i in range(count):
+        d.put(x, y + i, YELLOW)
+        l.put(x, y + i, GLOW_YELLOW)
+
+
+def engine_bell(d, layer, x0, y0, w, h):
+    """The R1 engine bell: dashed red housing, silver ringed bell with a
+    white plus specular, and the layered glow with its wide dark halo."""
+    red_block(d, x0, y0, w, h)
+    cx, cy = x0 + w // 2, y0 + h // 2
+    d.shape(cx - 4, cy - 4, octagon_mask(4), SILVER, line=GRAY_L, width=1)
+    d.put(cx, cy - 1, WHITE)
+    d.put(cx, cy + 1, WHITE)
+    d.put(cx - 1, cy, WHITE)
+    d.put(cx + 1, cy, WHITE)
+    d.put(cx, cy, GRAY)
+    layer.stamp(x0 + 1, y0 + 1, rect_mask(w - 2, h - 2, (2, 2, 2, 2)),
+                GLOW_HALO)
+    layer.stamp(cx - 4, cy - 4, octagon_mask(4), GLOW_RED)
+    layer.stamp(cx - 2, cy - 2, octagon_mask(2), GLOW_LIGHT)
+    layer.fill((cx - 1, cy - 1, cx + 1, cy + 1), GLOW_CORE)
 
 
 # ---- the atlases, painted together ------------------------------------------
 
 
 def paint():
-    """Paints the diffuse, combined lights, and engine layer in one pass, so
-    a lit window's glow is placed by the same code that painted the window."""
     d = Px(TEX, background=BASE)
     l = Px(TEX)
     e = Px(TEX)
 
-    # Saucer cap: blue plate disc, two ring frames, a gray armor hub, riveted
-    # and asymmetrically panelled.
-    cx, cy = 64, 64
-    d.shape(cx - 58, cy - 58, circle_mask(58), P_BLUE, line=OUTLINE)
-    d.frame(cx - 46, cy - 46, octagon_mask(46), OUTLINE)
-    d.frame(cx - 28, cy - 28, octagon_mask(28), OUTLINE)
-    rivet_ring(d, cx, cy, 52, 12, offset=0.1)
-    rivet_ring(d, cx, cy, 37, 8, offset=0.4)
-    d.shape(cx - 16, cy - 16, octagon_mask(16), GRAY_D, line=OUTLINE)
-    d.rivet_row(cx - 10, cy - 13, 4, 7, OUTLINE)
-    d.rivet_row(cx - 10, cy + 12, 4, 7, OUTLINE)
-    d.shape(cx - 7, cy - 7, octagon_mask(7), GRAY, line=OUTLINE)
-    d.stamp(cx - 1, cy - 1, octagon_mask(1), DEEP)
-    # Inner ring details.
-    d.shape(40, 30, rect_mask(14, 10, (2, 0, 0, 2)), B2, line=OUTLINE)
-    d.shape(84, 76, rect_mask(12, 9), GRAY_D, line=OUTLINE)
-    d.rivet_row(86, 78, 3, 4, OUTLINE)
-    window_run(d, l, 50, 96, 3, 3)
-    window_run(d, l, 88, 46, 3, 3, vertical=True)
-    d.vline(76, 30, 7, ACCENT)
-    # Outer ring details.
-    d.frame(56, 10, rect_mask(16, 9, (0, 3, 3, 0)), OUTLINE)
-    d.frame(16, 74, rect_mask(10, 9), OUTLINE)
-    d.shape(96, 88, rect_mask(9, 7), MAUVE, line=OUTLINE)
-    window_run(d, l, 30, 40, 2, 3)
-    window_run(d, l, 84, 22, 3, 3)
-    d.fill((44, 108, 50, 111), RED)
-    d.frame(43, 107, rect_mask(8, 5), OUTLINE)
+    # Saucer cap: blue plate disc with ridge ring seams, silver rivet runs,
+    # a gray machinery hub, and a few chunky detail panels.
+    cx, cy = 32, 32
+    blue_island(d, cx - 29, cy - 29, circle_mask(29))
+    ridge_ring(d, cx, cy, 22)
+    ridge_ring(d, cx, cy, 13)
+    rivet_ring(d, cx, cy, 26, 12, offset=0.15)
+    rivet_ring(d, cx, cy, 17, 8, offset=0.5)
+    gray_block(d, cx - 7, cy - 7, octagon_mask(7))
+    d.put(cx, cy, GRAY_D)
+    d.hline(cx - 2, cy + 3, 5, STEP)
+    for i in range(4):
+        a = math.pi / 4 + i * math.pi / 2
+        d.put(int(cx + math.cos(a) * 10), int(cy + math.sin(a) * 10), GRAY_D)
+    blue_panel(d, 12, 18, rect_mask(8, 6, (1, 0, 0, 1)))
+    blue_panel(d, 40, 42, rect_mask(7, 5, (0, 1, 1, 0)))
+    capsule(d, 44, 20, 4, vertical=True)
+    red_block(d, 42, 12, 5, 4)
+    gray_block(d, 17, 41, rect_mask(4, 4), dots=False)
+    window_run(d, l, 24, 26, 2)
+    window_run(d, l, 38, 33, 3)
 
-    # Saucer rim wall: blue band, rivets under the lip, a sparse window row.
-    d.shape(4, 130, rect_mask(120, 18), P_BLUE, line=OUTLINE)
-    d.rivet_row(10, 133, 16, 7, OUTLINE)
-    window_run(d, l, 14, 138, 18, 6)
-    d.vline(46, 132, 5, ACCENT)
-    d.vline(94, 132, 5, ACCENT)
+    # Saucer rim wall: blue band with silver rivets and two window pairs.
+    blue_island(d, 2, 65, rect_mask(60, 9))
+    rivet_row(d, 6, 67, 13, 4)
+    window_run(d, l, 16, 69, 2)
+    window_run(d, l, 44, 69, 2)
+    capsule(d, 28, 70, 5)
 
-    # Nacelle cap: armor slab, aft at the rect's top. A lit left face, a
-    # ladder of intake ribs, riveted seams, one accent strip.
-    d.shape(132, 4, rect_mask(32, 120, (2, 2, 5, 5)), GRAY_D, line=OUTLINE)
-    d.fill((134, 8, 139, 118), GRAY)
-    d.ribs((141, 10, 159, 34), GRAY, GRAY_D, period=3)
-    d.hline(134, 40, 26, DEEP)
-    d.rivet_row(136, 43, 5, 6, OUTLINE)
-    d.hline(134, 92, 26, DEEP)
-    d.rivet_row(136, 95, 5, 6, OUTLINE)
-    d.vline(154, 46, 40, ACCENT)
-    d.speckle((134, 42, 162, 118), {GRAY_D: GRAY_D_WORN}, 0.05, RNG)
+    # Nacelle cap: gray armor slab, aft at the rect's top. Ladder vent aft,
+    # a bright capsule, riveted seams, stepped highlights.
+    gray_block(d, 66, 2, rect_mask(16, 60, (1, 1, 3, 3)))
+    ladder(d, (68, 6, 80, 16))
+    capsule(d, 73, 30, 6, vertical=True)
+    d.hline(68, 20, 12, OUTLINE)
+    d.dots(69, 21, 4, 3, OUTLINE)
+    d.hline(68, 44, 12, OUTLINE)
+    d.dots(69, 45, 4, 3, OUTLINE)
+    d.vline(69, 24, 18, STEP)
+    d.put(71, 52, DEEP)
+    d.put(76, 52, DEEP)
 
-    # Nacelle flank: armor with the long deep groove and a bright leader.
-    d.shape(4, 154, rect_mask(120, 24, (3, 3, 3, 3)), GRAY_D, line=OUTLINE)
-    d.fill((10, 162, 112, 169), DEEP)
-    d.hline(14, 165, 30, ACCENT)
-    d.rivet_row(12, 157, 14, 8, OUTLINE)
-    window_run(d, l, 100, 173, 2, 4)
-    d.speckle((6, 156, 122, 176), {GRAY_D: GRAY_D_WORN}, 0.04, RNG)
+    # Nacelle flank: gray armor with a bright capsule leader, riveted seams,
+    # a red service block, and one window pair.
+    gray_block(d, 2, 77, rect_mask(60, 12, (1, 1, 1, 1)))
+    capsule(d, 8, 81, 8)
+    d.vline(22, 79, 8, OUTLINE)
+    d.dots(23, 80, 3, 3, OUTLINE, vertical=True)
+    d.vline(40, 79, 8, OUTLINE)
+    d.dots(41, 80, 3, 3, OUTLINE, vertical=True)
+    d.hline(26, 80, 12, STEP2)
+    red_block(d, 48, 82, 4, 3)
+    window_run(d, l, 55, 81, 2)
 
-    # Spine cap: quiet blue deck, armored walkway, vent ladder.
-    d.shape(172, 4, rect_mask(64, 60, (3, 3, 2, 2)), B2, line=OUTLINE)
-    d.shape(197, 10, rect_mask(14, 44, (2, 2, 2, 2)), GRAY_D, line=OUTLINE)
-    d.rivet_row(200, 13, 3, 4, OUTLINE)
-    d.rivet_row(200, 50, 3, 4, OUTLINE)
-    d.ribs((176, 44, 190, 56), B2, DEEP, period=2)
-    window_run(d, l, 190, 16, 3, 9, vertical=True)
-    d.hline(214, 24, 16, DEEP)
-    d.rivet_row(216, 27, 3, 5, OUTLINE)
+    # Spine cap: blue deck with a gray walkway, ladder vent, and a capsule.
+    blue_island(d, 86, 2, rect_mask(32, 30, (2, 2, 1, 1)))
+    gray_block(d, 96, 6, rect_mask(8, 20))
+    window_run(d, l, 92, 10, 2)
+    ladder(d, (108, 22, 116, 28))
+    capsule(d, 89, 26, 5)
+    rivet_row(d, 108, 8, 3, 3)
 
-    # Spine walls: blue band with a short window run.
-    d.shape(172, 70, rect_mask(64, 16), B2, line=OUTLINE)
-    window_run(d, l, 196, 77, 4, 6)
-    d.hline(176, 73, 12, DEEP)
+    # Spine walls: blue band with one window pair.
+    blue_island(d, 86, 35, rect_mask(32, 8))
+    window_run(d, l, 100, 37, 2)
+    rivet_row(d, 90, 37, 3, 4)
 
-    # Engineering body cap: armor base, blue quarter panel, machinery.
-    d.shape(172, 94, rect_mask(64, 60, (2, 2, 4, 4)), GRAY_D, line=OUTLINE)
-    d.fill((175, 97, 180, 150), GRAY)
-    d.shape(184, 100, rect_mask(22, 18, (0, 4, 0, 0)), P_BLUE, line=OUTLINE)
-    window_run(d, l, 188, 104, 3, 4)
-    d.fill((222, 100, 232, 108), RED)
-    d.frame(221, 99, rect_mask(12, 10), OUTLINE)
-    d.dash(222, 100, 10, RED_D)
-    d.ribs((214, 134, 232, 148), GRAY, GRAY_D, period=3)
-    d.rivet_row(184, 142, 4, 6, OUTLINE)
-    d.hline(182, 126, 34, DEEP)
-    d.rivet_row(186, 129, 5, 6, OUTLINE)
-    d.shape(210, 112, rect_mask(10, 8), MAUVE, line=OUTLINE)
-    d.speckle((174, 96, 234, 152), {GRAY_D: GRAY_D_WORN}, 0.04, RNG)
+    # Engineering body cap: gray machinery field with a blue quarter panel,
+    # red machinery, a ladder, hatch greebles, and stepped highlights.
+    gray_block(d, 86, 47, rect_mask(32, 30, (1, 1, 2, 2)))
+    blue_panel(d, 90, 51, rect_mask(10, 8, (0, 2, 0, 0)))
+    window_run(d, l, 93, 53, 2)
+    red_block(d, 108, 51, 6, 5)
+    ladder(d, (104, 68, 114, 74))
+    gray_block(d, 92, 68, rect_mask(4, 4), dots=False)
+    d.hline(88, 63, 24, OUTLINE)
+    rivet_row(d, 90, 65, 6, 4)
+    d.vline(88, 50, 10, STEP)
+    d.put(102, 58, DEEP)
 
-    # Body walls: blue band with the engineering window run.
-    d.shape(172, 160, rect_mask(64, 16), P_BLUE, line=OUTLINE)
-    window_run(d, l, 182, 167, 8, 6)
-    d.rivet_row(178, 162, 8, 7, OUTLINE)
+    # Body walls: blue band with the engineering windows.
+    blue_island(d, 86, 80, rect_mask(32, 8))
+    window_run(d, l, 96, 82, 3)
+    window_run(d, l, 108, 82, 2)
+    rivet_row(d, 89, 82, 4, 4)
 
-    # Pylons: armor, swept, one deep stripe and a riveted edge.
-    d.shape(172, 182, rect_mask(64, 32, (0, 10, 0, 10)), GRAY_D, line=OUTLINE)
-    d.fill((176, 186, 218, 190), GRAY)
-    d.fill((178, 196, 224, 200), DEEP)
-    d.rivet_row(180, 204, 6, 7, OUTLINE)
-    d.speckle((174, 184, 232, 212), {GRAY_D: GRAY_D_WORN}, 0.04, RNG)
+    # Pylons: gray armor, swept, one seam and stepped highlight.
+    gray_block(d, 86, 91, rect_mask(32, 16, (0, 5, 0, 5)))
+    d.hline(89, 98, 20, OUTLINE)
+    d.dots(90, 99, 6, 3, OUTLINE)
+    d.vline(89, 93, 4, STEP)
 
-    # Bridge: blue octagon cap over an armor core.
-    d.shape(132, 132, octagon_mask(14), P_BLUE, line=OUTLINE)
-    d.shape(143, 143, octagon_mask(5), GRAY_D, line=OUTLINE)
-    d.put(148, 140, YELLOW)
-    d.shape(132, 170, rect_mask(32, 16), P_BLUE, line=OUTLINE)
-    window_run(d, l, 138, 177, 4, 6, lit_every=1)
+    # Bridge: blue octagon cap over a gray core, windows on the wall band.
+    blue_island(d, 67, 67, octagon_mask(7))
+    gray_block(d, 71, 71, octagon_mask(3), dots=False)
+    d.put(74, 69, YELLOW)
+    l.put(74, 69, GLOW_YELLOW)
+    blue_island(d, 66, 85, rect_mask(16, 8))
+    window_run(d, l, 71, 87, 2)
+    window_run(d, l, 77, 87, 2)
 
-    # Nacelle stern: the R1 red engine bell, glowing in the engine layer.
-    red_bell(d, e, 132, 192, 32, 24, 7)
+    # Nacelle stern: the R1 engine bell, glowing in the engine layer.
+    engine_bell(d, e, 66, 96, 16, 12)
 
     # Nacelle bow: gray intake dome, unlit.
-    d.shape(132, 222, rect_mask(32, 24, (3, 3, 3, 3)), GRAY_D, line=OUTLINE)
-    d.shape(142, 228, octagon_mask(6), GRAY, line=SILVER, width=1)
-    d.stamp(146, 232, octagon_mask(2), DEEP)
-    d.rivet_row(136, 226, 4, 7, OUTLINE)
+    gray_block(d, 66, 111, rect_mask(16, 12, (2, 2, 2, 2)))
+    d.shape(71, 114, octagon_mask(3), STEP, line=GRAY_L, width=1)
+    d.put(74, 117, GRAY_D)
 
-    # Body stern: deep shuttle bay between two red impulse housings whose
+    # Body stern: gray armor, a ladder bay, two red impulse housings whose
     # cores glow in the hull lights layer.
-    d.shape(172, 220, rect_mask(64, 24), GRAY_D, line=OUTLINE)
-    d.shape(192, 224, rect_mask(24, 16, (2, 2, 0, 0)), DEEP, line=OUTLINE)
-    d.ribs((196, 227, 212, 237), GRAY_D, DEEP, period=2, vertical=True)
-    for bx in (177, 219):
-        d.fill((bx, 226, bx + 10, 238), RED)
-        d.frame(bx - 1, 225, rect_mask(12, 14), OUTLINE)
-        d.dash(bx, 226, 10, RED_D)
-        d.dash(bx, 237, 10, RED_D)
-        d.fill((bx + 3, 230, bx + 7, 234), RED_SH)
-        l.fill((bx + 4, 231, bx + 6, 233), GLOW_RED)
-
-    d.bevel(BEVEL_DARK, BEVEL_LIGHT, BEVEL_SHADE)
+    gray_block(d, 86, 110, rect_mask(32, 12))
+    ladder(d, (98, 112, 106, 120))
+    for bx in (89, 110):
+        red_block(d, bx, 112, 5, 8)
+        d.fill((bx + 2, y_core(112, 8), bx + 3, y_core(112, 8) + 2), RED_SH)
+        l.fill((bx + 2, y_core(112, 8), bx + 3, y_core(112, 8) + 2), GLOW_RED)
 
     # The combined lights map is the hull layer plus the engine layer, the
     # way the R1 sheets keep a separate em_eng_glow alongside em_hull.
@@ -305,6 +404,10 @@ def paint():
         if px[:3] != (0, 0, 0):
             l.px[i] = px
     return d, l, e
+
+
+def y_core(y0, h):
+    return y0 + h // 2 - 1
 
 
 # ---- mesh -------------------------------------------------------------------
@@ -346,10 +449,10 @@ def main():
     sheet, lit_sheet = check_palette()
     d, l, e = paint()
     verify(d, l, e, sheet, lit_sheet, ALL_RECTS, TEX, background=BASE,
-           lit_budget=(0.0008, 0.02))
-    d.save(os.path.join(TEX_OUT, "hull_frigate_diffuse.png"))
-    l.save(os.path.join(TEX_OUT, "hull_frigate_lights.png"))
-    e.save(os.path.join(TEX_OUT, "hull_frigate_engines.png"))
+           lit_budget=(0.0008, 0.03))
+    d.save(os.path.join(TEX_OUT, "hull_frigate_diffuse.png"), scale=SCALE)
+    l.save(os.path.join(TEX_OUT, "hull_frigate_lights.png"), scale=SCALE)
+    e.save(os.path.join(TEX_OUT, "hull_frigate_engines.png"), scale=SCALE)
 
 
 if __name__ == "__main__":
