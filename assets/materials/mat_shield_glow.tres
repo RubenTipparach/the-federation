@@ -1,0 +1,28 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3]
+
+; The shield impact flare. src/ui/ship_rig.gd duplicates this per instance so
+; each of the six facings can carry its own decaying glow value; everything
+; else about the look is shared and lives here.
+;
+; render_priority 1 puts the flare above the shield bands and arc wedges, which
+; sit at the default 0, so a hit reads over the readout rather than under it.
+; The grid is at -1 for the same reason in the other direction.
+;
+; The colour is the tactical overlay cyan, not a palette entry. That is
+; deliberate and matches the shields, wedges, and rings it sits among: those
+; are the readability layer rather than art, and CLAUDE.md section 3.1 governs
+; committed art. A muted palette colour here would read as damage to the ship
+; rather than as a shield holding.
+
+[ext_resource type="Shader" path="res://assets/shaders/shield_glow.gdshader" id="1"]
+
+[resource]
+render_priority = 1
+shader = ExtResource("1")
+shader_parameter/flare_color = Color(0.55, 0.93, 1, 1)
+shader_parameter/arc_half_deg = 44.0
+shader_parameter/arc_falloff = 1.6
+shader_parameter/inner_radius = 0.66
+shader_parameter/outer_radius = 1.12
+shader_parameter/edge_soft = 0.13
+shader_parameter/glow = 0.0

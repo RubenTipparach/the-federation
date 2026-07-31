@@ -15,10 +15,16 @@ const MAT_RING_FRIEND := preload("res://assets/materials/mat_ring_friend.tres")
 const MAT_RING_FOE := preload("res://assets/materials/mat_ring_foe.tres")
 const MAT_HULL_FRIEND := preload("res://assets/materials/mat_hull_friend.tres")
 const MAT_HULL_FOE := preload("res://assets/materials/mat_hull_foe.tres")
+const MAT_SHIELD_GLOW := preload("res://assets/materials/mat_shield_glow.tres")
 
 const SHIELD_RING_RADIUS := 3.4
 
 var _state: ShipState
+
+## Impact energy per facing, 1.0 the moment a shield is struck and decaying to
+## 0. Presentation only: the sim never reads this, so a battle plays out the
+## same whether or not anything is drawn.
+var _flare: PackedFloat32Array = PackedFloat32Array([0, 0, 0, 0, 0, 0])
 
 
 func bind_ship(state: ShipState, friendly: bool) -> void:
@@ -38,6 +44,15 @@ func bind_ship(state: ShipState, friendly: bool) -> void:
 		var seg: MeshInstance3D = $Shields.get_node("S%d" % f)
 		seg.rotation.y = deg_to_rad(float(f) * 60.0)
 		seg.scale = Vector3(SHIELD_RING_RADIUS, 1, SHIELD_RING_RADIUS)
+		# The flare sits over the same facing, wider, and gets its OWN material.
+		# A shared resource would mean one ship's hit lighting every ship's
+		# shields, because a shader parameter belongs to the material and not
+		# to the instance that draws it.
+		var glow: MeshInstance3D = $ShieldGlow.get_node("G%d" % f)
+		glow.rotation.y = seg.rotation.y
+		glow.scale = seg.scale
+		glow.material_override = MAT_SHIELD_GLOW.duplicate()
+		glow.visible = false
 	# The hull mesh is named by the hull's own data, so a Federation cruiser and
 	# a Kthaari raider are two committed .obj files and one placement path
 	# (CLAUDE.md 2 and 5.1). No geometry is built here.
@@ -77,6 +92,32 @@ func update_bank(delta: float) -> void:
 	_bank_deg = lerpf(_bank_deg, target, clampf(
 		delta * float(combat["bank_ease"]), 0.0, 1.0))
 	$Hull.rotation.z = deg_to_rad(_bank_deg)
+
+
+## A shot landed on this facing. The facing comes from the damage model's own
+## report (ShipState.apply_damage), never recomputed here, so the shield that
+## lights up is always the shield that absorbed.
+func flash_shield(facing: int) -> void:
+	if facing < 0 or facing >= _flare.size():
+		return
+	_flare[facing] = 1.0
+
+
+## Fade the flares. Separate from refresh() because it is the one part of the
+## rig that depends on elapsed time rather than on sim state, which keeps
+## refresh() safe to call when scrubbing a replay to an arbitrary tick.
+func update_flares(delta: float) -> void:
+	var fade: float = float(Catalog.tuning()["combat"]["shield_flash_sec"])
+	for f in range(_flare.size()):
+		var glow: MeshInstance3D = $ShieldGlow.get_node("G%d" % f)
+		if _flare[f] <= 0.0:
+			glow.visible = false
+			continue
+		_flare[f] = maxf(0.0, _flare[f] - delta / maxf(fade, 0.001))
+		# Squared so the flare drops away fast and leaves a soft tail, rather
+		# than dimming at a constant rate that reads as a fading lamp.
+		glow.visible = _flare[f] > 0.0 and _state != null and _state.alive
+		glow.material_override.set_shader_parameter("glow", _flare[f] * _flare[f])
 
 
 func refresh() -> void:

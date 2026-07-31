@@ -101,6 +101,15 @@ func update_visuals(delta: float, events: Array[Dictionary]) -> void:
 	for e in events:
 		if String(e["type"]) == "shot":
 			_flash_beam(e["from_pos"], e["to_pos"])
+			# Light the shield that took it. Which facing and whose ship both
+			# come from the event, so the view never re-derives what the damage
+			# model already decided.
+			var facing: int = int(e.get("facing", -1))
+			if facing >= 0:
+				var rig: Node = $PlayerRig if bool(e.get("target_player", false)) else $EnemyRig
+				rig.flash_shield(facing)
+	$PlayerRig.update_flares(delta)
+	$EnemyRig.update_flares(delta)
 	var fade: float = float(Catalog.tuning()["combat"]["beam_fade_sec"])
 	for i in range(3):
 		if _beam_ttl[i] > 0.0:

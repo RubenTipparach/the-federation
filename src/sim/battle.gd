@@ -156,11 +156,14 @@ func _step_seekers(dt: float, tuning: Dictionary) -> void:
 			continue
 		if seeker.distance_to_target() <= hit_radius:
 			var bearing: float = Sectors.bearing_between(seeker.target.pos, seeker.pos)
-			var lines: Array[String] = seeker.target.apply_damage(bearing, float(seeker.damage))
+			var result: Dictionary = seeker.target.apply_damage(bearing, float(seeker.damage))
+			var lines: Array[String] = result["log"]
 			lines.insert(0, "%s impacts" % [seeker.short])
 			_events.append({
 				"type": "shot", "weapon": seeker.short, "damage": seeker.damage,
-				"hit": true, "range": 0.0, "from_pos": seeker.pos,
+				"hit": true, "facing": int(result["facing"]),
+				"target_player": seeker.target == player(),
+				"range": 0.0, "from_pos": seeker.pos,
 				"to_pos": seeker.target.pos, "log": lines,
 			})
 			continue
@@ -237,7 +240,12 @@ func try_fire(attacker: ShipState, weapon_index: int) -> bool:
 			"log": ["%s launched" % [String(weapon["short"])]],
 		})
 		return true
-	_events.append(attacker.fire_at(weapon_index, target))
+	# fire_at knows what it hit but not whose ship it is; only the battle holds
+	# both sides, so the side is stamped here rather than threaded through the
+	# ship. The view uses it to pick which rig lights up.
+	var shot: Dictionary = attacker.fire_at(weapon_index, target)
+	shot["target_player"] = target == player()
+	_events.append(shot)
 	return true
 
 
