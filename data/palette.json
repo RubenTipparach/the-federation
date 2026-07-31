@@ -123,5 +123,44 @@
 
       "grille_ramp": ["bark", "teal_deep", "teal", "teal_gray", "gray_blue", "gray_blue_light"]
     }
+  },
+
+  "ramps_note": [
+    "Lookup ramps for the sky shader, baked to assets/textures/sky_ramps.png by",
+    "tools/gen_ramps.py. The shader never blends two colors together: it picks a",
+    "step from a ramp, so every pixel it draws is a palette entry and the sky",
+    "bands the way hand painted pixel art does.",
+    "",
+    "One row per ramp, all the same length. Repeat a color to widen its band:",
+    "the four blacks at the head of each nebula ramp are what keeps most of the",
+    "sky empty so the ships stay readable on top of it.",
+    "",
+    "star_dim is indexed by the same value as star, so a star's faint outer",
+    "step is a darker shade of its own color rather than a generic gray."
+  ],
+
+  "ramps": {
+    "nebula_cool": [
+      "black", "black", "black", "black", "navy_deep", "navy_deep",
+      "navy", "navy", "slate", "slate", "teal_deep", "teal_deep",
+      "teal", "teal", "teal_gray", "teal_gray"
+    ],
+    "nebula_warm": [
+      "black", "black", "black", "black", "navy_deep", "navy_deep",
+      "plum", "plum", "plum", "wine", "wine", "maroon",
+      "maroon", "clay_deep", "clay_deep", "clay"
+    ],
+    "star_dim": [
+      "gray_blue", "taupe_deep", "teal_gray", "bronze",
+      "gray_blue", "taupe_deep", "taupe_deep", "teal_gray",
+      "gray_blue", "drab", "bronze", "teal_gray",
+      "gray_blue", "taupe_deep", "teal_deep", "bronze"
+    ],
+    "star": [
+      "cream", "bone", "gray_blue_light", "gold",
+      "cream", "bone", "taupe", "gray_blue_light",
+      "cream", "bone", "gold", "gray_blue_light",
+      "cream", "bone", "teal", "gold"
+    ]
   }
 }

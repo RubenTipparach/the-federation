@@ -1,14 +1,15 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://src/ui/combat_world.gd" id="1"]
 [ext_resource type="ArrayMesh" path="res://assets/meshes/quad.obj" id="2"]
 [ext_resource type="Material" path="res://assets/materials/mat_grid.tres" id="3"]
 [ext_resource type="PackedScene" path="res://scenes/ship_rig.tscn" id="4"]
 [ext_resource type="ArrayMesh" path="res://assets/meshes/beam.obj" id="5"]
+[ext_resource type="Sky" path="res://assets/materials/sky_stars.tres" id="6"]
 
 [sub_resource type="Environment" id="env"]
-background_mode = 1
-background_color = Color(0.016, 0.028, 0.044, 1)
+background_mode = 2
+sky = ExtResource("6")
 ambient_light_source = 2
 ambient_light_color = Color(0.45, 0.55, 0.65, 1)
 ambient_light_energy = 0.6

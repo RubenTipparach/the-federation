@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cq2cg5i6451jb"
-path="res://.godot/imported/hull_frigate_lights.png-51f8df774f4510b75ac3d40064307cc2.ctex"
+uid="uid://cu7wbmbypt44r"
+path="res://.godot/imported/sky_ramps.png-0285681ee22a047a23fbe89affc1e89a.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/textures/hull_frigate_lights.png"
-dest_files=["res://.godot/imported/hull_frigate_lights.png-51f8df774f4510b75ac3d40064307cc2.ctex"]
+source_file="res://assets/textures/sky_ramps.png"
+dest_files=["res://.godot/imported/sky_ramps.png-0285681ee22a047a23fbe89affc1e89a.ctex"]
 
 [params]
 

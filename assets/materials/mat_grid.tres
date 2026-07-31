@@ -1,6 +1,13 @@
 [gd_resource type="ShaderMaterial" load_steps=2 format=3]
 
+; render_priority -1 is load bearing, not decoration. The grid is transparent
+; so the starfield shows through it, and Godot sorts transparent surfaces by
+; priority before distance. Everything else in the battle view sits at the
+; default 0, so this guarantees the grid draws first and never covers a shield
+; ring, arc wedge, or beam. See the header of assets/shaders/grid.gdshader.
+
 [ext_resource type="Shader" path="res://assets/shaders/grid.gdshader" id="1"]
 
 [resource]
+render_priority = -1
 shader = ExtResource("1")

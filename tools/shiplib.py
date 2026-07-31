@@ -20,13 +20,8 @@ import zlib
 # ---- the project palette ----------------------------------------------------
 
 
-def load_palette(path, ship):
-    """One ship's role map plus the whole palette, read from the committed
-    config file. Returns (roles, palette): roles maps a role name to an RGB
-    tuple (or a tuple of them, for ramps), palette is every allowed color.
-
-    A role naming a color the palette does not have raises here rather than
-    painting something off palette, which is the point of the indirection."""
+def load_colors(path):
+    """The palette itself: every name mapped to its RGB tuple."""
     with open(path) as f:
         data = json.load(f)
     colors = {}
@@ -34,6 +29,17 @@ def load_palette(path, ship):
         text = value.lstrip("#")
         colors[name] = (int(text[0:2], 16), int(text[2:4], 16),
                         int(text[4:6], 16))
+    return colors, data
+
+
+def load_palette(path, ship):
+    """One ship's role map plus the whole palette, read from the committed
+    config file. Returns (roles, palette): roles maps a role name to an RGB
+    tuple (or a tuple of them, for ramps), palette is every allowed color.
+
+    A role naming a color the palette does not have raises here rather than
+    painting something off palette, which is the point of the indirection."""
+    colors, data = load_colors(path)
 
     def resolve(name):
         assert name in colors, "%r is not a palette color" % (name,)
@@ -46,6 +52,24 @@ def load_palette(path, ship):
         else:
             roles[role] = resolve(value)
     return roles, set(colors.values())
+
+
+def load_ramps(path):
+    """The named lookup ramps, as lists of RGB tuples. Every ramp must be the
+    same length so they bake into one rectangular texture whose rows the
+    shader can index by number."""
+    colors, data = load_colors(path)
+    ramps = {}
+    width = None
+    for name, entries in data["ramps"].items():
+        if width is None:
+            width = len(entries)
+        assert len(entries) == width, \
+            "ramp %r is %d long, expected %d" % (name, len(entries), width)
+        for entry in entries:
+            assert entry in colors, "%r is not a palette color" % (entry,)
+        ramps[name] = [colors[entry] for entry in entries]
+    return ramps
 
 
 # ---- masks ------------------------------------------------------------------
