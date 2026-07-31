@@ -105,6 +105,18 @@ def arc_segment():
     o.write("arc_seg.obj", "Unit shield facing band, 52 of 60 degrees")
 
 
+def arc_glow():
+    o = Obj()
+    # The impact flare behind a shield facing. Deliberately WIDER than the 60
+    # degrees a facing owns and than the arc_seg that reads it: at 88 degrees
+    # each flare spills 14 degrees into both neighbours, so two facings hit at
+    # once blend into one lobe instead of butting up as two bands. The shader
+    # fades it out toward the ends, so the overlap adds gently rather than
+    # showing a seam. Radially deeper than arc_seg for the same reason.
+    flat_band(o, -44, 44, 0.66, 1.12, 18)
+    o.write("arc_glow.obj", "Unit shield impact flare, 88 degrees, wider than one facing")
+
+
 def ring():
     o = Obj()
     flat_band(o, 0, 360, 0.982, 1.0, 96)
@@ -271,6 +283,7 @@ def main():
     hull_cruiser()
     wedge30()
     arc_segment()
+    arc_glow()
     ring()
     quad()
     beam()

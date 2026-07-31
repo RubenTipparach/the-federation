@@ -462,13 +462,27 @@ func test_damage() -> void:
 		near(ship.shields[f], ship.shield_max, "facing %d untouched" % (f + 1))
 
 	# Heading matters: the same world bearing now strikes a different facing.
+	# The reported facing is checked alongside the shield it drained, because
+	# the battle view lights a shield from that report rather than working the
+	# facing out again, and the two must never disagree.
 	var turned = _fresh_ship()
 	turned.heading = 90.0
-	turned.apply_damage(90.0, 10.0)
+	var hit_fore: Dictionary = turned.apply_damage(90.0, 10.0)
 	near(turned.shields[0], turned.shield_max - 10.0, "world 090 on heading 090 strikes the fore facing")
+	eq(int(hit_fore["facing"]), 0, "and reports facing 1 as the one struck")
+	near(float(hit_fore["absorbed"]), 10.0, "reporting what the shield absorbed")
 	var flank = _fresh_ship()
-	flank.apply_damage(90.0, 10.0)
+	var hit_flank: Dictionary = flank.apply_damage(90.0, 10.0)
 	near(flank.shields[2], flank.shield_max - 10.0, "world 090 on heading 000 strikes facing 3")
+	eq(int(hit_flank["facing"]), 2, "and reports facing 3 as the one struck")
+
+	# A hit on a facing whose shield is already gone still reports that facing,
+	# so the view can flash a downed shield rather than going quiet.
+	var stripped = _fresh_ship()
+	stripped.shields[2] = 0.0
+	var hit_down: Dictionary = stripped.apply_damage(90.0, 6.0)
+	eq(int(hit_down["facing"]), 2, "a stripped facing still reports itself")
+	near(float(hit_down["absorbed"]), 0.0, "with nothing absorbed")
 
 	# Destroying a weapon's boxes disables its mount.
 	var hulk = _fresh_ship()

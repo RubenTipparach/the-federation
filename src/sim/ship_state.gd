@@ -251,15 +251,20 @@ func fire_at(index: int, target: ShipState) -> Dictionary:
 	var damage: int = WeaponModel.roll_damage(w["weapon"], distance, rng)
 	var arrive_bearing: float = Sectors.bearing_between(target.pos, pos)
 	var log_lines: Array[String] = []
+	# -1 means nothing was struck, so a miss cannot light a shield up.
+	var facing: int = -1
 	if damage <= 0:
 		log_lines.append("%s misses at range %d" % [String(w["weapon"]["short"]), int(distance)])
 	else:
-		log_lines = target.apply_damage(arrive_bearing, float(damage))
+		var result: Dictionary = target.apply_damage(arrive_bearing, float(damage))
+		log_lines = result["log"]
+		facing = int(result["facing"])
 	return {
 		"type": "shot",
 		"weapon": String(w["weapon"]["short"]),
 		"damage": damage,
 		"hit": damage > 0,
+		"facing": facing,
 		"range": distance,
 		"from_pos": pos,
 		"to_pos": target.pos,
@@ -272,13 +277,20 @@ func fire_at(index: int, target: ShipState) -> Dictionary:
 ## Incoming fire resolves against the facing it arrives from: shield absorbs,
 ## the remainder rolls into internals weighted by remaining boxes, so a fit
 ## determines its own vulnerability profile (docs/01 section 7).
-func apply_damage(world_bearing: float, amount: float) -> Array[String]:
+##
+## Returns the facing that took the hit alongside the log, because the view
+## needs to know which shield to light up and working it out a second time
+## from the bearing would be a second implementation of the rule that decides
+## which facing is struck (CLAUDE.md 4.1). One answer, computed here, used by
+## the damage model and the renderer alike.
+func apply_damage(world_bearing: float, amount: float) -> Dictionary:
 	var lines: Array[String] = []
 	var rel: float = Sectors.relative_bearing(world_bearing, heading)
 	var facing: int = Sectors.facing_of_relative_bearing(rel)
 	var remaining: float = amount
+	var absorbed: float = 0.0
 	if shields[facing] > 0.0:
-		var absorbed: float = minf(shields[facing], remaining)
+		absorbed = minf(shields[facing], remaining)
 		shields[facing] -= absorbed
 		remaining -= absorbed
 		lines.append("Shield #%d absorbs %d, at %d" % [facing + 1, int(absorbed), int(shields[facing])])
@@ -288,7 +300,7 @@ func apply_damage(world_bearing: float, amount: float) -> Array[String]:
 		lines.append("Facing #%d already down" % [facing + 1])
 	if remaining > 0.0:
 		lines.append_array(apply_internal(remaining, facing))
-	return lines
+	return { "facing": facing, "absorbed": absorbed, "log": lines }
 
 
 ## Internal damage from a hit that arrived through one facing. The struck

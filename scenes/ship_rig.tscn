@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://src/ui/ship_rig.gd" id="1"]
 [ext_resource type="ArrayMesh" path="res://assets/meshes/hull_placeholder.obj" id="2"]
@@ -6,6 +6,7 @@
 [ext_resource type="ArrayMesh" path="res://assets/meshes/arc_seg.obj" id="4"]
 [ext_resource type="ArrayMesh" path="res://assets/meshes/ring.obj" id="5"]
 [ext_resource type="Material" path="res://assets/materials/mat_hull_friend.tres" id="6"]
+[ext_resource type="ArrayMesh" path="res://assets/meshes/arc_glow.obj" id="7"]
 
 [node name="ShipRig" type="Node3D"]
 script = ExtResource("1")
@@ -22,6 +23,8 @@ mesh = ExtResource("5")
 [node name="Wedges" type="Node3D" parent="."]
 
 [node name="Shields" type="Node3D" parent="."]
+
+[node name="ShieldGlow" type="Node3D" parent="."]
 
 [node name="W0" type="MeshInstance3D" parent="Wedges"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, 0)
@@ -106,3 +109,27 @@ mesh = ExtResource("4")
 [node name="S5" type="MeshInstance3D" parent="Shields"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)
 mesh = ExtResource("4")
+
+[node name="G0" type="MeshInstance3D" parent="ShieldGlow"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.07, 0)
+mesh = ExtResource("7")
+
+[node name="G1" type="MeshInstance3D" parent="ShieldGlow"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.07, 0)
+mesh = ExtResource("7")
+
+[node name="G2" type="MeshInstance3D" parent="ShieldGlow"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.07, 0)
+mesh = ExtResource("7")
+
+[node name="G3" type="MeshInstance3D" parent="ShieldGlow"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.07, 0)
+mesh = ExtResource("7")
+
+[node name="G4" type="MeshInstance3D" parent="ShieldGlow"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.07, 0)
+mesh = ExtResource("7")
+
+[node name="G5" type="MeshInstance3D" parent="ShieldGlow"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.07, 0)
+mesh = ExtResource("7")

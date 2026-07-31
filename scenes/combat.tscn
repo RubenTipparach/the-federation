@@ -1,9 +1,10 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://src/ui/combat_screen.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/combat_world.tscn" id="2"]
 [ext_resource type="PackedScene" path="res://scenes/ui/shield_bar.tscn" id="3"]
 [ext_resource type="PackedScene" path="res://scenes/ui/touch_controls.tscn" id="4"]
+[ext_resource type="Environment" path="res://assets/materials/env_plan_inset.tres" id="5"]
 
 [node name="Combat" type="HBoxContainer"]
 anchors_preset = 15
@@ -291,6 +292,7 @@ size = Vector2i(128, 128)
 [node name="PlanCamera" type="Camera3D" parent="Mid/ViewPanel/Stack/InsetFrame/InsetContainer/Inset"]
 projection = 1
 size = 70.0
+environment = ExtResource("5")
 
 [node name="EndOverlay" type="CenterContainer" parent="Mid/ViewPanel/Stack"]
 visible = false

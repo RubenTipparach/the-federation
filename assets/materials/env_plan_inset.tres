@@ -1,0 +1,24 @@
+[gd_resource type="Environment" format=3]
+
+; The tactical inset's own environment, assigned to its camera so the inset
+; does not inherit the battle's starfield.
+;
+; The inset shares one World3D with the main view (one scene, two cameras, so
+; the tactical picture cannot diverge from the pretty one). That sharing is
+; worth keeping for the ships, the grid, and the arcs, but the sky came along
+; with it, and a nebula sliding under a 128 pixel readout is noise. A camera
+; level Environment override is the one thing that differs between the two
+; views, so the inset stays a plain instrument display while everything it is
+; reporting on is still literally the same objects.
+;
+; background_color is the palette's navy_deep (#141f25) written in linear,
+; since Godot renders in linear and this value is used directly rather than
+; sampled from a texture. The ambient light matches combat_world.tscn exactly:
+; only the background differs, so a hull is lit the same in both views.
+
+[resource]
+background_mode = 1
+background_color = Color(0.007, 0.0137, 0.0185, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.45, 0.55, 0.65, 1)
+ambient_light_energy = 0.6

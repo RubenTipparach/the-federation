@@ -189,7 +189,7 @@ func _on_fire(damage: int) -> void:
 	var facing: int = $Center/V/Ring.selected_facing
 	var bearing: float = Sectors.facing_center_bearing(facing)
 	_log("Incoming %d on facing #%d" % [damage, facing + 1], Palette.CYAN)
-	var lines: Array[String] = _demo.apply_damage(bearing, float(damage))
+	var lines: Array[String] = _demo.apply_damage(bearing, float(damage))["log"]
 	for line in lines:
 		var hue: Color = Palette.DIM
 		if line.contains("DOWN") or line.contains("DESTROYED"):
