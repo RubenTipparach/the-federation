@@ -178,7 +178,7 @@ def imp(c):      # impulse deck: a nozzle with thrust behind it
     c.bar(20, 40, 28, 40, 4)
 
 
-def aux(c):      # auxiliary power: a smaller reactor with a feed
+def auxp(c):     # auxiliary power: a smaller reactor with a feed
     c.disc(24, 22, 11, 7)
     c.bar(24, 33, 24, 43, 4)
 
@@ -235,7 +235,7 @@ def armr(c):     # armor: layered chevrons
 
 ICONS = {
     "PH-1": ph1, "PH-3": ph3, "PHOT": phot, "DISR": disr, "LNCE": lnce,
-    "DRN": drn, "BRDG": brdg, "WARP": warp, "IMP": imp, "AUX": aux,
+    "DRN": drn, "BRDG": brdg, "WARP": warp, "IMP": imp, "AUXP": auxp,
     "BTTY": btty, "SHTL": shtl, "TRAN": tran, "TRAC": trac, "PRB": prb,
     "LAB": lab, "MRNE": mrne, "HULL": hull, "ARMR": armr,
 }

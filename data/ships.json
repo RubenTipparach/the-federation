@@ -23,7 +23,7 @@
           [["PHOT", 3, "weapon", "M1"], ["BRDG", 2, "control"]],
           [["PH-1", 4, "weapon", "M2"], ["TRAN", 2, "control"]],
           [["PH-1", 4, "weapon", "M4"], ["WARP", 8, "power"], ["TRAC", 2, "control"]],
-          [["PH-3", 2, "weapon", "M5"], ["IMP", 4, "power"], ["AUX", 2, "power"], ["SHTL", 2, "control"], ["DRN", 2, "control"]],
+          [["PH-3", 2, "weapon", "M5"], ["IMP", 4, "power"], ["AUXP", 2, "power"], ["SHTL", 2, "control"], ["DRN", 2, "control"]],
           [["WARP", 8, "power"], ["BTTY", 2, "power"], ["PRB", 1, "control"]],
           [["PH-1", 4, "weapon", "M3"], ["LAB", 2, "control"]]
         ],
@@ -77,7 +77,7 @@
           [["LNCE", 5, "weapon", "M1"], ["BRDG", 2, "control"]],
           [["PHOT", 3, "weapon", "M2"], ["TRAN", 3, "control"]],
           [["PH-1", 4, "weapon", "M4"], ["WARP", 10, "power"]],
-          [["DRN", 2, "weapon", "M5"], ["IMP", 5, "power"], ["AUX", 3, "power"]],
+          [["DRN", 2, "weapon", "M5"], ["IMP", 5, "power"], ["AUXP", 3, "power"]],
           [["BTTY", 3, "power"], ["MRNE", 6, "control"], ["TRAC", 2, "control"]],
           [["PH-1", 4, "weapon", "M3"]]
         ],
