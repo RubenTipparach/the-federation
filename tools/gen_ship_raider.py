@@ -9,21 +9,26 @@
 #
 # Shape vocabulary source: docs/examples/ship-art/old_ships/R6-Starship-A.
 #
-# The R6 look, measured from the sheets and refined by critique passes:
+# The R6 shapes, measured from the sheets and refined by critique passes:
 #   - authored at the sheets' native 128 grid and exported 2x nearest
-#   - the hull is the purple-black (23,14,25) family with (8,5,9) deep black
-#     outlines and purple panel work; (12,12,12) is the sheet's background,
-#     not a hull color, and is not used
-#   - the prow is massed steel armor: (124,148,161) fields with (160,185,186)
-#     ridge lines, a few (192,209,204) top highlights, (101,115,140) shadow
-#   - wings are mostly dark hull with green panels toward the trailing half
-#   - the signature warm exhaust trails taper and jitter, rust into orange
-#     into cream with checkerboard dither, and every warm pixel is emissive:
-#     the lights map repeats the diffuse pixel exactly (the R6 parity law)
-#   - engine grilles are checker dithered vertical gradients from dark purple
-#     to lit steel, using the seven colors of R6's em_engine, and they are
-#     large: they carry the aft read
-#   - windows are a few 1px yellow dots
+#   - a dark hull with 1px outlines and panel work one step lighter, so the
+#     ship reads as mass rather than as lines
+#   - the prow is massed armor: a bright field with ridge lines, a few rare
+#     top highlights, and a shadow step
+#   - wings are mostly hull with green panels toward the trailing half
+#   - the exhaust trails taper and jitter, fringe into body into core with
+#     checkerboard dither, and every lit pixel is emissive: the lights map
+#     repeats the diffuse pixel exactly (the R6 parity law)
+#   - engine grilles are checker dithered vertical gradients along a six step
+#     ramp, and they are large: they carry the aft read
+#   - windows are a few 1px dots
+#
+# Where the R6 sheets are grayscale-dark, this ship is not: the Kthaari hull
+# is rust, its plates bronze and gold, its armor warm and pale, and its
+# drives deliberately COOL. That inversion is the point. The Federation
+# frigate is a cool blue hull with hot red drives, so at tactical scale the
+# two fleets read as opposites by temperature alone, before any marking or
+# silhouette is resolved (docs/12 section 6).
 #
 # Layering note: R6 keeps em_lighting and em_engine disjoint because its
 # pipeline stacks them additively. Godot's StandardMaterial3D has a single
@@ -57,8 +62,8 @@ RNG = random.Random(6)
 
 # Roles, resolved through data/palette.json. Nothing here is a hex value.
 ROLE, ALLOWED = load_palette(PALETTE, "raider")
-HULL = ROLE["hull"]            # the near black hull
-OUTLINE = ROLE["outline"]      # deepest black, silhouette and frames
+HULL = ROLE["hull"]            # the rust hull, the ship's primary color
+OUTLINE = ROLE["outline"]      # darkest step: silhouette and frames
 PANEL = ROLE["panel"]          # panel lines and hull ridges
 PLATE = ROLE["plate"]          # plate faces and dithered runs
 PLATE_L = ROLE["plate_light"]
@@ -70,10 +75,10 @@ STEEL_D = ROLE["armor_deep"]
 GREEN = ROLE["green"]          # wing panels
 GREEN_L = ROLE["green_light"]
 GREEN_D = ROLE["green_dark"]
-RUST = ROLE["rust"]            # trail fringe
-ORANGE = ROLE["orange"]        # trail body
-CREAM = ROLE["cream"]          # trail core
-RED = ROLE["red"]              # warning ticks
+PLUME_EDGE = ROLE["plume_edge"]  # exhaust fringe
+PLUME_MID = ROLE["plume_mid"]    # exhaust body
+PLUME_CORE = ROLE["plume_core"]  # exhaust core
+MARK = ROLE["mark"]            # warning ticks
 GLOW_YELLOW = ROLE["window"]   # lit windows
 
 # The grille gradient, ordered dark to light; the painter dithers between
@@ -116,8 +121,8 @@ def window_dot(d, l, x, y, lit=True):
 
 def trail_band(d, l, x0, y0, x1, y1):
     """The R6 exhaust trail on a wall strip: a plume that is fat in the
-    middle of the run and tapers to both ends, rust into orange into cream,
-    with jittered checkerboard edges. Warm pixels go to the lights map too;
+    middle of the run and tapers to both ends, fringe into body into core,
+    with jittered checkerboard edges. Lit pixels go to the lights map too;
     parity() later makes them exact."""
     w = x1 - x0
     h = y1 - y0
@@ -133,32 +138,32 @@ def trail_band(d, l, x0, y0, x1, y1):
                 continue
             depth = 1.0 - dy / (h / 2.0)
             if depth > 0.75:
-                c = CREAM if (x + y) % 2 == 0 or depth > 0.9 else ORANGE
+                c = PLUME_CORE if (x + y) % 2 == 0 or depth > 0.9 else PLUME_MID
             elif depth > 0.45:
-                c = ORANGE
+                c = PLUME_MID
             elif depth > 0.3:
-                c = ORANGE if (x + y) % 2 == 0 else RUST
+                c = PLUME_MID if (x + y) % 2 == 0 else PLUME_EDGE
             else:
-                c = RUST
+                c = PLUME_EDGE
             d.put(x, y, c)
             l.put(x, y, c)
 
 
 def fringe(d, l, x0, y, length):
-    """The dithered warm fringe on a wing cap's trailing edge; emissive like
-    every warm pixel in R6."""
+    """The dithered plume fringe on a wing cap's trailing edge; emissive like
+    every lit pixel in R6."""
     for x in range(x0, x0 + length):
-        top = ORANGE if (x + y) % 2 == 0 else RUST
+        top = PLUME_MID if (x + y) % 2 == 0 else PLUME_EDGE
         d.put(x, y, top)
         l.put(x, y, top)
-        d.put(x, y + 1, RUST)
-        l.put(x, y + 1, RUST)
+        d.put(x, y + 1, PLUME_EDGE)
+        l.put(x, y + 1, PLUME_EDGE)
 
 
 def engine_grille(d, layers, rect):
-    """The R6 engine grille: a checker dithered vertical gradient from dark
-    purple at the edges to lit steel at the center, inside a deep frame. The
-    glow layers receive the same pixels; parity() keeps them exact."""
+    """The R6 engine grille: a checker dithered vertical gradient, darkest at
+    the edges and brightest at the center, inside a deep frame. The glow
+    layers receive the same pixels; parity() keeps them exact."""
     x0, y0, x1, y1 = rect
     d.fill(rect, OUTLINE)
     ramp = GRILLE_RAMP
@@ -198,8 +203,8 @@ def paint():
         for k in range(6):
             d.put(sx - k, 16 + k, GREEN_D)
     d.shape(36, 16, rect_mask(10, 8, (0, 3, 0, 0)), STEEL_L, line=OUTLINE)
-    d.put(38, 19, RED)
-    d.put(40, 19, RED)
+    d.put(38, 19, MARK)
+    d.put(40, 19, MARK)
     d.hline(8, 8, 10, PANEL)
 
     # Wing leading edge wall: quiet dark band.
@@ -214,7 +219,7 @@ def paint():
     d.dither((15, 58, 19, 76), PLATE, PANEL)
     d.stamp(5, 56, rect_mask(6, 11), GREEN)
     d.shape(24, 59, rect_mask(7, 9), STEEL_L, line=OUTLINE)
-    d.put(26, 62, RED)
+    d.put(26, 62, MARK)
     d.hline(5, 71, 7, PANEL)
     d.vline(26, 72, 8, PANEL)
     d.put(7, 80, PALE)
@@ -235,8 +240,8 @@ def paint():
     d.put(60, 6, PALE)
     d.put(61, 6, PALE)
     d.stamp(58, 18, rect_mask(12, 3), STEEL_L)
-    d.put(60, 21, RED)
-    d.put(63, 21, RED)
+    d.put(60, 21, MARK)
+    d.put(63, 21, MARK)
 
     # Head walls: dark band with a steel visor strip.
     d.shape(54, 27, rect_mask(20, 8), HULL, line=OUTLINE)
@@ -260,7 +265,7 @@ def paint():
     d.stamp(80, 72, rect_mask(10, 8, (0, 0, 2, 2)), STEEL_L)
     d.hline(81, 72, 8, LIGHT)
     d.hline(80, 68, 10, PANEL)
-    d.put(81, 70, RED)
+    d.put(81, 70, MARK)
 
     # Pod stern shell.
     d.shape(96, 42, rect_mask(14, 12), HULL, line=OUTLINE)
@@ -269,7 +274,7 @@ def paint():
     d.shape(96, 57, rect_mask(14, 12, (2, 2, 2, 2)), STEEL_L, line=OUTLINE)
     d.stamp(100, 60, octagon_mask(3), STEEL_D)
     d.put(103, 63, OUTLINE)
-    d.put(98, 66, RED)
+    d.put(98, 66, MARK)
 
     # Pod walls: dark band with a purple ridge.
     d.shape(78, 87, rect_mask(48, 8), HULL, line=OUTLINE)
@@ -287,11 +292,11 @@ def paint():
 
     # Body stern: orange impulse maw between two big purple grilles.
     for canvas in (d, l):
-        canvas.fill((14, 103, 22, 104), RUST)
-        canvas.dither((14, 104, 22, 105), RUST, ORANGE)
-        canvas.fill((14, 105, 22, 107), ORANGE)
-        canvas.dither((14, 107, 22, 108), ORANGE, CREAM)
-        canvas.fill((14, 108, 22, 109), CREAM)
+        canvas.fill((14, 103, 22, 104), PLUME_EDGE)
+        canvas.dither((14, 104, 22, 105), PLUME_EDGE, PLUME_MID)
+        canvas.fill((14, 105, 22, 107), PLUME_MID)
+        canvas.dither((14, 107, 22, 108), PLUME_MID, PLUME_CORE)
+        canvas.fill((14, 108, 22, 109), PLUME_CORE)
     engine_grille(d, (e, l), (4, 101, 13, 111))
     engine_grille(d, (e, l), (23, 101, 32, 111))
 

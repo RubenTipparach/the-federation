@@ -98,29 +98,30 @@
     },
 
     "raider": {
-      "hull": "ink",
-      "outline": "black",
-      "panel": "plum",
-      "plate": "indigo",
-      "plate_light": "gunmetal",
+      "hull": "clay_deep",
+      "outline": "plum",
+      "panel": "clay",
+      "plate": "bronze",
+      "plate_light": "gold_deep",
 
-      "armor": "gray_blue",
-      "armor_ridge": "gray_blue_light",
+      "armor": "olive",
+      "armor_ridge": "olive_light",
       "armor_pale": "bone",
-      "armor_shadow": "teal_gray",
-      "armor_deep": "slate",
+      "armor_shadow": "olive_deep",
+      "armor_deep": "drab_deep",
 
-      "green": "teal_deep",
-      "green_light": "teal",
-      "green_dark": "navy",
+      "green": "green",
+      "green_light": "green_light",
+      "green_dark": "moss_deep",
 
-      "rust": "bronze",
-      "orange": "gold",
-      "cream": "cream",
-      "red": "clay",
+      "plume_edge": "teal",
+      "plume_mid": "teal_gray",
+      "plume_core": "gray_blue_light",
+
+      "mark": "moss_light",
       "window": "gold",
 
-      "grille_ramp": ["plum", "wine", "indigo", "gunmetal", "teal_gray", "gray_blue"]
+      "grille_ramp": ["bark", "teal_deep", "teal", "teal_gray", "gray_blue", "gray_blue_light"]
     }
   }
 }
