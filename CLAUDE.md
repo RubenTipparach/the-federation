@@ -209,6 +209,36 @@ one component.
 This is section 4.1 applied to the interface. Two ship displays would eventually disagree
 about what is fitted, which is the one thing a player must always be able to trust.
 
+### 6.2 The tactical combat view
+
+**The tactical view is for fighting. Nothing else belongs in it.**
+
+- **No sliders. None.** Not for power, not for throttle, not for the camera. A slider asks
+  for a slow, precise drag at the exact moment the player has neither time nor attention to
+  give one, and it hides the fact that most of these values are whole numbers. Allocation is
+  made of **discrete boxes**: one box is one point, clicking sets the level, and the count is
+  readable at a glance without reading a number.
+- **No navigation out of the battle.** No tabs to the fitting screen, the shipyard, or the
+  skirmish setup. A battle is left by ending it, not by wandering off mid engagement.
+- **No camera mode buttons and no camera sliders.** The camera is driven by direct
+  manipulation: drag to look, scroll or pinch to zoom.
+- **Escape, or the menu button, pauses.** Pausing is always available and always the same
+  gesture.
+
+The test to apply to anything proposed for this screen: *would a player reach for this
+while under fire?* If not, it belongs on a different screen.
+
+### 6.3 Logging is a combat instrument
+
+**Only the tactical combat view narrates.** The comm log and damage report exist so a player
+can reconstruct what just happened to their ship in a fight. Outside a battle there is no
+stream of events to follow, so a log there is noise pretending to be information.
+
+- Non combat screens do not accumulate log lines for the player to read.
+- This is about **player facing narration**. The deterministic battle log that
+  `src/sim/battle_log.gd` writes for replays is a different thing and must keep recording
+  exactly as it does, because replay reproduction depends on it (docs/07).
+
 ---
 
 ## 7. Documented Exceptions
