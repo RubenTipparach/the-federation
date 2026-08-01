@@ -45,11 +45,17 @@ var alive: bool = true
 ## battle flies in an empty arena, which is why this is never null.
 var terrain: Terrain = Terrain.new()
 
-## Velocity the ship carries that its own engines did not ask for: a gravity
-## well pulling, or a tractor beam towing. Added to the heading vector during
-## integration, so the ship keeps pointing where it was told and slides
+## Velocity a gravity well is giving the ship. Added to the heading vector
+## during integration, so the ship keeps pointing where it was told and slides
 ## (docs/13 section 4.1).
 var drift: Vector2 = Vector2.ZERO
+
+## Velocity a tractor beam is imposing, and what it is easing toward. The target
+## is cleared every step and rewritten by whatever beam is on this hull, so a
+## beam that snaps stops towing without anything having to remember that it
+## existed (Battle._step_tractors).
+var tow: Vector2 = Vector2.ZERO
+var tow_target: Vector2 = Vector2.ZERO
 
 ## Seconds before this hull can be hurt by running into something again, so
 ## resting against a rock is not damage every tick.
@@ -187,6 +193,17 @@ func boxes_in(sector: int) -> int:
 	return n
 
 
+## Boxes still standing in the named system, summed over every sector that
+## carries one. Zero means the system is out, which is how the tractor knows its
+## emitter is dead and how any other system check should ask.
+func system_boxes(code: String) -> int:
+	var n: int = 0
+	for sys in systems:
+		if String(sys["code"]) == code:
+			n += int(sys["boxes"])
+	return n
+
+
 func mount_disabled(index: int) -> bool:
 	var mount_id: String = String(weapons_rt[index]["mount"]["id"])
 	for sys in systems:
@@ -261,25 +278,37 @@ func heading_vector() -> Vector2:
 	return Vector2(sin(deg_to_rad(heading)), cos(deg_to_rad(heading)))
 
 
-## Where the hull is actually going: what the engines are doing plus whatever is
-## dragging it. One answer, used by integration, by the dust that grinds the
-## leading facing, and by anything that needs to draw a velocity.
-func velocity() -> Vector2:
+## What the ship would be doing under its own power in the world it is in: the
+## motion a tractor has to argue with. Kept separate from velocity() so the tow
+## a beam computes does not feed back into the tow it computed last frame.
+func engine_velocity() -> Vector2:
 	return heading_vector() * speed + drift
 
 
-## Ease the carried velocity toward what the world is currently pulling with,
-## and toward nothing when it is pulling with nothing. Easing rather than
+## Where the hull is actually going: what the engines are doing plus everything
+## dragging it. One answer, used by integration, by the dust that grinds the
+## leading facing, and by anything that needs to draw a velocity.
+func velocity() -> Vector2:
+	return engine_velocity() + tow
+
+
+## Ease the carried velocities toward what the world and any tractor are asking
+## for, and toward nothing when nothing is asking. Easing rather than
 ## integrating a force keeps this stable at any timestep, which a replay depends
-## on (docs/13 section 4.1).
+## on (docs/13 sections 4.1 and 6.3).
 func _step_drift(dt: float, tuning: Dictionary) -> void:
-	if terrain.features.is_empty() and drift == Vector2.ZERO:
+	if not (terrain.features.is_empty() and drift == Vector2.ZERO):
+		var want: Vector2 = terrain.pull_at(pos)
+		var rate: float = float(tuning["terrain"]["drift_accel"]) * dt
+		drift = Vector2(
+			move_toward(drift.x, want.x, rate),
+			move_toward(drift.y, want.y, rate))
+	if tow == Vector2.ZERO and tow_target == Vector2.ZERO:
 		return
-	var want: Vector2 = terrain.pull_at(pos)
-	var rate: float = float(tuning["terrain"]["drift_accel"]) * dt
-	drift = Vector2(
-		move_toward(drift.x, want.x, rate),
-		move_toward(drift.y, want.y, rate))
+	var blend: float = float(tuning["tractor"]["blend_rate"]) * dt
+	tow = Vector2(
+		move_toward(tow.x, tow_target.x, blend),
+		move_toward(tow.y, tow_target.y, blend))
 
 
 ## The range the gunnery computer believes it is shooting at: the true distance

@@ -21,6 +21,7 @@ const SeekerLib = preload("res://src/sim/seeker.gd")
 const LogLib = preload("res://src/sim/battle_log.gd")
 const RepairLib = preload("res://src/sim/repair_model.gd")
 const TerrainLib = preload("res://src/sim/terrain.gd")
+const TractorLib = preload("res://src/sim/tractor.gd")
 
 var checks: int = 0
 var failures: int = 0
@@ -58,6 +59,7 @@ func _initialize() -> void:
 	test_repairs()
 	test_shipyard()
 	test_terrain()
+	test_tractors()
 	test_replay()
 	print("")
 	if failures == 0:
@@ -589,6 +591,186 @@ func test_terrain() -> void:
 		if String(e["type"]) == "hazard":
 			narrated = true
 	ok(narrated, "a hazard emits an event the comm log can print")
+
+
+## Tractor beams: the auction, and what a beam does to the two ships
+## (docs/13 section 6). The contest is ours, not a citation; docs/09 section 6
+## records that the free rulebook leaves tractors out on purpose.
+##
+## Ships are stepped directly rather than through Battle.step so the AI is not
+## steering the prisoner in the middle of a test about towing.
+func test_tractors() -> void:
+	print("\n== tractor beams ==")
+	var tuning: Dictionary = CatalogLib.tuning()
+	var t: Dictionary = tuning["tractor"]
+
+	var duel = BattleLib.create_duel(FitLib.create_default("wayfarer"), "bloodletter", 12)
+	var me = duel.player()
+	var foe = duel.enemy()
+	me.pos = Vector2.ZERO
+	foe.pos = Vector2(0, 6)
+
+	# ---- what stops a latch ----
+	eq(String(TractorLib.latch_check(me, foe, tuning)["reason"]), "no power",
+		"a tractor with nothing in its sink cannot latch")
+	me.set_alloc_units("tractor", 6.0)
+	eq(String(TractorLib.latch_check(me, foe, tuning)["reason"]), "ready",
+		"with power in the sink it can")
+	foe.pos = Vector2(0, float(t["range"]) + 2.0)
+	eq(String(TractorLib.latch_check(me, foe, tuning)["reason"]), "range",
+		"a tractor is short ranged and says so")
+	foe.pos = Vector2(0, 6)
+	for sys in me.systems:
+		if String(sys["code"]) == TractorLib.BOX:
+			sys["boxes"] = 0
+	eq(String(TractorLib.latch_check(me, foe, tuning)["reason"]), "destroyed",
+		"a shot out emitter cannot latch (Federation Commander 5A2c)")
+	for sys in me.systems:
+		if String(sys["code"]) == TractorLib.BOX:
+			sys["boxes"] = int(sys["boxes_max"])
+
+	# ---- latching goes through the one command path, so it is recorded ----
+	duel.log = LogLib.create(me.fit, "bloodletter", duel.seed_value, 1.0 / 30.0)
+	ok(duel.apply_command(0, "tractor_latch", [1]), "the latch order is accepted")
+	eq(duel.log.commands.size(), 1, "and written down like any other order")
+	ok(not duel.apply_command(0, "tractor_latch", [1]), "one emitter holds one ship")
+	eq(duel.log.commands.size(), 1, "and a refused latch is not recorded")
+	ok(duel.tractor_on(foe) != null, "the prisoner knows it is held")
+
+	# ---- the auction ----
+	var beam = duel.tractor_on(me)
+	foe.set_alloc_units("tractor", 6.0)
+	var ratio: float = TractorLib.tonnage(foe) / TractorLib.tonnage(me)
+	near(beam.break_bid(), foe.alloc_units("tractor") * ratio,
+		"the prisoner's shove is weighted by the tonnage ratio")
+	ok(beam.break_bid() > beam.hold_bid(),
+		"the heavier ship out-shoves an equal bid")
+
+	# Losing the auction does not snap the beam at once: the holder has
+	# break_seconds to raise the bid, and raising it resets the struggle.
+	for _i in range(10):
+		duel._step_tractors(1.0 / 10.0, tuning)
+	ok(duel.tractors.size() == 1, "the beam survives a second of losing the auction")
+	ok(beam.strain > 0.9, "but the strain is showing")
+	me.set_alloc_units("tractor", 12.0)
+	duel._step_tractors(1.0 / 10.0, tuning)
+	near(beam.strain, 0.0, "outbidding the prisoner resets the struggle")
+
+	# Sustained, the prisoner wins and the pair cannot be regrabbed at once.
+	me.set_alloc_units("tractor", 3.0)
+	var freed: bool = false
+	for _i in range(int(float(t["break_seconds"]) * 10.0) + 3):
+		duel._step_tractors(1.0 / 10.0, tuning)
+		if duel.tractors.is_empty():
+			freed = true
+			break
+	ok(freed, "sustained, the prisoner breaks free")
+	me.set_alloc_units("tractor", 12.0)
+	ok(not duel.apply_command(0, "tractor_latch", [1]),
+		"and cannot be grabbed again while the emitter recovers")
+	for _i in range(int(float(t["relatch_cooldown"]) * 10.0) + 2):
+		duel._step_tractors(1.0 / 10.0, tuning)
+	ok(duel.apply_command(0, "tractor_latch", [1]), "once the cooldown lapses it can")
+
+	# ---- range and damage snap it ----
+	foe.pos = Vector2(0, float(t["range"]) + 5.0)
+	duel._step_tractors(1.0 / 10.0, tuning)
+	ok(duel.tractors.is_empty(), "opening the range past the beam snaps it")
+	foe.pos = Vector2(0, 6)
+	for _i in range(int(float(t["relatch_cooldown"]) * 10.0) + 2):
+		duel._step_tractors(1.0 / 10.0, tuning)
+	ok(duel.apply_command(0, "tractor_latch", [1]), "and it can be re-established")
+	for sys in me.systems:
+		if String(sys["code"]) == TractorLib.BOX:
+			sys["boxes"] = 0
+	duel._step_tractors(1.0 / 10.0, tuning)
+	ok(duel.tractors.is_empty(), "shooting the emitter out drops the beam")
+
+	# ---- what a beam does to the two ships ----
+	var tow_duel = BattleLib.create_duel(FitLib.create_default("wayfarer"), "bloodletter", 13)
+	var tug = tow_duel.player()
+	var prize = tow_duel.enemy()
+	tug.pos = Vector2.ZERO
+	prize.pos = Vector2(0, 6)
+	tug.heading = 0.0
+	tug.speed = 5.0
+	prize.heading = 0.0
+	prize.speed = 0.0
+	tug.set_alloc_units("tractor", 10.0)
+	ok(tow_duel.apply_command(0, "tractor_latch", [1]), "a tow can be set up")
+	var m_tug: float = TractorLib.tonnage(tug)
+	var m_prize: float = TractorLib.tonnage(prize)
+	var common: Vector2 = Vector2(0, 5.0) * m_tug / (m_tug + m_prize)
+	tow_duel._step_tractors(1.0 / 10.0, tuning)
+	near(prize.tow_target.y, common.y,
+		"a held ship is asked for the pair's common momentum")
+	near(tug.tow_target.y, common.y - 5.0, "and so is the holder, from the other side")
+
+	for _i in range(200):
+		for s in tow_duel.ships:
+			s.tow_target = Vector2.ZERO
+		tow_duel._step_tractors(1.0 / 20.0, tuning)
+		prize.set_order(prize.heading, 0.0)
+		for s in tow_duel.ships:
+			s.step(1.0 / 20.0, tuning)
+	ok(prize.pos.y > 6.5, "and it is dragged along behind the ship holding it")
+	# Attitude is deliberately untouched: taking a ship's arcs away takes the
+	# game away, and 5D says the beam holds position, not heading.
+	prize.set_order(90.0, 0.0)
+	for _i in range(200):
+		for s in tow_duel.ships:
+			s.tow_target = Vector2.ZERO
+		tow_duel._step_tractors(1.0 / 20.0, tuning)
+		for s in tow_duel.ships:
+			s.step(1.0 / 20.0, tuning)
+	near(prize.heading, 90.0, "a held ship can still come about and shoot back", 1.0)
+	ok(tow_duel.tractors.size() == 1, "and the beam is still on it while it turns")
+
+	# Letting go stops the tow rather than leaving it stuck on.
+	ok(tow_duel.apply_command(0, "tractor_release", []), "a holder may let go")
+	for _i in range(200):
+		for s in tow_duel.ships:
+			s.tow_target = Vector2.ZERO
+		tow_duel._step_tractors(1.0 / 20.0, tuning)
+		for s in tow_duel.ships:
+			s.step(1.0 / 20.0, tuning)
+	near(prize.tow.length(), 0.0, "and the tow bleeds away once the beam is gone", 0.001)
+
+	# ---- reeling in ----
+	var reel_duel = BattleLib.create_duel(FitLib.create_default("ironhold"), "talon", 14)
+	var winch = reel_duel.player()
+	var catch = reel_duel.enemy()
+	winch.pos = Vector2.ZERO
+	catch.pos = Vector2(0, 8)
+	winch.speed = 0.0
+	catch.speed = 0.0
+	winch.set_alloc_units("tractor", 10.0)
+	ok(reel_duel.apply_command(0, "tractor_latch", [1]), "the winch takes hold")
+	ok(reel_duel.apply_command(0, "tractor_mode", [TractorLib.MODE_REEL]),
+		"and can be told to pull the catch closer (5D)")
+	var gap_before: float = winch.pos.distance_to(catch.pos)
+	var winch_start: Vector2 = winch.pos
+	var catch_start: Vector2 = catch.pos
+	for _i in range(120):
+		for s in reel_duel.ships:
+			s.tow_target = Vector2.ZERO
+		reel_duel._step_tractors(1.0 / 20.0, tuning)
+		winch.set_order(winch.heading, 0.0)
+		catch.set_order(catch.heading, 0.0)
+		for s in reel_duel.ships:
+			s.step(1.0 / 20.0, tuning)
+	ok(winch.pos.distance_to(catch.pos) < gap_before - 1.0, "reeling closes the range")
+	ok(catch_start.distance_to(catch.pos) > winch_start.distance_to(winch.pos) * 2.0,
+		"and the light ship is the one that actually travels")
+
+	# ---- holding needs an emitter, breaking does not ----
+	ok(not TractorLib.emitter_ready(catch), "the Talon carries no tractor")
+	eq(String(TractorLib.latch_check(catch, winch, tuning)["reason"]), "destroyed",
+		"so it cannot latch anything")
+	catch.set_alloc_units("tractor", 4.0)
+	var caught = reel_duel.tractor_on(catch)
+	ok(caught.break_bid() > 0.0,
+		"but it can still shove against a beam already on it")
 
 
 func test_replay() -> void:

@@ -17,6 +17,15 @@ var seekers: Array[Seeker] = []
 ## needs a special case for a bare arena.
 var terrain: Terrain = Terrain.new()
 
+## Tractor beams currently up, at most one per holder. See Tractor and docs/13
+## section 6.
+var tractors: Array[Tractor] = []
+
+## Seconds left before a pair may latch each other again after a beam snapped,
+## keyed by the two ship indices. A pair, not a ship: breaking one grip should
+## not stop a third party latching on.
+var _relatch: Dictionary = {}
+
 ## Fixed step counter. Commands are stamped with it, never with wall clock
 ## time, because that is what makes a log replayable (see BattleLog).
 var tick: int = 0
@@ -112,6 +121,11 @@ func step(dt: float) -> Array[Dictionary]:
 	var tuning: Dictionary = Catalog.tuning()
 
 	CombatAi.act(enemy(), player(), self)
+	# Tows are cleared and rewritten every step, so a beam that snapped this
+	# frame stops pulling without anything having to remember it was there.
+	for s in ships:
+		s.tow_target = Vector2.ZERO
+	_step_tractors(dt, tuning)
 	for s in ships:
 		s.step(dt, tuning)
 	_step_seekers(dt, tuning)
@@ -186,6 +200,86 @@ func _step_seekers(dt: float, tuning: Dictionary) -> void:
 		survivors.append(seeker)
 
 	seekers = survivors
+
+
+## Work every beam that is up: resolve its contest, and let the survivors tow.
+## A beam that snaps starts the pair's relatch cooldown, so a captain who has
+## just wrenched free is not grabbed again on the next tick.
+func _step_tractors(dt: float, tuning: Dictionary) -> void:
+	for key in _relatch.keys():
+		_relatch[key] = maxf(0.0, float(_relatch[key]) - dt)
+	if tractors.is_empty():
+		return
+	var survivors: Array[Tractor] = []
+	for beam in tractors:
+		var snap: String = beam.step(dt, tuning)
+		if snap.is_empty():
+			beam.apply_tow(tuning)
+			survivors.append(beam)
+			continue
+		_relatch[_pair_key(beam.holder, beam.held)] = float(
+			tuning["tractor"]["relatch_cooldown"])
+		_events.append({
+			"type": "tractor", "state": "released", "reason": snap,
+			"holder_player": beam.holder == player(),
+			"log": ["Tractor lost, %s" % [snap]],
+		})
+	tractors = survivors
+
+
+## Order a beam onto a target. Refused for the same reasons a shot is, plus a
+## pair that is still on its relatch cooldown and a hull that is already holding
+## something: one emitter, one grip.
+func latch_tractor(attacker: ShipState, target: ShipState) -> bool:
+	if over:
+		return false
+	var tuning: Dictionary = Catalog.tuning()
+	if float(_relatch.get(_pair_key(attacker, target), 0.0)) > 0.0:
+		return false
+	for beam in tractors:
+		if beam.holder == attacker or beam.held == attacker:
+			return false
+		if beam.holder == target and beam.held == attacker:
+			return false
+	if not bool(Tractor.latch_check(attacker, target, tuning)["ok"]):
+		return false
+	tractors.append(Tractor.create(attacker, target))
+	_events.append({
+		"type": "tractor", "state": "latched",
+		"holder_player": attacker == player(),
+		"log": ["Tractor locked on"],
+	})
+	return true
+
+
+## Let go. A voluntary release carries no cooldown: it was the holder's choice.
+func release_tractor(attacker: ShipState) -> bool:
+	for i in range(tractors.size()):
+		if tractors[i].holder != attacker:
+			continue
+		tractors.remove_at(i)
+		_events.append({
+			"type": "tractor", "state": "released", "reason": "released",
+			"holder_player": attacker == player(),
+			"log": ["Tractor released"],
+		})
+		return true
+	return false
+
+
+## The beam on this ship, whether it is holding or being held. Nothing keeps two
+## copies of the answer: the panel, the AI, and the renderer all ask here.
+func tractor_on(ship: ShipState) -> Tractor:
+	for beam in tractors:
+		if beam.holder == ship or beam.held == ship:
+			return beam
+	return null
+
+
+func _pair_key(a: ShipState, b: ShipState) -> String:
+	var i: int = ships.find(a)
+	var j: int = ships.find(b)
+	return "%d-%d" % [mini(i, j), maxi(i, j)]
 
 
 ## What the arena does to the ships in it. Gravity is deliberately not here: a
@@ -299,6 +393,19 @@ func apply_command(actor: int, kind: String, args: Array, record: bool = true) -
 			var index: int = int(args[0])
 			if index >= 0 and index < ships.size():
 				set_target(ship, ships[index])
+				ok = true
+		"tractor_latch":
+			var on: int = int(args[0])
+			if on >= 0 and on < ships.size():
+				ok = latch_tractor(ship, ships[on])
+		"tractor_release":
+			ok = release_tractor(ship)
+		"tractor_mode":
+			var beam: Tractor = tractor_on(ship)
+			# Only the holder chooses. The prisoner does not get to decide whether
+			# it is being reeled in.
+			if beam != null and beam.holder == ship and beam.mode != String(args[0]):
+				beam.mode = String(args[0])
 				ok = true
 	# Only what actually happened is written down. A fire order that found no
 	# weapon bearing, or a transfer the shields refused, changed nothing, and

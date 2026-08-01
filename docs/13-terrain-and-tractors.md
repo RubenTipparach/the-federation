@@ -205,7 +205,8 @@ Placement rules that every recipe obeys:
 
 - **A box.** `TRAC`, a control family system, priced at 2 spare parts per box, which is
   what Federation Commander 5G3 charges for a tractor. With the box out, the tractor
-  cannot be used, which is 5A2c.
+  cannot be used, which is 5A2c. Not every hull carries one: the Kthaari Talon is an
+  escort with no emitter at all, which is a statement about what that ship is for.
 - **A power sink.** `tractor` joins weapons, shields, engines, systems, and reserve in
   `data/tuning.json`. The number of reactor units in that sink **is** the bid. It is
   set with the same discrete box strip that sets every other sink, so there is no new
@@ -228,6 +229,11 @@ attacker's `TRAC` box is alive and its tractor sink holds at least
 hold  = holder.alloc_units("tractor")
 break = held.alloc_units("tractor") * (held.tonnage / holder.tonnage)
 ```
+
+**Holding needs an emitter, breaking does not.** Latching a ship requires a live `TRAC`
+box. Shoving against a beam that is already on you is done with the engines and the
+structure, so a hull carrying no tractor is never helpless, and the auction is
+something every ship can enter.
 
 The mass ratio is the whole design in one line. A frigate can latch a battlecruiser,
 and the battlecruiser breaks it with a fraction of the power the frigate is spending,
@@ -283,6 +289,7 @@ until we have a rule to build against or a design of our own worth writing down.
 | Map recipes and seeded placement | `src/sim/terrain.gd` + `data/maps.json` | data drives it (5.4) |
 | Applying terrain effects each step | `src/sim/battle.gd` | the battle owns the world |
 | The tractor contest | `src/sim/tractor.gd` | one implementation, per 4.1 |
+| Beams currently up, and the orders that make them | `src/sim/battle.gd` | the one command path (docs/11) |
 | Tuning numbers | `data/tuning.json` | never inline (5.4) |
 
 The renderer asks `Terrain` the same questions the simulation does. There is not a

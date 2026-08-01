@@ -114,7 +114,7 @@
           [["DISR", 4, "weapon", "M2"]],
           [["WARP", 5, "power"]],
           [["PH-3", 2, "weapon", "M4"], ["IMP", 3, "power"]],
-          [["BTTY", 2, "power"], ["TRAN", 2, "control"]],
+          [["BTTY", 2, "power"], ["TRAN", 2, "control"], ["TRAC", 2, "control"]],
           [["DISR", 4, "weapon", "M1"]]
         ],
         "core": [["HULL", 5, "hull"], ["ARMR", 2, "hull"]]

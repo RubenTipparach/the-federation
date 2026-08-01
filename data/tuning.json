@@ -74,21 +74,24 @@
       "shields",
       "engines",
       "systems",
-      "reserve"
+      "reserve",
+      "tractor"
     ],
     "default_split": {
       "weapons": 0.34,
       "shields": 0.28,
       "engines": 0.24,
       "systems": 0.09,
-      "reserve": 0.05
+      "reserve": 0.05,
+      "tractor": 0.0
     },
     "ai_split": {
       "weapons": 0.38,
       "shields": 0.3,
       "engines": 0.24,
       "systems": 0.05,
-      "reserve": 0.03
+      "reserve": 0.03,
+      "tractor": 0.0
     }
   },
   "ai": {
