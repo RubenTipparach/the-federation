@@ -1,0 +1,46 @@
+[gd_scene load_steps=3 format=3]
+
+; A strip of subsystem station tabs. Every station has an authored button here
+; and the strip shows the subset its side asks for, so the two strips in the
+; tactical view are two instances of ONE scene rather than two scenes that can
+; drift (CLAUDE.md 4.1 and 5.1). What each button says and does comes from
+; data/stations.json; this file only says the buttons exist.
+
+[ext_resource type="Script" path="res://src/ui/system_tabs.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/ui/system_tab.tscn" id="2"]
+
+[node name="SystemTabs" type="GridContainer"]
+columns = 3
+theme_override_constants/h_separation = 3
+theme_override_constants/v_separation = 3
+script = ExtResource("1")
+
+[node name="shields" parent="." instance=ExtResource("2")]
+layout_mode = 2
+
+[node name="reactor" parent="." instance=ExtResource("2")]
+layout_mode = 2
+
+[node name="sensors" parent="." instance=ExtResource("2")]
+layout_mode = 2
+
+[node name="tractor" parent="." instance=ExtResource("2")]
+layout_mode = 2
+
+[node name="marines" parent="." instance=ExtResource("2")]
+layout_mode = 2
+
+[node name="shuttle" parent="." instance=ExtResource("2")]
+layout_mode = 2
+
+[node name="repair" parent="." instance=ExtResource("2")]
+layout_mode = 2
+
+[node name="life" parent="." instance=ExtResource("2")]
+layout_mode = 2
+
+[node name="cargo" parent="." instance=ExtResource("2")]
+layout_mode = 2
+
+[node name="science" parent="." instance=ExtResource("2")]
+layout_mode = 2

@@ -1,0 +1,39 @@
+[gd_scene load_steps=2 format=3]
+
+; One subsystem station tab. Structure only: the label, the icon and what box
+; it speaks for all come from data/stations.json, configured by
+; src/ui/system_tabs.gd. Authored rather than built in code (CLAUDE.md 5.1).
+;
+; The Fix button sits ON the tab because a station whose box is gone is
+; disabled, and a disabled tab cannot be opened to reach a repair button
+; inside it. The way to fix a dark console has to be on the outside of it.
+
+[ext_resource type="Texture2D" path="res://assets/icons/rpr.png" id="1"]
+
+[node name="SystemTab" type="Button"]
+custom_minimum_size = Vector2(0, 30)
+size_flags_horizontal = 3
+toggle_mode = true
+focus_mode = 0
+clip_text = true
+expand_icon = true
+theme_override_font_sizes/font_size = 10
+theme_override_constants/icon_max_width = 18
+theme_override_constants/h_separation = 4
+
+[node name="Fix" type="Button" parent="."]
+custom_minimum_size = Vector2(16, 16)
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -17.0
+offset_top = 1.0
+offset_right = -1.0
+offset_bottom = 17.0
+grow_horizontal = 0
+focus_mode = 0
+flat = true
+expand_icon = true
+icon = ExtResource("1")
+theme_override_constants/icon_max_width = 12

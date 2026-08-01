@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=11 format=3]
 
 [ext_resource type="Script" path="res://src/ui/combat_screen.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/combat_world.tscn" id="2"]
@@ -7,6 +7,9 @@
 [ext_resource type="Environment" path="res://assets/materials/env_plan_inset.tres" id="5"]
 [ext_resource type="PackedScene" path="res://scenes/ui/box_strip.tscn" id="6"]
 [ext_resource type="PackedScene" path="res://scenes/ui/target_bracket.tscn" id="7"]
+[ext_resource type="PackedScene" path="res://scenes/ui/ship_display.tscn" id="8"]
+[ext_resource type="PackedScene" path="res://scenes/ui/system_tabs.tscn" id="9"]
+[ext_resource type="PackedScene" path="res://scenes/ui/subsystem_panel.tscn" id="10"]
 
 [node name="Combat" type="HBoxContainer"]
 anchors_preset = 15
@@ -168,6 +171,12 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 10
 autowrap_mode = 2
 text = "Reactor output is fixed. Adding here takes from somewhere else."
+
+[node name="KeepTabs" parent="Left" instance=ExtResource("9")]
+layout_mode = 2
+
+[node name="KeepPanel" parent="Left" instance=ExtResource("10")]
+layout_mode = 2
 
 [node name="DamagePanel" type="PanelContainer" parent="Left"]
 layout_mode = 2
@@ -416,34 +425,46 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 12
 text = "status"
 
-[node name="TheirShields" type="PanelContainer" parent="Right"]
+[node name="OwnPanel" type="PanelContainer" parent="Right"]
 layout_mode = 2
 
-[node name="V" type="VBoxContainer" parent="Right/TheirShields"]
+[node name="V" type="VBoxContainer" parent="Right/OwnPanel"]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="Head" type="Label" parent="Right/TheirShields/V"]
+[node name="Head" type="Label" parent="Right/OwnPanel/V"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 11
-text = "THEIR SHIELDS"
+text = "OWN SHIP"
 
-[node name="S0" parent="Right/TheirShields/V" instance=ExtResource("3")]
+[node name="Display" parent="Right/OwnPanel/V" instance=ExtResource("8")]
 layout_mode = 2
 
-[node name="S1" parent="Right/TheirShields/V" instance=ExtResource("3")]
+[node name="Hint" type="Label" parent="Right/OwnPanel/V"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+autowrap_mode = 2
+text = "Click a damaged system to queue a repair. Right click for detail."
+
+[node name="TargetDisplayPanel" type="PanelContainer" parent="Right"]
 layout_mode = 2
 
-[node name="S2" parent="Right/TheirShields/V" instance=ExtResource("3")]
+[node name="V" type="VBoxContainer" parent="Right/TargetDisplayPanel"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Head" type="Label" parent="Right/TargetDisplayPanel/V"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "TARGET"
+
+[node name="Display" parent="Right/TargetDisplayPanel/V" instance=ExtResource("8")]
 layout_mode = 2
 
-[node name="S3" parent="Right/TheirShields/V" instance=ExtResource("3")]
+[node name="FightTabs" parent="Right" instance=ExtResource("9")]
 layout_mode = 2
 
-[node name="S4" parent="Right/TheirShields/V" instance=ExtResource("3")]
-layout_mode = 2
-
-[node name="S5" parent="Right/TheirShields/V" instance=ExtResource("3")]
+[node name="FightPanel" parent="Right" instance=ExtResource("10")]
 layout_mode = 2
 
 [node name="WeaponsPanel" type="PanelContainer" parent="Right"]

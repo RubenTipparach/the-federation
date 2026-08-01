@@ -11,6 +11,12 @@ signal facing_selected(facing: int)
 
 var selected_facing: int = 0
 
+## Small enough that the per facing strength text would not fit outside the
+## ring. The tactical view draws this at 124 pixels and lists the same numbers
+## on the shields station, so the text is dropped rather than shrunk into
+## illegibility. The fitting screen draws it at 660 and keeps them.
+var compact: bool = false
+
 var _shields: Array[float] = []
 var _shield_max: float = 1.0
 
@@ -69,7 +75,10 @@ func _draw() -> void:
 		var mid: float = deg_to_rad(f * 60.0)
 		var label_pos: Vector2 = center + Vector2(sin(mid), -cos(mid)) * ((r_out + r_in) * 0.5)
 		draw_string(font, label_pos + Vector2(-10, 4), "#%d" % (f + 1),
-			HORIZONTAL_ALIGNMENT_CENTER, 22, 12, Palette.FG)
+			HORIZONTAL_ALIGNMENT_CENTER, 22, 9 if compact else 12,
+			Palette.CRIT if _shields[f] <= 0.0 else Palette.FG)
+		if compact:
+			continue
 		var hp_pos: Vector2 = center + Vector2(sin(mid), -cos(mid)) * (r_out + 14.0)
 		var hp_text: String = "DOWN" if _shields[f] <= 0.0 else "%d/%d" % [
 			int(_shields[f]), int(_shield_max)]

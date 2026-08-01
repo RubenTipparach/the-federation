@@ -90,6 +90,28 @@ func bind_session(p_session: Session) -> void:
 		strip.setup(_sink_tint(sink))
 		strip.level_picked.connect(_on_power_picked.bind(sink.to_lower()))
 
+	# Two strips of the same component, split by CLAUDE.md 6.2's own test:
+	# what a player reaches for under fire sits on the right beside the target,
+	# and the ship's business sits on the left beside the log, where the comm
+	# log had room to spare. Three columns on the right, two on the left, so
+	# neither needs a second row of tabs.
+	$Right/FightTabs.setup("fight", 3)
+	$Left/KeepTabs.setup("keep", 2)
+	$Right/FightTabs.tab_selected.connect(_on_station_selected.bind($Right/FightPanel))
+	$Left/KeepTabs.tab_selected.connect(_on_station_selected.bind($Left/KeepPanel))
+	$Right/FightTabs.repair_requested.connect(_on_repair_requested)
+	$Left/KeepTabs.repair_requested.connect(_on_repair_requested)
+	for panel in [$Right/FightPanel, $Left/KeepPanel]:
+		panel.repair_requested.connect(_on_repair_requested)
+		panel.repair_dropped.connect(_on_repair_dropped)
+		panel.regen_facing_picked.connect(_on_regen_facing_picked)
+
+	# The own ship display is where a repair is ordered. The target's is the
+	# same component with detail and editing off, which is what stops an
+	# enemy's internals being readable box by box before sensors exist.
+	$Right/OwnPanel/V/Display.system_picked.connect(_on_repair_requested)
+	$Right/OwnPanel/V/Display.system_detail.connect(_on_system_detail)
+
 	var container: SubViewportContainer = $Mid/ViewPanel/Stack/ViewContainer
 	container.gui_input.connect(_on_view_input)
 
@@ -145,6 +167,7 @@ func start_replay(log: BattleLog) -> void:
 	$Mid/Actions/Pause.text = "Pause"
 	$Mid/ViewPanel/Stack/EndOverlay.visible = false
 	_build_weapon_rows()
+	_bind_displays()
 	_refresh_hud()
 	_sync_replay_bar()
 
@@ -169,7 +192,22 @@ func start_battle() -> void:
 	$Mid/Actions/Pause.text = "Pause"
 	$Mid/ViewPanel/Stack/EndOverlay.visible = false
 	_build_weapon_rows()
+	_bind_displays()
 	_refresh_hud()
+
+
+## Point the two ship displays at their ships. Own ship gets box by box detail
+## and takes clicks; the target gets neither, because reading an enemy's
+## internals is what a sensor lock will buy (CLAUDE.md 6.1: one component,
+## configured, never a second one).
+func _bind_displays() -> void:
+	if battle == null:
+		return
+	var me: ShipState = battle.player()
+	$Right/OwnPanel/V/Display.bind_ship(me, true, true)
+	$Right/TargetDisplayPanel/V/Display.bind_ship(battle.target_for(me), false, false)
+	$Right/FightPanel.show_station($Right/FightTabs.selected(), me)
+	$Left/KeepPanel.show_station($Left/KeepTabs.selected(), me)
 
 
 func _build_weapon_rows() -> void:
@@ -459,6 +497,60 @@ func _lock_under_mouse() -> void:
 			battle.ships[picked].fit.hull()["name"]).to_upper())
 
 
+## A station was opened. The panel is told which ship it is drawing here rather
+## than holding one, so the same panel serves a live battle and a replay.
+func _on_station_selected(id: String, panel: Node) -> void:
+	if battle != null:
+		panel.show_station(id, battle.player())
+
+
+## Order a repair. Routed through apply_command like every other order, so a
+## recording sees it and a replay puts the ship back together the same way.
+func _on_repair_requested(index: int) -> void:
+	if battle == null or not _can_command():
+		return
+	if battle.apply_command(0, "repair_queue", [index]):
+		var sys: Dictionary = battle.player().systems[index]
+		_note("Repair: %s queued, %d parts" % [String(sys["code"]),
+			RepairModel.job_cost(sys, Catalog.tuning())])
+
+
+func _on_repair_dropped(index: int) -> void:
+	if battle == null or not _can_command():
+		return
+	if battle.apply_command(0, "repair_drop", [index]):
+		_note("Repair: %s cancelled" % String(battle.player().systems[index]["code"]))
+
+
+## Which shield the regeneration energy is buying for (Federation Commander
+## 3C7). Clicking the facing already picked releases it back to the weakest.
+func _on_regen_facing_picked(facing: int) -> void:
+	if battle == null or not _can_command():
+		return
+	var want: int = -1 if battle.player().shield_bias == facing else facing
+	if battle.apply_command(0, "shield_bias", [want]):
+		_note("Shields: hold #%d" % (facing + 1) if want >= 0 else "Shields: even")
+
+
+## Right click on a subsystem: what losing it costs. It goes to the comm log
+## rather than to a popover, because the log is already the place this screen
+## says things and a second one would be a second implementation.
+func _on_system_detail(index: int) -> void:
+	if battle == null:
+		return
+	var sys: Dictionary = battle.player().systems[index]
+	var tuning: Dictionary = Catalog.tuning()
+	var where: String = "core" if int(sys["sector"]) < 0 \
+		else "#%d" % (int(sys["sector"]) + 1)
+	if RepairModel.repairable(sys, tuning):
+		_note("%s %s: %d/%d, %d parts to fix" % [String(sys["code"]), where,
+			int(sys["boxes"]), int(sys["boxes_max"]),
+			RepairModel.job_cost(sys, tuning)])
+	else:
+		_note("%s %s: %d/%d, undamaged" % [String(sys["code"]), where,
+			int(sys["boxes"]), int(sys["boxes_max"])])
+
+
 ## A box strip reports the level it was clicked to, which is already the whole
 ## number of reactor points the sim wants. No rounding happens at the view.
 func _on_power_picked(level: int, sink: String) -> void:
@@ -657,8 +749,12 @@ func _refresh_hud() -> void:
 		"RANGE  %.1f" % dist,
 		"BEARING  %03d" % int(bearing),
 	])
-	for f in range(6):
-		$Right/TheirShields/V.get_node("S%d" % f).paint(f, foe.shields[f], foe.shield_max)
+	$Right/OwnPanel/V/Display.refresh()
+	$Right/TargetDisplayPanel/V/Display.refresh()
+	$Right/FightTabs.refresh(me.systems, me.repair_queue)
+	$Left/KeepTabs.refresh(me.systems, me.repair_queue)
+	$Right/FightPanel.refresh()
+	$Left/KeepPanel.refresh()
 
 	for i in range(_weapon_rows.size()):
 		var w: Dictionary = me.weapons_rt[i]
