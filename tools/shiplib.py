@@ -47,6 +47,10 @@ def load_palette(path, ship):
 
     roles = {}
     for role, value in data["ships"][ship].items():
+        # Underscore keys are the comment convention every data file in this
+        # repo uses. They are prose, not colours.
+        if role.startswith("_"):
+            continue
         if isinstance(value, list):
             roles[role] = tuple(resolve(n) for n in value)
         else:
@@ -469,3 +473,172 @@ def slab(o, outline, y0, y1, rect_top, rect_side, tex, rect_aft=None,
 def disc_outline(cx, cz, rx, rz, steps):
     return [(cx + math.sin(2 * math.pi * i / steps) * rx,
              cz + math.cos(2 * math.pi * i / steps) * rz) for i in range(steps)]
+
+
+# ---- the R1 painting vocabulary ----------------------------------------------
+
+
+class R1:
+    """The R1 sheets' painting vocabulary, shared by every Federation hull.
+
+    The frigate authored these marks and the cruiser needs the same ones, so
+    they live here rather than being copied into a second painter
+    (CLAUDE.md 4.1). Every colour is a role read from data/palette.json
+    through the role map handed in, so a hull repaints by editing that map and
+    nothing else: this class holds no hex values and never will.
+
+    Construct one per painter, with that painter's role map and its seeded
+    RNG, so the speckle stays deterministic and a rerun is an empty diff."""
+
+    def __init__(self, roles, rng):
+        self.r = roles
+        self.rng = rng
+
+    def erode(self, mask):
+        depth = rings(mask, 1)
+        return [[on and depth[y][x] == 0 for x, on in enumerate(row)]
+                for y, row in enumerate(mask)]
+
+    def two_tone(self, p, x0, y0, mask, fill, light, shadow, spark=None,
+                 spark_prob=0.25):
+        """The R1 blue-on-blue panel: no outline, a lit ridge on edges open to
+        the top or left, a shadow on edges open to the bottom or right."""
+        h, w = len(mask), len(mask[0])
+
+        def inside(x, y):
+            return 0 <= x < w and 0 <= y < h and mask[y][x]
+
+        for y, row in enumerate(mask):
+            for x, on in enumerate(row):
+                if not on:
+                    continue
+                if not inside(x, y - 1) or not inside(x - 1, y):
+                    c = light
+                    if spark is not None and self.rng.random() < spark_prob:
+                        c = spark
+                elif not inside(x, y + 1) or not inside(x + 1, y):
+                    c = shadow
+                else:
+                    c = fill
+                p.put(x0 + x, y0 + y, c)
+
+    def plate_island(self, p, x0, y0, mask):
+        """A hull island: black silhouette outline, then the R1 ridge and
+        shadow just inside it."""
+        r = self.r
+        p.shape(x0, y0, mask, r["plate"], line=r["outline"])
+        self.two_tone(p, x0, y0, self.erode(mask), r["plate"],
+                      r["plate_light"], r["plate_shadow"],
+                      spark=r["accent"], spark_prob=0.08)
+
+    def plate_panel(self, p, x0, y0, mask):
+        """A plate-on-plate panel with no outline at all."""
+        r = self.r
+        self.two_tone(p, x0, y0, mask, r["plate"], r["plate_light"],
+                      r["plate_shadow"], spark=r["accent"])
+
+    def machinery(self, p, x0, y0, mask, dots=True):
+        """R1 gray machinery: mid fill, black outline with rivet dots, a light
+        top ridge and a dark bottom shadow inside."""
+        r = self.r
+        p.shape(x0, y0, mask, r["machinery"], line=r["outline"])
+        self.two_tone(p, x0, y0, self.erode(mask), r["machinery"],
+                      r["machinery_ridge"], r["machinery_shadow"])
+        if dots:
+            h, w = len(mask), len(mask[0])
+            for x in range(2, w - 2, 3):
+                if mask[0][x]:
+                    p.put(x0 + x, y0 + 1, r["outline"])
+                if mask[h - 1][x]:
+                    p.put(x0 + x, y0 + h - 2, r["outline"])
+
+    def ridge_ring(self, p, cx, cy, rad, light=None, shadow=None):
+        """A raised ring seam on a plate: lit on its upper left arc, shaded on
+        its lower right."""
+        light = self.r["plate_light"] if light is None else light
+        shadow = self.r["plate_shadow"] if shadow is None else shadow
+        mask = octagon_mask(rad)
+        depth = rings(mask, 1)
+        for y, row in enumerate(mask):
+            for x, on in enumerate(row):
+                if on and depth[y][x]:
+                    p.put(cx - rad + x, cy - rad + y,
+                          light if (x - rad) + (y - rad) < 0 else shadow)
+
+    def rivet_ring(self, p, cx, cy, rad, count, offset=0.0):
+        """Silver rivet dots following a circular seam, one in four pale."""
+        r = self.r
+        for i in range(count):
+            a = offset + 2.0 * math.pi * i / count
+            color = r["rivet_pale"] if i % 4 == 3 else r["machinery_ridge"]
+            p.put(int(cx + math.cos(a) * rad), int(cy + math.sin(a) * rad), color)
+
+    def rivet_row(self, p, x, y, count, step=3, vertical=False):
+        r = self.r
+        for i in range(count):
+            color = r["rivet_pale"] if i % 4 == 3 else r["machinery_ridge"]
+            p.put(x + (0 if vertical else i * step),
+                  y + (i * step if vertical else 0), color)
+
+    def capsule(self, p, x, y, length, vertical=False):
+        """A bright capsule strip with lighter end caps, the R1 accent."""
+        r = self.r
+        if vertical:
+            p.vline(x, y, length, r["accent"])
+            p.put(x, y, r["plate_light"])
+            p.put(x, y + length - 1, r["plate_light"])
+        else:
+            p.hline(x, y, length, r["accent"])
+            p.put(x, y, r["plate_light"])
+            p.put(x + length - 1, y, r["plate_light"])
+
+    def ladder(self, p, rect):
+        """Light rungs on dark rails, the R1 vent block."""
+        r = self.r
+        x0, y0, x1, y1 = rect
+        p.fill(rect, r["outline"])
+        step = 0
+        for y in range(y0 + 1, y1 - 1, 2):
+            p.hline(x0 + 1, y, x1 - x0 - 2,
+                    r["machinery_ridge"] if step % 2 == 0 else r["step"])
+            step += 1
+
+    def red_block(self, p, x0, y0, w, h):
+        """R1 red machinery: red fill, alternating black dot border ON the
+        red, dark red shading on the lower right."""
+        r = self.r
+        p.fill((x0, y0, x0 + w, y0 + h), r["red"])
+        p.fill((x0 + w // 2, y0 + h // 2, x0 + w, y0 + h), r["red_dark"])
+        p.fill((x0 + 1, y0 + h - 2, x0 + w, y0 + h), r["red_shadow"])
+        p.fill((x0 + w - 2, y0 + 1, x0 + w, y0 + h), r["red_shadow"])
+        for x in range(x0, x0 + w, 2):
+            p.put(x, y0, r["outline"])
+            p.put(x + 1 if (x + 1) < x0 + w else x, y0 + h - 1, r["outline"])
+        for y in range(y0, y0 + h, 2):
+            p.put(x0, y, r["outline"])
+            p.put(x0 + w - 1, y + 1 if (y + 1) < y0 + h else y, r["outline"])
+
+    def window_run(self, d, lights, x, y, count=2):
+        """A short vertical run of window pixels, all lit."""
+        for i in range(count):
+            d.put(x, y + i, self.r["window"])
+            lights.put(x, y + i, self.r["glow_window"])
+
+    def engine_bell(self, d, layer, x0, y0, w, h):
+        """The R1 engine bell: dashed red housing, silver ringed bell with a
+        white plus specular, and the layered glow with its wide dark halo."""
+        r = self.r
+        self.red_block(d, x0, y0, w, h)
+        cx, cy = x0 + w // 2, y0 + h // 2
+        d.shape(cx - 4, cy - 4, octagon_mask(4), r["silver"],
+                line=r["machinery_ridge"], width=1)
+        d.put(cx, cy - 1, r["specular"])
+        d.put(cx, cy + 1, r["specular"])
+        d.put(cx - 1, cy, r["specular"])
+        d.put(cx + 1, cy, r["specular"])
+        d.put(cx, cy, r["machinery"])
+        layer.stamp(x0 + 1, y0 + 1, rect_mask(w - 2, h - 2, (2, 2, 2, 2)),
+                    r["glow_halo"])
+        layer.stamp(cx - 4, cy - 4, octagon_mask(4), r["glow_mid"])
+        layer.stamp(cx - 2, cy - 2, octagon_mask(2), r["glow_light"])
+        layer.fill((cx - 1, cy - 1, cx + 1, cy + 1), r["glow_core"])

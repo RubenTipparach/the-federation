@@ -58,6 +58,12 @@ PALETTE = os.path.join(HERE, "..", "data", "palette.json")
 # Authored at the R6 sheets' native grid, exported 2x for the engine.
 TEX = 128
 SCALE = 2
+# The two ships this painter makes: role map name, and the texture prefix.
+# The Talon is the Bloodletter's escort, same hull and same marks in duller
+# paint, so it gets a role map rather than a painter of its own
+# (CLAUDE.md 4.1). Adding a third Kthaari ship is a line here plus a map.
+VARIANTS = (("raider", "hull_raider", 6), ("talon", "hull_talon", 19))
+
 RNG = random.Random(6)
 
 # Roles, resolved through data/palette.json. Nothing here is a hex value.
@@ -356,16 +362,53 @@ def build_mesh():
             "Kthaari raider, armored head, swept wings, nose at +Z, atlas mapped")
 
 
+def configure(ship, seed):
+    """Point the painter's colour globals at one variant's role map.
+
+    paint() is three hundred lines of hand placed marks reading bare names,
+    and threading a palette through all of them would be a large edit to
+    working art for no gain. Rebinding the module globals is the small,
+    honest version: the vocabulary and the layout stay one implementation,
+    and only which colours those names mean changes."""
+    role, allowed = load_palette(PALETTE, ship)
+    g = globals()
+    g["RNG"] = random.Random(seed)
+    g["ROLE"], g["ALLOWED"] = role, allowed
+    names = {
+        "HULL": "hull", "OUTLINE": "outline", "PANEL": "panel",
+        "PLATE": "plate", "PLATE_L": "plate_light", "STEEL_L": "armor",
+        "LIGHT": "armor_ridge", "PALE": "armor_pale", "STEEL": "armor_shadow",
+        "STEEL_D": "armor_deep", "GREEN": "green", "GREEN_L": "green_light",
+        "GREEN_D": "green_dark", "PLUME_EDGE": "plume_edge",
+        "PLUME_MID": "plume_mid", "PLUME_CORE": "plume_core",
+        "MARK": "mark", "GLOW_YELLOW": "window", "GRILLE_RAMP": "grille_ramp",
+    }
+    for const, key in names.items():
+        g[const] = role[key]
+    # The bevel tables are derived from those colours, so they are rebuilt
+    # here rather than left pointing at the previous variant's.
+    g["BEVEL_DARK"] = {role["outline"]}
+    g["BEVEL_LIGHT"] = {
+        role["armor"]: role["armor_ridge"], role["green"]: role["green_light"],
+        role["plate"]: role["plate_light"], role["hull"]: role["panel"],
+    }
+    g["BEVEL_SHADE"] = {
+        role["armor"]: role["armor_shadow"], role["green"]: role["green_dark"],
+    }
+
+
 def main():
     os.makedirs(MESH_OUT, exist_ok=True)
     os.makedirs(TEX_OUT, exist_ok=True)
     build_mesh()
-    d, l, e = paint()
-    verify(d, l, e, ALLOWED, ALL_RECTS, TEX, background=OUTLINE,
-           lit_budget=(0.002, 0.05))
-    d.save(os.path.join(TEX_OUT, "hull_raider_diffuse.png"), scale=SCALE)
-    l.save(os.path.join(TEX_OUT, "hull_raider_lights.png"), scale=SCALE)
-    e.save(os.path.join(TEX_OUT, "hull_raider_engines.png"), scale=SCALE)
+    for ship, prefix, seed in VARIANTS:
+        configure(ship, seed)
+        d, l, e = paint()
+        verify(d, l, e, ALLOWED, ALL_RECTS, TEX, background=OUTLINE,
+               lit_budget=(0.002, 0.05))
+        d.save(os.path.join(TEX_OUT, prefix + "_diffuse.png"), scale=SCALE)
+        l.save(os.path.join(TEX_OUT, prefix + "_lights.png"), scale=SCALE)
+        e.save(os.path.join(TEX_OUT, prefix + "_engines.png"), scale=SCALE)
 
 
 if __name__ == "__main__":

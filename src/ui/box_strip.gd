@@ -46,17 +46,35 @@ func paint(p_level: int, p_capacity: int, p_ceiling: int = -1) -> void:
 	queue_redraw()
 
 
+## How wide one box is drawn. The MIN_BOX floor keeps a small strip legible,
+## but it must not push the strip past its own edge: the Ironhold carries 33
+## spare parts and the floored strip painted straight over the number beside
+## it. When the floor does not fit, the gap goes first and then the boxes get
+## thinner, because a cramped strip still reads as a count and an overflowing
+## one reads as a glitch.
 func _box_width() -> float:
-	return maxf(MIN_BOX, (size.x - GAP * float(capacity - 1)) / float(capacity))
+	var n: float = float(capacity)
+	var wide: float = (size.x - GAP * (n - 1.0)) / n
+	if wide >= MIN_BOX:
+		return wide
+	return maxf(1.0, minf(MIN_BOX, size.x / n))
+
+
+## The gap is dropped before the boxes are, so a long strip loses its combing
+## rather than its legibility.
+func _gap() -> float:
+	var n: float = float(capacity)
+	return GAP if (size.x - GAP * (n - 1.0)) / n >= MIN_BOX else 0.0
 
 
 func _draw() -> void:
 	var w: float = _box_width()
+	var gap: float = _gap()
 	var top: float = 0.0
 	var h: float = size.y
 	var limit: int = capacity if ceiling < 0 else clampi(ceiling, 0, capacity)
 	for i in range(capacity):
-		var x: float = float(i) * (w + GAP)
+		var x: float = float(i) * (w + gap)
 		var col: Color = Palette.LINE
 		if i >= limit:
 			# Output this box used to represent has been shot away.
@@ -72,7 +90,7 @@ func _gui_input(event: InputEvent) -> void:
 	if event.button_index != MOUSE_BUTTON_LEFT or not event.pressed:
 		return
 	var w: float = _box_width()
-	var picked: int = int(floor(event.position.x / (w + GAP))) + 1
+	var picked: int = int(floor(event.position.x / (w + _gap()))) + 1
 	picked = clampi(picked, 0, capacity)
 	# Clicking the box that is already the top of the bar means "one less",
 	# so a strip can be walked down without a separate control.
