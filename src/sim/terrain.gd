@@ -64,6 +64,13 @@ func _place_group(spec: Dictionary, rng: RandomNumberGenerator, half: float,
 		# so a rock field reads as a field rather than as evenly spaced bollards.
 		var anchor: Vector2 = Vector2.ZERO
 		var anchored: bool = false
+		# Which look this group wears, where the kind has more than one. Drawn
+		# once per group rather than per body, so a rock field is one field
+		# rather than a bag of unrelated stones, and drawn from the battle rng
+		# so a replay shows the same world.
+		var variants: Array = spec.get("variants", [])
+		var variant: String = "" if variants.is_empty() \
+			else String(variants[rng.randi_range(0, variants.size() - 1)])
 		for _i in range(per_group):
 			var body: float = _pick_float(spec["body"], rng)
 			var field: float = _pick_float(spec["field"], rng)
@@ -84,7 +91,10 @@ func _place_group(spec: Dictionary, rng: RandomNumberGenerator, half: float,
 						rng.randf_range(-limit, limit))
 				if not _acceptable(kind, at, body, field, keep_clear):
 					continue
-				features.append({ "kind": kind, "pos": at, "body": body, "field": field })
+				features.append({
+					"kind": kind, "pos": at, "body": body, "field": field,
+					"variant": variant,
+				})
 				if not anchored:
 					anchor = at
 					anchored = true

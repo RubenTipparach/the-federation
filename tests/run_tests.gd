@@ -467,6 +467,24 @@ func test_terrain() -> void:
 	ok(bodies_apart, "solid bodies never overlap each other")
 	ok(opens_with_lock, "no map begins with the two sides unable to see each other")
 
+	# Every feature a recipe can produce must have a scene that draws it. A
+	# variant named in data/maps.json with no matching scene would place a world
+	# the arena simply does not render, and nothing else would say so.
+	var FieldLib = preload("res://src/ui/terrain_field.gd")
+	var all_drawable: bool = true
+	var variants_seen: Dictionary = {}
+	for map_id in CatalogLib.map_ids():
+		for seed_value in range(1, 40):
+			var b = BattleLib.create_duel(FitLib.create_default("wayfarer"),
+				"talon", seed_value, String(map_id))
+			for f in b.terrain.features:
+				variants_seen[String(f["kind"]) + "/" + String(f.get("variant", ""))] = true
+				if FieldLib.scene_for(f) == null:
+					all_drawable = false
+	ok(all_drawable, "every feature a recipe can place has a scene that draws it")
+	ok(variants_seen.has("planet/rock") and variants_seen.has("planet/ice")
+		and variants_seen.has("planet/gas"), "and all three kinds of world turn up")
+
 	# ---- nebulae: obscuration is a path length, not a flag ----
 	var cloudy = TerrainLib.new()
 	cloudy.features.append({ "kind": TerrainLib.KIND_NEBULA,

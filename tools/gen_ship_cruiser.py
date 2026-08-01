@@ -31,6 +31,10 @@ MESH_OUT = os.path.join(HERE, "..", "assets", "meshes")
 TEX_OUT = os.path.join(HERE, "..", "assets", "textures")
 PALETTE = os.path.join(HERE, "..", "data", "palette.json")
 
+## How many pieces a destroyed hull comes apart into. One number for every
+## ship, so the wreck scene's chunk slots line up whatever died.
+FRAGMENTS = 8
+
 TEX = 128
 SCALE = 2
 
@@ -244,6 +248,10 @@ def build_mesh():
              rect_aft=R_NACELLE_AFT, rect_fore=R_NACELLE_FORE)
     o.write("hull_cruiser.obj",
             "Federation heavy cruiser, nose at +Z, atlas mapped")
+    # The same hull, cut into the pieces it comes apart into. See
+    # shiplib.Obj.write_fragments: the wreck instances these so a destroyed
+    # cruiser scatters cruiser, wearing the cruiser's own paint.
+    o.write_fragments("hull_cruiser", FRAGMENTS, "Federation heavy cruiser")
 
 
 def main():

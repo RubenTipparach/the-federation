@@ -52,6 +52,10 @@ TEX_OUT = os.path.join(HERE, "..", "assets", "textures")
 PALETTE = os.path.join(HERE, "..", "data", "palette.json")
 
 # Authored at the R1 sheets' native grid, exported 2x for the engine.
+## How many pieces a destroyed hull comes apart into. One number for every
+## ship, so the wreck scene's chunk slots line up whatever died.
+FRAGMENTS = 8
+
 TEX = 128
 SCALE = 2
 RNG = random.Random(11)
@@ -272,6 +276,7 @@ def build_mesh():
              0.46, 0.74, R_NACELLE_TOP, R_NACELLE_SIDE, TEX,
              rect_aft=R_NACELLE_AFT, rect_fore=R_NACELLE_FORE)
     o.write("hull_frigate.obj", "Okinawa inspired frigate, nose at +Z, atlas mapped")
+    o.write_fragments("hull_frigate", FRAGMENTS, "Okinawa inspired frigate")
 
 
 def main():

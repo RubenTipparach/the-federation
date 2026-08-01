@@ -1,0 +1,19 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3]
+
+; A living world: navy oceans, phos_lo continents, bone cloud and ice, and a blue_hi sky at the limb.
+;
+; Every colour is a data/palette.json entry, named in the comment above and
+; converted here only because a .tres stores floats (CLAUDE.md 3.1).
+
+[ext_resource type="Shader" path="res://assets/shaders/planet.gdshader" id="1"]
+
+[resource]
+shader = ExtResource("1")
+shader_parameter/deep = Color(0.122, 0.176, 0.212, 1.00)
+shader_parameter/land = Color(0.290, 0.420, 0.271, 1.00)
+shader_parameter/high = Color(0.741, 0.733, 0.682, 1.00)
+shader_parameter/blobbiness = 1.0
+shader_parameter/cap_extent = 0.18
+shader_parameter/roughness_amount = 0.92
+shader_parameter/noise_scale = 3.2
+shader_parameter/seed = 3.0

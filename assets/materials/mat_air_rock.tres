@@ -1,0 +1,12 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3]
+
+; The limb glow for the rock world, in the palette's blue_hi.
+
+[ext_resource type="Shader" path="res://assets/shaders/atmosphere.gdshader" id="1"]
+
+[resource]
+render_priority = 1
+shader = ExtResource("1")
+shader_parameter/tint = Color(0.494, 0.663, 0.812, 1.00)
+shader_parameter/strength = 0.8
+shader_parameter/falloff = 3.0

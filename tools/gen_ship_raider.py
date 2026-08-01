@@ -56,6 +56,10 @@ TEX_OUT = os.path.join(HERE, "..", "assets", "textures")
 PALETTE = os.path.join(HERE, "..", "data", "palette.json")
 
 # Authored at the R6 sheets' native grid, exported 2x for the engine.
+## How many pieces a destroyed hull comes apart into. One number for every
+## ship, so the wreck scene's chunk slots line up whatever died.
+FRAGMENTS = 8
+
 TEX = 128
 SCALE = 2
 # The two ships this painter makes: role map name, and the texture prefix.
@@ -360,6 +364,7 @@ def build_mesh():
              rect_aft=R_POD_AFT, rect_fore=R_POD_FORE)
     o.write("hull_raider.obj",
             "Kthaari raider, armored head, swept wings, nose at +Z, atlas mapped")
+    o.write_fragments("hull_raider", FRAGMENTS, "Kthaari raider")
 
 
 def configure(ship, seed):

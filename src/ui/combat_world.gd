@@ -167,7 +167,8 @@ func _break_up(index: int, at: Vector2) -> void:
 	var wreck: Node3D = WRECK.instantiate()
 	$Wrecks.add_child(wreck)
 	wreck.burst(at, rig.hull_radius(), rig.hull_material(),
-		_battle.tick * 7919 + index)
+		_battle.tick * 7919 + index, rig.hull_fragments(),
+		_battle.ships[index].heading, rig.hull_draw_scale())
 	rig.stand_down()
 
 

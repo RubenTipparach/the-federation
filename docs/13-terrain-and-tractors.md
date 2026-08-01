@@ -161,7 +161,29 @@ that a healthy cruiser survives one and nothing survives two. The same cooldown 
 as asteroids applies, so a ship sitting on the surface dies in a few seconds rather
 than instantly.
 
-### 4.3 A planet is not cover
+### 4.3 Worlds come in three kinds
+
+A planet is drawn as one of `rock`, `ice`, or `gas`, drawn from the battle seed
+like everything else, so a replay shows the same world. The list lives in
+`data/maps.json` beside the recipe, and adding a fourth kind is an entry there
+plus a scene to draw it.
+
+They are the same shader with different uniforms rather than three shaders: a
+value noise on the sphere in object space, stepped into two hard bands so a
+coastline reads at the size a planet is actually drawn, plus ice caps by
+latitude. What turns continents into a gas giant's bands is one uniform,
+`blobbiness`, which squashes the horizontal axes of the noise toward nothing so
+only latitude survives.
+
+Each carries a second, slightly larger sphere for its air, front culled so only
+the far wall draws and the glow rings the planet rather than veiling it. That
+rim is what makes a shaded ball read as a world.
+
+Nothing about this is gameplay: a gas giant pulls and kills exactly like a rock
+one. The variant is what it looks like, which is why it is a whole authored
+scene per kind rather than a material the code swaps in.
+
+### 4.4 A planet is not cover
 
 A planet does not block line of sight. Blocking would require the shot to know about
 occlusion, which means a second visibility system alongside the nebula's, and the two

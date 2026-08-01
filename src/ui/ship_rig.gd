@@ -152,6 +152,33 @@ func hull_material() -> Material:
 	return $Hull.material_override
 
 
+## The pieces this hull comes apart into, or an empty list for a hull that has
+## none. Paths are derived from the hull mesh rather than listed in ships.json,
+## because a fragment is not a design decision a hull gets to make separately:
+## it is the same mesh, cut up by the same generator, and the two are written in
+## the same breath (shiplib.Obj.write_fragments).
+func hull_fragments() -> Array[Mesh]:
+	var out: Array[Mesh] = []
+	var mesh_path: String = String(_state.fit.hull().get("mesh", ""))
+	if mesh_path.is_empty():
+		return out
+	var stem: String = mesh_path.trim_suffix(".obj")
+	var index: int = 0
+	while true:
+		var path: String = "%s_frag_%d.obj" % [stem, index]
+		if not ResourceLoader.exists(path):
+			break
+		out.append(load(path))
+		index += 1
+	return out
+
+
+## How large the hull is drawn, so a wreck made of its own fragments can be
+## drawn at the same size the ship was.
+func hull_draw_scale() -> float:
+	return $Hull.scale.x
+
+
 ## Everything this rig draws, gone at once. Called when the ship comes apart:
 ## the wreck takes over from here, and a shield ring hanging in the air where a
 ## hull used to be would say the ship is still there.

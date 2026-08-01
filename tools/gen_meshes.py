@@ -152,11 +152,16 @@ def disc():
     o.write("disc.obj", "Unit filled disc on the XZ plane, for terrain fields")
 
 
-def sphere(segs=20, rings=12):
+def sphere(segs=32, rings=18):
     # A unit sphere, used for every solid terrain body: a nebula's volume, an
-    # asteroid, a planet. One mesh scaled three ways rather than three meshes
-    # (CLAUDE.md 4.1); what tells them apart is the authored material on the
-    # scene that instances it.
+    # asteroid, a planet, and the fireball a ship leaves. One mesh scaled four
+    # ways rather than four meshes (CLAUDE.md 4.1); what tells them apart is the
+    # authored material on the scene that instances it.
+    #
+    # 32 by 18 rather than something coarser because the planet's atmosphere is
+    # a rim glow hugging the silhouette, and on a coarse sphere that silhouette
+    # is visibly a polygon. Every other user of this mesh is either a soft blob
+    # or a rock, and neither minds the extra triangles.
     o = Obj()
     # Rows of vertices from the north pole down. Normals equal positions on a
     # unit sphere, so the winding check is just "does the triangle face out".

@@ -1,0 +1,31 @@
+[gd_scene load_steps=7 format=3]
+
+; A gas world: the body, a slightly larger shell for its air, and the ring that
+; marks where the gravity well starts. The shell is scaled a little past the
+; body in the scene rather than in code, because how thick a planet's air looks
+; is a property of this scene and not something the simulation knows about.
+
+[ext_resource type="Script" path="res://src/ui/terrain_feature.gd" id="1"]
+[ext_resource type="ArrayMesh" path="res://assets/meshes/sphere.obj" id="2"]
+[ext_resource type="Material" path="res://assets/materials/mat_planet_gas.tres" id="3"]
+[ext_resource type="ArrayMesh" path="res://assets/meshes/ring.obj" id="4"]
+[ext_resource type="Material" path="res://assets/materials/mat_well_ring.tres" id="5"]
+[ext_resource type="Material" path="res://assets/materials/mat_air_gas.tres" id="6"]
+
+[node name="Planet" type="Node3D"]
+script = ExtResource("1")
+
+[node name="Body" type="MeshInstance3D" parent="."]
+mesh = ExtResource("2")
+material_override = ExtResource("3")
+
+[node name="Air" type="MeshInstance3D" parent="Body"]
+transform = Transform3D(1.09, 0, 0, 0, 1.09, 0, 0, 0, 1.09, 0, 0, 0)
+mesh = ExtResource("2")
+material_override = ExtResource("6")
+cast_shadow = 0
+
+[node name="Field" type="MeshInstance3D" parent="."]
+mesh = ExtResource("4")
+material_override = ExtResource("5")
+cast_shadow = 0
