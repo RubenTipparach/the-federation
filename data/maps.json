@@ -92,8 +92,9 @@
           ],
           "spread": 0.0,
           "variants": [
-            "rock",
+            "terran",
             "ice",
+            "barren",
             "gas"
           ]
         }

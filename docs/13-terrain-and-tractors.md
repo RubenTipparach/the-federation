@@ -163,21 +163,23 @@ than instantly.
 
 ### 4.3 Worlds come in three kinds
 
-A planet is drawn as one of `rock`, `ice`, or `gas`, drawn from the battle seed
+A planet is drawn as one of `terran`, `ice`, `barren`, or `gas`, chosen by the battle seed
 like everything else, so a replay shows the same world. The list lives in
 `data/maps.json` beside the recipe, and adding a fourth kind is an entry there
 plus a scene to draw it.
 
-They are the same shader with different uniforms rather than three shaders: a
-value noise on the sphere in object space, stepped into two hard bands so a
-coastline reads at the size a planet is actually drawn, plus ice caps by
-latitude. What turns continents into a gas giant's bands is one uniform,
-`blobbiness`, which squashes the horizontal axes of the noise toward nothing so
-only latitude survives.
+They are pixel art, drawn by shaders vendored from Deep-Fold under the MIT
+licence and documented in
+[14-reference-pixel-planets.md](14-reference-pixel-planets.md). Those shaders are
+2D, so each world renders into its own small viewport and is shown on a card that
+faces the camera. That is not an approximation of a sphere: a sphere projects to a
+circle from every direction, so a camera facing card is exactly the shape of one.
+What it buys is that a planet is now made of the same chunky pixels as the ships
+and the panels.
 
-Each carries a second, slightly larger sphere for its air, front culled so only
-the far wall draws and the glow rings the planet rather than veiling it. That
-rim is what makes a shaded ball read as a world.
+They never blend between their colours, which is why they can be used at all here:
+feed them palette entries and every pixel they emit is a palette entry
+(CLAUDE.md 3.1). The lists live in `data/palette.json` under `worlds`.
 
 Nothing about this is gameplay: a gas giant pulls and kills exactly like a rock
 one. The variant is what it looks like, which is why it is a whole authored

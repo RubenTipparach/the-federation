@@ -474,7 +474,7 @@ func test_terrain() -> void:
 	var all_drawable: bool = true
 	var variants_seen: Dictionary = {}
 	for map_id in CatalogLib.map_ids():
-		for seed_value in range(1, 40):
+		for seed_value in range(1, 60):
 			var b = BattleLib.create_duel(FitLib.create_default("wayfarer"),
 				"talon", seed_value, String(map_id))
 			for f in b.terrain.features:
@@ -482,8 +482,11 @@ func test_terrain() -> void:
 				if FieldLib.scene_for(f) == null:
 					all_drawable = false
 	ok(all_drawable, "every feature a recipe can place has a scene that draws it")
-	ok(variants_seen.has("planet/rock") and variants_seen.has("planet/ice")
-		and variants_seen.has("planet/gas"), "and all three kinds of world turn up")
+	var every_world: bool = true
+	for want in ["terran", "ice", "barren", "gas"]:
+		if not variants_seen.has("planet/" + want):
+			every_world = false
+	ok(every_world, "and every kind of world turns up")
 
 	# ---- nebulae: obscuration is a path length, not a flag ----
 	var cloudy = TerrainLib.new()

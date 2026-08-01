@@ -50,6 +50,41 @@ static func _role(name: String) -> Color:
 	return _roles[name]
 
 
+## The whole palette file, parsed once. The role lookup above needs it and so
+## does anything reading a role map other than the skin's, which is why it is
+## cached here rather than opened again per caller.
+static var _file: Dictionary = {}
+
+
+static func _palette_file() -> Dictionary:
+	if _file.is_empty():
+		var f: FileAccess = FileAccess.open(PALETTE_PATH, FileAccess.READ)
+		assert(f != null, "missing palette: " + PALETTE_PATH)
+		_file = JSON.parse_string(f.get_as_text())
+	return _file
+
+
+## A palette entry by its own name, rather than by the role it happens to play.
+## Only for callers that already hold a role map of their own: the world colour
+## lists, and nothing else. Everything about the interface goes through a role.
+static func named(entry: String) -> Color:
+	var data: Dictionary = _palette_file()
+	if data["colors"].has(entry):
+		return Color(String(data["colors"][entry]))
+	assert(data["ui_colors"].has(entry), "unknown palette colour: " + entry)
+	return Color(String(data["ui_colors"][entry]))
+
+
+## The ordered colour list one kind of world is painted from (docs/14). A
+## variant with no list is a data error and stops rather than painting a world
+## in whatever the shader defaults happen to be, which would be somebody else's
+## palette.
+static func world_roles(variant: String) -> Array:
+	var worlds: Dictionary = _palette_file()["worlds"]
+	assert(worlds.has(variant), "no world palette for variant: " + variant)
+	return worlds[variant]
+
+
 static var BG: Color:
 	get: return _role("bg")
 static var PANEL: Color:

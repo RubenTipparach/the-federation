@@ -363,6 +363,18 @@ from proportion rather than detail, class read from part count, and silhouette
 designed for a top down camera. It names the models it was drawn from and states
 plainly that none of them are in this repository.
 
+**Worlds are drawn by someone else's shaders, under licence.** The planets in the
+tactical view use Deep-Fold's PixelPlanets, MIT licensed, vendored under
+`assets/vendor/pixel_planets/` with its LICENSE beside it.
+`docs/14-reference-pixel-planets.md` records what was taken, the three mechanical
+changes made to it, and why shaders that never blend between their colours are the
+one kind that can satisfy section 3.1.
+
+This is a different relationship from the one above. Federation Commander is a design
+we read and reimplement; PixelPlanets is code we run. Vendored code keeps its licence
+file, keeps its upstream API, and is not quietly rewritten, so the diff against the
+original stays readable and it can be updated.
+
 Reference material for other systems belongs in the same place: a numbered document
 under `docs/`, with the source named and linked, and a line in this section pointing
 at it.
