@@ -202,6 +202,10 @@ func apply_command(actor: int, kind: String, args: Array, record: bool = true) -
 		"shield_bias":
 			ship.shield_bias = int(args[0])
 			ok = true
+		"repair_queue":
+			ok = ship.queue_repair(int(args[0]), Catalog.tuning())
+		"repair_drop":
+			ok = ship.drop_repair(int(args[0]))
 		"transfer_shield":
 			ok = ship.transfer_shield(int(args[0]), int(args[1]), Catalog.tuning())
 		"power":

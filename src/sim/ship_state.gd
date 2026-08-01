@@ -39,10 +39,33 @@ var battery: float = 0.0
 
 var alive: bool = true
 
-## The facing the shield engineer is favouring. Its regeneration is weighted,
-## which is the cheap version of Federation Commander's shield reinforcement
-## decision made continuously rather than once per impulse.
+## The facing the shield engineer is buying boxes for. Federation Commander
+## 3C7 makes regeneration a purchase aimed at one shield at a time, so this is
+## the choice of which shield, not a weighting.
 var shield_bias: int = -1
+
+## Energy the shields sink has accrued toward the next shield box. A box
+## arrives when this reaches the price; nothing arrives if the sink is empty,
+## because under 3C7 nothing comes back unbought.
+var shield_credit: float = 0.0
+
+## Spare parts still aboard, and the stock the hull sailed with. Repair spends
+## this and nothing refills it in flight: restocking happens at a base.
+var parts: int = 0
+var parts_max: int = 0
+
+## How many boxes the damage control parties can work in parallel, expressed
+## as a rate multiplier. Federation Commander 5G1 says the rating is not
+## reduced by damage, so neither is this.
+var damage_control: int = 1
+
+## Indices into `systems`, in the order they will be worked. Only the head is
+## under way: 5G4 requires a box to be finished before work moves elsewhere.
+var repair_queue: Array[int] = []
+
+## Seconds of work banked toward the head job's current box. Reset when a box
+## completes, so a job that is dropped and requeued does not carry credit.
+var repair_progress: float = 0.0
 
 
 static func _make_system(entry: Array, sector: int) -> Dictionary:
@@ -79,6 +102,9 @@ static func create(p_fit: ShipFit, p_rng: RandomNumberGenerator, ai_ship: bool =
 			"charge": 0.0,
 		})
 	s.split = PowerModel.default_split(ai_ship)
+	s.parts_max = int(h.get("spare_parts", 0))
+	s.parts = s.parts_max
+	s.damage_control = int(h.get("damage_control", 1))
 	return s
 
 
@@ -200,25 +226,105 @@ func step(dt: float, tuning: Dictionary) -> void:
 		var reload: float = float(w["weapon"]["reload"])
 		w["charge"] = minf(1.0, float(w["charge"]) + dt / reload * wpn_factor)
 
-	# Shield regeneration split evenly across facings, scaled by shields power.
-	var shd_share: float = clampf(
-		alloc_units("shields") / float(combat["shield_power_demand"]), 0.0,
-		float(combat["overdrive_cap"]))
-	# Regeneration is shared out across the six facings, weighted toward the
-	# biased one if the engineer has picked a side to hold.
-	var regen: float = float(combat["shield_regen_per_sec"]) * shd_share * dt
-	var bias_weight: float = float(combat["shield_bias_weight"])
-	var weights: float = float(shields.size())
-	if shield_bias >= 0 and shield_bias < shields.size():
-		weights += bias_weight - 1.0
-	for i in range(shields.size()):
-		var share: float = bias_weight if i == shield_bias else 1.0
-		shields[i] = minf(shield_max, shields[i] + regen * float(shields.size())
-			* share / weights)
+	_step_shield_regen(dt, combat)
+	_step_repair(dt, tuning)
 
 	# Reserve power charges the battery that pays for shield reinforcement.
 	battery = minf(1.0, battery + dt * alloc_units("reserve")
 		* float(combat["battery_charge_per_reserve_unit"]))
+
+
+## Shield boxes are bought, not handed back. Federation Commander 3C7: "you can
+## pay two Energy Tokens to regenerate (remove the disabled mark from) any one
+## shield box on any one shield." Energy from the shields sink accrues here and
+## buys whole boxes at a fixed price, one facing at a time, so a player who
+## spends nothing on shields gets nothing back. The old version handed out a
+## free trickle, which the rule does not allow.
+func _step_shield_regen(dt: float, combat: Dictionary) -> void:
+	shield_credit += alloc_units("shields") * dt
+	var price: float = maxf(0.001, float(combat["shield_energy_per_box"])
+		* float(combat["shield_power_demand"]))
+	while shield_credit >= price:
+		var facing: int = _regen_facing()
+		if facing < 0:
+			# Nothing to buy. Credit is capped at one box so a long lull with
+			# full shields cannot bank a free instant repair later.
+			shield_credit = minf(shield_credit, price)
+			return
+		shields[facing] = minf(shield_max, shields[facing] + 1.0)
+		shield_credit -= price
+
+
+## Which shield the next box goes to: the one the engineer picked if it still
+## needs boxes, otherwise the weakest that does. 3C7 is a choice of shield, and
+## defaulting to the weakest is the choice a player would make anyway.
+func _regen_facing() -> int:
+	if shield_bias >= 0 and shield_bias < shields.size() \
+			and shields[shield_bias] < shield_max:
+		return shield_bias
+	var worst: int = -1
+	for i in range(shields.size()):
+		if shields[i] >= shield_max:
+			continue
+		if worst < 0 or shields[i] < shields[worst]:
+			worst = i
+	return worst
+
+
+## Work the head of the repair queue. One box at a time, priced per box, paid
+## for out of the parts aboard (5G3, 5G4). A job whose parts are not aboard
+## stalls in place rather than being dropped, because an earlier job finishing
+## does not free parts but a restock would.
+func _step_repair(dt: float, tuning: Dictionary) -> void:
+	while not repair_queue.is_empty():
+		var index: int = repair_queue[0]
+		if index < 0 or index >= systems.size():
+			repair_queue.pop_front()
+			repair_progress = 0.0
+			continue
+		var sys: Dictionary = systems[index]
+		if not RepairModel.repairable(sys, tuning):
+			repair_queue.pop_front()
+			repair_progress = 0.0
+			continue
+		var family: String = String(sys["family"])
+		var price: int = RepairModel.parts_per_box(family, tuning)
+		if parts < price:
+			return
+		repair_progress += dt * float(damage_control)
+		var needed: float = RepairModel.seconds_per_box(family, tuning)
+		if repair_progress < needed:
+			return
+		repair_progress -= needed
+		parts -= price
+		sys["boxes"] = mini(int(sys["boxes"]) + 1, int(sys["boxes_max"]))
+		# The loop goes round so a queue can finish a job and start the next in
+		# the same frame, which matters at large dt when a replay is scrubbed.
+
+
+## Put a system in the repair queue. Refuses anything undamaged, anything
+## already queued, and anything whose family repair does not cover.
+func queue_repair(index: int, tuning: Dictionary) -> bool:
+	if index < 0 or index >= systems.size():
+		return false
+	if repair_queue.has(index):
+		return false
+	if not RepairModel.repairable(systems[index], tuning):
+		return false
+	repair_queue.append(index)
+	return true
+
+
+## Take a system out of the queue. Dropping the head abandons the box being
+## worked on, and the parts already spent on finished boxes stay spent.
+func drop_repair(index: int) -> bool:
+	var at: int = repair_queue.find(index)
+	if at < 0:
+		return false
+	repair_queue.remove_at(at)
+	if at == 0:
+		repair_progress = 0.0
+	return true
 
 
 # ---- firing ------------------------------------------------------------------

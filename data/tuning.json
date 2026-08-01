@@ -19,7 +19,7 @@
   "combat": {
     "arena_half_extent": 30.0,
     "start_separation": 26.0,
-    "shield_regen_per_sec": 0.7,
+    "shield_energy_per_box": 2.0,
     "shield_power_demand": 12.0,
     "battery_charge_per_reserve_unit": 0.02,
     "reinforce_amount": 6.0,
@@ -31,12 +31,16 @@
     "dead_ship_decel": 1.0,
     "seeker_hit_radius": 0.6,
     "seeker_lifetime": 30.0,
-    "shield_bias_weight": 2.5,
     "shield_transfer_amount": 5.0,
     "replay_step": 0.03333333333333333,
     "helm_click_turn_deg": 30.0,
     "bank_deg_per_turn_rate": 1.1,
     "bank_ease": 4.0
+  },
+  "repair": {
+    "_comment": "Federation Commander 5G3 prices a repair by what kind of box it is, weapons dearest and hull cheapest. The ordering is theirs, the numbers are ours. seconds_per_box is our replacement for their per turn repair points, because a real time game has no Repair Phase to spend them in. 5G3 also says shields cannot be repaired this way, which is why there is no shield entry: they are bought with energy instead (combat.shield_energy_per_box).",
+    "parts_per_box": { "weapon": 4, "power": 3, "control": 2, "hull": 1 },
+    "seconds_per_box": { "weapon": 9.0, "power": 7.0, "control": 5.0, "hull": 3.0 }
   },
   "power": {
     "sinks": [

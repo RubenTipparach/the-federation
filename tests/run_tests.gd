@@ -19,6 +19,7 @@ const WeaponLib = preload("res://src/sim/weapon_model.gd")
 const YardLib = preload("res://src/sim/shipyard.gd")
 const SeekerLib = preload("res://src/sim/seeker.gd")
 const LogLib = preload("res://src/sim/battle_log.gd")
+const RepairLib = preload("res://src/sim/repair_model.gd")
 
 var checks: int = 0
 var failures: int = 0
@@ -53,6 +54,7 @@ func _initialize() -> void:
 	test_battle_and_ai()
 	test_seekers()
 	test_shields()
+	test_repairs()
 	test_shipyard()
 	test_replay()
 	print("")
@@ -139,21 +141,39 @@ func test_shields() -> void:
 	var tuning: Dictionary = CatalogLib.tuning()
 	var ship = _fresh_ship()
 
-	# Bias: the favoured facing regenerates faster than the rest, and the
-	# total handed out does not change.
+	# Federation Commander 3C7: a shield box is bought for energy, and nothing
+	# comes back unbought. A ship spending nothing on shields recovers nothing,
+	# however long it waits.
+	var broke = _fresh_ship()
+	broke.shields[0] = 0.0
+	broke.set_alloc_units("shields", 0.0)
+	for i in range(300):
+		broke.step(1.0 / 15.0, tuning)
+	near(broke.shields[0], 0.0, "with no power to the shields nothing regenerates")
+
+	# Bias is which shield is bought for, not a weighting: the picked facing
+	# takes every box until it is full.
 	ship.shields[0] = 0.0
 	ship.shields[1] = 0.0
 	ship.shield_bias = 0
 	for i in range(60):
 		ship.step(1.0 / 15.0, tuning)
-	ok(ship.shields[0] > ship.shields[1], "the biased facing recovers faster")
+	ok(ship.shields[0] > 0.0, "the picked facing is bought back")
+	near(ship.shields[1], 0.0, "and the others get nothing while it is short")
+
+	# Boxes are whole. A shield never sits on a fraction of one.
+	near(ship.shields[0] - floorf(ship.shields[0]), 0.0, "regeneration arrives in whole boxes")
+
+	# With no facing picked, the weakest is the one bought for, so two equally
+	# hurt facings come back together rather than one being starved.
 	var unbiased = _fresh_ship()
 	unbiased.shields[0] = 0.0
 	unbiased.shields[1] = 0.0
 	for i in range(60):
 		unbiased.step(1.0 / 15.0, tuning)
-	near(unbiased.shields[0], unbiased.shields[1],
-		"with no bias the facings recover together", 0.001)
+	ok(absf(unbiased.shields[0] - unbiased.shields[1]) <= 1.0,
+		"with no pick the weakest facing is bought for, so the two stay level")
+	ok(unbiased.shields[0] + unbiased.shields[1] > 0.0, "and they do recover")
 
 	# Transfer, Federation Commander 3C3: adjacent only, never above full.
 	var mover = _fresh_ship()
@@ -174,6 +194,108 @@ func test_shields() -> void:
 	ok(partial.transfer_shield(0, 1, tuning), "a nearly full facing takes what it can")
 	near(partial.shields[1], partial.shield_max, "and stops at full")
 	near(partial.shields[0], partial.shield_max - 2.0, "the donor gives only that much")
+
+
+func test_repairs() -> void:
+	print("\n== repairs ==")
+	var tuning: Dictionary = CatalogLib.tuning()
+	var ship = _fresh_ship()
+
+	ok(ship.parts > 0, "a ship sails with spare parts aboard")
+	eq(ship.parts, ship.parts_max, "and starts with a full hold")
+
+	# Find a weapon system and shoot two boxes off it.
+	var index: int = -1
+	for i in range(ship.systems.size()):
+		if String(ship.systems[i]["family"]) == "weapon" and int(ship.systems[i]["boxes_max"]) >= 3:
+			index = i
+			break
+	ok(index >= 0, "the hull carries a weapon system to break")
+	var sys: Dictionary = ship.systems[index]
+	var full: int = int(sys["boxes_max"])
+	sys["boxes"] = full - 2
+
+	# Pricing is per box, not per system (5G4).
+	var per_box: int = RepairLib.parts_per_box("weapon", tuning)
+	eq(RepairLib.job_cost(sys, tuning), per_box * 2, "a job costs per box, not per system")
+	ok(RepairLib.parts_per_box("weapon", tuning) > RepairLib.parts_per_box("hull", tuning),
+		"a weapon box costs more than a hull box, as 5G3 orders them")
+
+	# Queueing rules.
+	ok(ship.queue_repair(index, tuning), "a damaged system can be queued")
+	ok(not ship.queue_repair(index, tuning), "and cannot be queued twice")
+	eq(ship.repair_queue.size(), 1, "the queue holds it once")
+	var whole: int = -1
+	for i in range(ship.systems.size()):
+		if int(ship.systems[i]["boxes"]) >= int(ship.systems[i]["boxes_max"]):
+			whole = i
+			break
+	ok(whole >= 0, "the ship has an undamaged system")
+	ok(not ship.queue_repair(whole, tuning), "an undamaged system is refused")
+
+	# Work it. One box at a time, paid for out of the hold.
+	var before: int = ship.parts
+	var need: float = RepairLib.seconds_per_box("weapon", tuning)
+	var per_step: float = 1.0 / 15.0
+	var steps: int = int(need / float(ship.damage_control) / per_step) + 2
+	for i in range(steps):
+		ship.step(per_step, tuning)
+	eq(int(sys["boxes"]), full - 1, "one box comes back at a time")
+	eq(ship.parts, before - per_box, "and is paid for out of the hold")
+
+	# Finishing the job clears it from the queue.
+	for i in range(steps):
+		ship.step(per_step, tuning)
+	eq(int(sys["boxes"]), full, "the job runs to full")
+	eq(ship.repair_queue.size(), 0, "and leaves the queue when it is done")
+
+	# A queue the hold cannot pay for stalls rather than working for free.
+	var poor = _fresh_ship()
+	var pi: int = -1
+	for i in range(poor.systems.size()):
+		if String(poor.systems[i]["family"]) == "weapon":
+			pi = i
+			break
+	poor.systems[pi]["boxes"] = 0
+	poor.parts = 0
+	ok(poor.queue_repair(pi, tuning), "a job can be ordered with an empty hold")
+	for i in range(steps * 2):
+		poor.step(per_step, tuning)
+	eq(int(poor.systems[pi]["boxes"]), 0, "but nothing is repaired without parts")
+	eq(poor.repair_queue.size(), 1, "and the job waits rather than being dropped")
+
+	# Shields are not repaired this way at all (5G3).
+	var shielded = _fresh_ship()
+	shielded.shields[0] = 0.0
+	for entry in shielded.systems:
+		ok(String(entry["family"]) != "shield", "no system claims the shield family")
+		break
+
+	# Dropping a job takes it out and lets the next one start.
+	var two = _fresh_ship()
+	var a: int = -1
+	var b: int = -1
+	for i in range(two.systems.size()):
+		if int(two.systems[i]["boxes_max"]) >= 2:
+			two.systems[i]["boxes"] = int(two.systems[i]["boxes_max"]) - 1
+			if a < 0:
+				a = i
+			elif b < 0:
+				b = i
+			else:
+				break
+	two.queue_repair(a, tuning)
+	two.queue_repair(b, tuning)
+	eq(two.repair_queue.size(), 2, "two jobs queue in order")
+	eq(two.repair_queue[0], a, "the first ordered is the first worked")
+	ok(two.drop_repair(a), "a job can be dropped")
+	eq(two.repair_queue[0], b, "and the next takes its place")
+	ok(not two.drop_repair(a), "dropping it again does nothing")
+
+	# The whole queue's price is what the panel warns against.
+	eq(RepairLib.queue_cost(two.systems, two.repair_queue, tuning),
+		RepairLib.job_cost(two.systems[b], tuning),
+		"the queue costs the sum of its jobs")
 
 
 func test_shipyard() -> void:
