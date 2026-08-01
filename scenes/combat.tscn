@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://src/ui/combat_screen.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/combat_world.tscn" id="2"]
@@ -6,6 +6,7 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/touch_controls.tscn" id="4"]
 [ext_resource type="Environment" path="res://assets/materials/env_plan_inset.tres" id="5"]
 [ext_resource type="PackedScene" path="res://scenes/ui/box_strip.tscn" id="6"]
+[ext_resource type="PackedScene" path="res://scenes/ui/target_bracket.tscn" id="7"]
 
 [node name="Combat" type="HBoxContainer"]
 anchors_preset = 15
@@ -222,6 +223,12 @@ handle_input_locally = false
 size = Vector2i(800, 500)
 
 [node name="World" parent="Mid/ViewPanel/Stack/ViewContainer/View" instance=ExtResource("2")]
+
+[node name="Bracket0" parent="Mid/ViewPanel/Stack" instance=ExtResource("7")]
+visible = false
+
+[node name="Bracket1" parent="Mid/ViewPanel/Stack" instance=ExtResource("7")]
+visible = false
 
 [node name="PlayerLabel" type="Label" parent="Mid/ViewPanel/Stack"]
 layout_mode = 0

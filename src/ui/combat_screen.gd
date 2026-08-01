@@ -13,6 +13,16 @@ const WEAPON_ROW := preload("res://scenes/ui/weapon_row.tscn")
 const THROTTLE_NOTCHES := 8
 ## Where the helm starts a battle: most of the way up, leaving room to push.
 const OPENING_THROTTLE_NOTCH := 6
+const TargetBracket := preload("res://src/ui/target_bracket.gd")
+## Markers authored in the scene, one per ship in a duel.
+const BRACKET_COUNT := 2
+## Hull radius in sim units per ton, so a bracket is sized by the ship it is
+## drawn around rather than by a single number for every hull.
+const BRACKET_RADIUS_PER_TON := 0.022
+const BRACKET_MIN_PX := 16.0
+const BRACKET_MAX_PX := 120.0
+## Extra pixels around a ship that still count as pointing at it.
+const BRACKET_PICK_SLACK := 10.0
 ## Each sink gets its own hue so the five strips are told apart at a glance
 ## rather than by counting rows. The subsystem family colours only supply four,
 ## which left shields and reserve identical, so these are named directly.
@@ -394,6 +404,17 @@ func _on_view_input(event: InputEvent) -> void:
 					Catalog.tuning()["camera"]["zoom_touch_scale"]))
 			_pinch_span = span
 			return
+	# Right click locks onto the contact under the cursor. It routes through the
+	# same target command the cycle buttons use, so there is one notion of what
+	# is targeted rather than a second one owned by the mouse.
+	if event is InputEventMouseButton and event.pressed \
+			and event.button_index == MOUSE_BUTTON_RIGHT:
+		var picked: int = _ship_under_mouse()
+		if picked >= 0 and battle.ships[picked] != battle.player() and _can_command():
+			if battle.apply_command(0, "target", [picked]):
+				_note("Locked on %s" % String(
+					battle.ships[picked].fit.hull()["name"]).to_upper())
+		return
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:
 			_dragging = true
@@ -648,6 +669,76 @@ func _position_ship_labels() -> void:
 	status.position = q + Vector2(-40, -42)
 	status.text = "" if downs.is_empty() else "SHIELD %s DOWN" % " ".join(downs)
 	status.add_theme_color_override("font_color", Palette.AMBER)
+	_refresh_brackets(world, stack)
+
+
+## Draw a marker over each ship: faint corners under the cursor, a full
+## bracket with name and hull bar on the one that is actually targeted.
+##
+## The bracket is sized from the ship's own projected extent rather than a
+## fixed pixel box, so it hugs a frigate and opens out around a battlecruiser,
+## and it keeps doing so as the camera zooms.
+func _refresh_brackets(world: Node3D, stack: Control) -> void:
+	var picked: int = _ship_under_mouse()
+	var target: ShipState = battle.target_for(battle.player())
+	for i in range(battle.ships.size()):
+		if i >= BRACKET_COUNT:
+			break
+		var ship: ShipState = battle.ships[i]
+		var bracket: Control = stack.get_node("Bracket%d" % i)
+		var state: int = TargetBracket.State.HIDDEN
+		if ship.alive and target != null and ship == target:
+			state = TargetBracket.State.LOCKED
+		elif ship.alive and i == picked:
+			state = TargetBracket.State.HOVER
+		# A locked bracket carries the ship's name itself, so the floating label
+		# for that ship stands down rather than printing the name twice on top
+		# of itself.
+		var label: String = "PlayerLabel" if i == 0 else "EnemyLabel"
+		stack.get_node(label).visible = state != TargetBracket.State.LOCKED
+		if state == TargetBracket.State.HIDDEN:
+			bracket.visible = false
+			continue
+		var half: float = _ship_screen_radius(world, ship)
+		var centre: Vector2 = world.screen_pos(ship.pos)
+		bracket.size = Vector2(half * 2.0, half * 2.0)
+		bracket.position = centre - Vector2(half, half)
+		bracket.show_target(state, String(ship.fit.hull()["name"]).to_upper(),
+			float(ship.total_boxes()) / maxf(1.0, float(ship.total_boxes_max())),
+			Palette.CYAN if i == 0 else Palette.MAGENTA)
+
+
+## Half the ship's on screen size, measured by projecting a point one hull
+## radius to its side. Doing it from the projection rather than from a constant
+## means the bracket tracks zoom and perspective without a second scale factor
+## to keep in step with the camera.
+func _ship_screen_radius(world: Node3D, ship: ShipState) -> float:
+	var r: float = float(ship.fit.hull()["tonnage"]) * BRACKET_RADIUS_PER_TON
+	var centre: Vector2 = world.screen_pos(ship.pos)
+	var edge: Vector2 = world.screen_pos(ship.pos + Vector2(r, 0.0))
+	return clampf(centre.distance_to(edge), BRACKET_MIN_PX, BRACKET_MAX_PX)
+
+
+## Which ship the cursor is over, or -1. Picking is done in screen space
+## against the same projection the brackets are drawn from, so what lights up
+## is exactly what is under the pointer.
+func _ship_under_mouse() -> int:
+	var container: Control = $Mid/ViewPanel/Stack/ViewContainer
+	if not container.get_global_rect().has_point(container.get_global_mouse_position()):
+		return -1
+	var world: Node3D = _world()
+	var mouse: Vector2 = container.get_local_mouse_position()
+	var best: int = -1
+	var best_d: float = INF
+	for i in range(battle.ships.size()):
+		var ship: ShipState = battle.ships[i]
+		if not ship.alive:
+			continue
+		var d: float = mouse.distance_to(world.screen_pos(ship.pos))
+		if d < _ship_screen_radius(world, ship) + BRACKET_PICK_SLACK and d < best_d:
+			best_d = d
+			best = i
+	return best
 
 
 func _note(line: String) -> void:
