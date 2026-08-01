@@ -29,6 +29,11 @@ hulls to board, capture, and refit into your own.
 | [docs/06-technical-architecture.md](docs/06-technical-architecture.md) | Godot + Fly.io topology, netcode, persistence, scaling, cost model |
 | [docs/07-roadmap.md](docs/07-roadmap.md) | Vertical slice → alpha → beta, scope cuts, risk register |
 | [docs/08-build-and-deploy.md](docs/08-build-and-deploy.md) | itch.io deploy pipeline, secrets, targets, what is verified |
+| [docs/09-reference-federation-commander.md](docs/09-reference-federation-commander.md) | What the Federation Commander starter rules say, what we take, where we differ |
+| [docs/10-shipyard.md](docs/10-shipyard.md) | Buying hulls, fitting them out, the credit economy |
+| [docs/11-battle-logs-and-replay.md](docs/11-battle-logs-and-replay.md) | The deterministic log, replay reproduction, the replay bar |
+| [docs/12-ship-design-language.md](docs/12-ship-design-language.md) | How the ships of this era are built, and what our hulls take from that |
+| [docs/13-terrain-and-tractors.md](docs/13-terrain-and-tractors.md) | Nebulae, asteroids, gravity wells, and the tractor beam auction |
 
 Project rules live in [CLAUDE.md](CLAUDE.md) and are binding.
 

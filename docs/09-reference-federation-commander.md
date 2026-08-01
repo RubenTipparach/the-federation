@@ -241,3 +241,67 @@ source's "at the start of each turn" and "during the Repair Phase" are both anch
 to a turn structure we do not have. A repair takes a number of seconds proportional
 to the box cost, and shield regeneration is paid per box as the energy accrues,
 rather than in a batch at a fixed moment.
+
+---
+
+## 6. Tractor beams: what the free rulebook does not contain
+
+**This section exists to stop a citation being invented.** Tractor beams are the one
+system where the source we can legally read does not have the rule, and it says so
+itself.
+
+### 6.1 What *First Missions* actually says
+
+The preview admits the omission in its own designer notes:
+
+> "For example, we left tractor beams out of this 'preview' version, but we didn't
+> want you to think they were not included in the full-scale retail package."
+
+And again where power is described:
+
+> "Certain advanced rules in Federation Commander Klingon Border also use power,
+> including Tractor Beams, Transporters, High Energy Turns, Evasive Maneuvers, and
+> others."
+
+**(5D) Tractor beams**, quoted in full, is all the rules text there is:
+
+> "Tractor beams are electro-gravitic force beams able to hold various objects. They
+> can be used to hold objects at a distance or pull them closer. Tractor beams cannot
+> pull pieces off of an enemy ship. This is covered in Federation Commander: Klingon
+> Border and need not concern you on your First Missions."
+
+Two other rules touch them, and both are usable:
+
+**(5A2c)** on losing every control box: "Tractor beams and transporters cannot be
+used, except that transporters could be used in an emergency evacuation (5E7)."
+
+**(5G3)** prices the box: a tractor is a "ship system" at 2 repair points, the same
+as a transporter or a laboratory.
+
+### 6.2 What we know exists but cannot read
+
+The index at the back references rules the preview does not print:
+
+| Index entry | Section |
+|---|---|
+| Tractor Beams, power used | 5D2 |
+| Tractor Beams, Defensive | 5D4 |
+| Tractoring Ships | 5D6 |
+| Tractor Auctions | 5D6a |
+
+**"Tractor Auctions" confirms the shape** the full game uses: a contest settled by
+bidding, not a flat comparison. That is the one thing we can take from the index with
+confidence, because a name is not a rule but it is evidence of a mechanism. We are not
+quoting 5D6a here, because we have not read it.
+
+### 6.3 So this design is ours
+
+Everything in `docs/13-terrain-and-tractors.md` about how a tractor contest resolves is
+our own, built from the shape the section names imply and from what a tug of war over
+energy should feel like in real time. It is written down there rather than here
+precisely so nobody later mistakes it for a citation.
+
+What we do take from the source, and can cite: a tractor **holds at a distance or
+pulls closer** and cannot tear a ship apart (5D); it is **dead when the control boxes
+are** (5A2c); and it **costs power to run**, which the power discussion states even
+though the tariff is not printed.
