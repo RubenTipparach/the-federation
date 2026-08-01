@@ -21,6 +21,7 @@ theme_override_constants/separation = 8
 layout_mode = 2
 theme_override_font_sizes/font_size = 11
 text = "YOUR SQUADRON / YOUR DESIGNS"
+theme_type_variation = &"HeaderLabel"
 
 [node name="List" type="VBoxContainer" parent="Yours/V"]
 layout_mode = 2
@@ -46,6 +47,7 @@ text = "VS"
 
 [node name="Kind" type="Label" parent="Mid"]
 layout_mode = 2
+autowrap_mode = 2
 theme_override_font_sizes/font_size = 11
 horizontal_alignment = 1
 text = "FLEET ACTION / DEEP SPACE"
@@ -58,6 +60,7 @@ text = "Begin skirmish"
 layout_mode = 2
 theme_override_font_sizes/font_size = 11
 text = "RECORDED BATTLES"
+theme_type_variation = &"HeaderLabel"
 
 [node name="ReplayScroll" type="ScrollContainer" parent="Mid"]
 layout_mode = 2
@@ -88,6 +91,7 @@ theme_override_constants/separation = 8
 layout_mode = 2
 theme_override_font_sizes/font_size = 11
 text = "OPPOSITION / PREDEFINED AI"
+theme_type_variation = &"HeaderLabel"
 
 [node name="List" type="VBoxContainer" parent="Foes/V"]
 layout_mode = 2

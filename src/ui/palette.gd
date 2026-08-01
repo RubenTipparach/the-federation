@@ -6,6 +6,11 @@ extends RefCounted
 ## single colour authority. That file says which palette entry plays "accent"
 ## or "warn"; this file only gives those roles names GDScript can use.
 ##
+## Which roles apply is chosen by `ui_skin`, so the whole interface repaints
+## from one key in that file. Only the LIT half is read here; the chassis half
+## is baked into the plate textures by tools/gen_ui_plates.py and wired by the
+## generated theme, and scripts/gen-skin.sh keeps the two in step.
+##
 ## Two pools back the roles. The chassis draws from `colors`, the Waldgeist
 ## palette, verbatim, because plates and bezels are committed art. The lit
 ## readouts draw from `ui_colors`, a small set of emissives, because an
@@ -32,9 +37,14 @@ static func _role(name: String) -> Color:
 		var pool: Dictionary = {}
 		pool.merge(data["colors"])
 		pool.merge(data["ui_colors"])
-		for key in data["ui"]:
-			var entry: String = String(data["ui"][key])
-			assert(pool.has(entry), "ui role %s names unknown colour %s" % [key, entry])
+		var skin_name: String = String(data["ui_skin"])
+		assert(data["ui_skins"].has(skin_name),
+			"ui_skin names unknown skin: " + skin_name)
+		var lit: Dictionary = data["ui_skins"][skin_name]["lit"]
+		for key in lit:
+			var entry: String = String(lit[key])
+			assert(pool.has(entry), "%s lit role %s names unknown colour %s" % [
+				skin_name, key, entry])
 			_roles[key] = Color(String(pool[entry]))
 	assert(_roles.has(name), "unknown ui role: " + name)
 	return _roles[name]

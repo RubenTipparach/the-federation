@@ -743,11 +743,12 @@ func _refresh_hud() -> void:
 
 	var dist: float = me.pos.distance_to(foe.pos)
 	var bearing: float = Sectors.bearing_between(me.pos, foe.pos)
+	# Range and bearing share a line: a five mount hull needs five weapon rows
+	# below, and at the bitmap face's fixed size the column has no spare row.
 	$Right/TargetPanel/V/Body.text = "\n".join([
 		"CONTACT  %s" % String(foe.fit.hull()["name"]),
 		"BOXES  %d / %d" % [foe.total_boxes(), foe.total_boxes_max()],
-		"RANGE  %.1f" % dist,
-		"BEARING  %03d" % int(bearing),
+		"RANGE  %.1f   BRG  %03d" % [dist, int(bearing)],
 	])
 	$Right/OwnPanel/V/Display.refresh()
 	$Right/TargetDisplayPanel/V/Display.refresh()

@@ -37,7 +37,7 @@ func _fill_replays() -> void:
 	if paths.is_empty():
 		var empty: Label = Label.new()
 		empty.text = "No recordings yet. Every battle you fight is saved here."
-		empty.add_theme_font_size_override("font_size", 11)
+		empty.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		empty.add_theme_color_override("font_color", Palette.DIM)
 		list.add_child(empty)
 		return

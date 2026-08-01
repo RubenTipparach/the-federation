@@ -65,19 +65,15 @@
   },
 
   "ui_note": [
-    "The tactical view's skin. Two kinds of colour, and both answer to this file.",
+    "The interface skin. Two kinds of colour, and both answer to this file.",
     "",
     "The CHASSIS is committed art: plates, bezels and the font atlas are written",
-    "as .png by tools/gen_ui_plates.py and tools/gen_font.py, and every pixel of",
-    "them is an entry from 'colors' above, verbatim. The ui_chassis role map below",
-    "says which entry plays which part, so a repaint is a change here and a rerun",
-    "of the generators, never an edit to the painter.",
-    "",
-    "The GLASS is light rather than paint: the phosphor readouts a Control draws",
-    "at runtime. Those need to sit brighter than any Waldgeist entry does, because",
-    "a lit instrument is emitting rather than reflecting, so they live in",
-    "'ui_colors' as their own named set. Each one is a Waldgeist hue lifted toward",
-    "emission and its base is named beside it here:",
+    "as .png by tools/gen_ui_plates.py, and every pixel of them is an entry from",
+    "'colors' above, verbatim. The GLASS is light rather than paint: the readouts",
+    "a Control draws at runtime. Those need to sit brighter than any Waldgeist",
+    "entry does, because a lit instrument emits rather than reflects, so they",
+    "live in 'ui_colors' as their own named set. Each is a Waldgeist hue lifted",
+    "toward emission and its base is named beside it:",
     "",
     "  phos_hi phos phos_lo phos_faint   from green",
     "  shield_hi shield                  from teal",
@@ -90,9 +86,16 @@
     "checks ship art against that block and an emissive must never be paintable",
     "onto a hull. Ship art stays strictly Waldgeist; only lit UI may use these.",
     "",
-    "src/ui/palette.gd reads the ui role map below rather than holding hex values",
-    "of its own, so this file is the single colour authority CLAUDE.md 3.1 asks",
-    "for and a skin swap stays a one file change."
+    "TO SWAP THE SKIN, change ui_skin below and run scripts/gen-skin.sh. That",
+    "repaints the plate textures and rewrites the theme, both of which are build",
+    "products of this file. Nothing else in the project names a colour: the",
+    "generators ask for roles like 'face' and 'accent', src/ui/palette.gd reads",
+    "the lit map, and the theme is generated rather than hand edited. This is",
+    "what CLAUDE.md 3.1 means by a palette swap being a one file change.",
+    "",
+    "Each skin gives the same two role maps. 'chassis' is what the plate painter",
+    "asks for and must name entries from 'colors'. 'lit' is what palette.gd asks",
+    "for and may name either pool."
   ],
 
   "ui_colors": {
@@ -113,56 +116,143 @@
     "alert_hi": "#eb8b6d"
   },
 
-  "ui": {
-    "bg": "black",
-    "panel": "navy_deep",
-    "panel_2": "navy",
-    "line": "navy",
-    "line_hot": "teal_deep",
+  "ui_skin": "verdant",
 
-    "fg": "cream",
-    "dim": "bone",
+  "ui_skins": {
+    "verdant": {
+      "note": "Green phosphor on oxidised bronze. The approved skin.",
+      "chassis": {
+        "face": "bronze",
+        "fleck_a": "clay_deep",
+        "fleck_b": "bark",
+        "bevel_hi": "gold",
+        "bevel_hi_2": "gold_deep",
+        "bevel_lo": "maroon",
+        "outline": "black",
+        "rivet": "gold",
+        "rivet_shadow": "bark",
+        "glass": "black",
+        "scan": "navy_deep",
+        "face_down": "drab_deep",
+        "face_disabled": "char",
+        "face_alert": "maroon",
+        "head_text": "cream",
+        "head_shadow": "black",
+        "label": "cream",
+        "label_disabled": "taupe_deep"
+      },
+      "lit": {
+        "bg": "black",
+        "panel": "navy_deep",
+        "panel_2": "navy",
+        "line": "navy",
+        "line_hot": "teal_deep",
+        "fg": "cream",
+        "dim": "bone",
+        "accent": "shield",
+        "accent_dim": "phos_lo",
+        "warn": "gold_hi",
+        "weapon": "wine_hi",
+        "power": "blue_hi",
+        "neutral": "bone",
+        "ok": "phos",
+        "crit": "alert",
+        "family_weapon": "wine_hi",
+        "family_power": "blue_hi",
+        "family_control": "gold_hi",
+        "family_hull": "bone"
+      }
+    },
 
-    "accent": "shield",
-    "accent_dim": "phos_lo",
-    "warn": "gold_hi",
-    "weapon": "wine_hi",
-    "power": "blue_hi",
-    "neutral": "bone",
-    "ok": "phos",
-    "crit": "alert",
+    "steel": {
+      "note": "Colder deck: blue readouts on gunmetal.",
+      "chassis": {
+        "face": "gunmetal",
+        "fleck_a": "char",
+        "fleck_b": "moss_gray",
+        "bevel_hi": "gray_blue_light",
+        "bevel_hi_2": "gray_blue",
+        "bevel_lo": "ink",
+        "outline": "black",
+        "rivet": "gray_blue_light",
+        "rivet_shadow": "ink",
+        "glass": "black",
+        "scan": "navy_deep",
+        "face_down": "slate",
+        "face_disabled": "char",
+        "face_alert": "maroon",
+        "head_text": "cream",
+        "head_shadow": "black",
+        "label": "cream",
+        "label_disabled": "taupe_deep"
+      },
+      "lit": {
+        "bg": "black",
+        "panel": "navy_deep",
+        "panel_2": "navy",
+        "line": "navy",
+        "line_hot": "teal_gray",
+        "fg": "cream",
+        "dim": "gray_blue_light",
+        "accent": "shield_hi",
+        "accent_dim": "teal_gray",
+        "warn": "gold_hi",
+        "weapon": "wine_hi",
+        "power": "blue_hi",
+        "neutral": "gray_blue_light",
+        "ok": "shield",
+        "crit": "alert",
+        "family_weapon": "wine_hi",
+        "family_power": "blue_hi",
+        "family_control": "gold_hi",
+        "family_hull": "gray_blue_light"
+      }
+    },
 
-    "family_weapon": "wine_hi",
-    "family_power": "blue_hi",
-    "family_control": "gold_hi",
-    "family_hull": "bone"
-  },
-
-  "ui_chassis": {
-    "face": "bronze",
-    "fleck_a": "clay_deep",
-    "fleck_b": "bark",
-
-    "bevel_hi": "gold",
-    "bevel_hi_2": "gold_deep",
-    "bevel_lo": "maroon",
-    "outline": "black",
-
-    "rivet": "gold",
-    "rivet_shadow": "bark",
-
-    "head_text": "cream",
-    "head_shadow": "black",
-
-    "glass": "black",
-    "scan": "navy_deep",
-
-    "face_down": "drab_deep",
-    "face_disabled": "char",
-    "face_alert": "maroon",
-
-    "label": "cream",
-    "label_disabled": "taupe_deep"
+    "rose": {
+      "note": "Kthaari flavour: rose frame on plum. Not the player's deck; kept for the day enemy screens exist.",
+      "chassis": {
+        "face": "plum",
+        "fleck_a": "wine",
+        "fleck_b": "indigo",
+        "bevel_hi": "wine",
+        "bevel_hi_2": "plum",
+        "bevel_lo": "black",
+        "outline": "black",
+        "rivet": "wine",
+        "rivet_shadow": "plum",
+        "glass": "black",
+        "scan": "plum",
+        "face_down": "indigo",
+        "face_disabled": "char",
+        "face_alert": "maroon",
+        "head_text": "cream",
+        "head_shadow": "black",
+        "label": "cream",
+        "label_disabled": "taupe_deep"
+      },
+      "lit": {
+        "bg": "black",
+        "panel": "plum",
+        "panel_2": "indigo",
+        "line": "indigo",
+        "line_hot": "wine",
+        "fg": "cream",
+        "dim": "taupe",
+        "accent": "rose_hi",
+        "accent_dim": "wine_hi",
+        "warn": "gold_hi",
+        "weapon": "wine_hi",
+        "power": "blue_hi",
+        "neutral": "taupe",
+        "ok": "phos",
+        "crit": "alert",
+        "family_weapon": "wine_hi",
+        "family_power": "blue_hi",
+        "family_control": "gold_hi",
+        "family_hull": "taupe"
+      }
+    }
   },
 
   "ships": {

@@ -1,21 +1,26 @@
 #!/usr/bin/env python3
-# Generates the committed tactical UI chassis in assets/ui/.
+# Generates the committed UI chassis for the active skin.
 #
 # Per CLAUDE.md section 3 an art asset is delivered as a .png, and per 5.1 a
 # script may generate one only by writing the file to disk, never by building
-# it at runtime. This writes the nine patch plates, the header bar, the glass,
-# the wall and the button faces the tactical Theme maps onto its controls.
+# it at runtime. This writes the nine patch plate, the header bar and the button
+# faces that assets/ui/skin_theme.tres maps onto the interface's controls.
 #
-# Every pixel is a Waldgeist entry named through the ui_chassis role map in
-# data/palette.json (CLAUDE.md 3.1 and 5.4): this file asks for "face" and
-# "bevel_hi", and only the palette file says what those are. verify() below is
-# the same gate the ship painter passes, so an off palette pixel stops the run
-# before anything is written.
+# Every pixel is a Waldgeist entry named through the active skin's chassis role
+# map in data/palette.json (CLAUDE.md 3.1 and 5.4): this file asks for "face"
+# and "bevel_hi", and only the palette file says what those are. verify() below
+# is the same gate the ship painter passes, so an off palette pixel stops the
+# run before anything is written.
+#
+# Output always lands in assets/ui/skin/ whichever skin is active, so the
+# theme's texture paths never move and swapping is a data change plus a rerun.
+# Run scripts/gen-skin.sh rather than this directly: the theme is generated
+# from the same skin and the two have to agree.
 #
 # Detail is drawn in 2 pixel blocks because the game runs at 1600x900 and the
 # skin is pixel art at that scale: a 1 pixel bevel would vanish and a stretched
 # one would blur. The nine patch margins are quoted alongside each texture and
-# must match assets/ui/tactical_theme.tres.
+# tools/gen_theme.py reads MARGINS below so the two cannot drift.
 #
 # Usage: python3 tools/gen_ui_plates.py
 
@@ -28,28 +33,52 @@ from shiplib import Px  # noqa: E402
 
 HERE = os.path.dirname(__file__)
 PALETTE = os.path.join(HERE, "..", "data", "palette.json")
-OUT = os.path.join(HERE, "..", "assets", "ui")
+OUT = os.path.join(HERE, "..", "assets", "ui", "skin")
 
 # The art block. Everything below is measured in blocks and multiplied by this,
 # so the whole skin rescales from one number if the game's resolution changes.
 B = 2
 
 
+# Nine patch margins in art blocks, keyed by texture. gen_theme.py imports
+# this, so the painter and the theme cannot disagree about where a plate's
+# stretchable middle begins.
+MARGINS = {
+    "plate": (4, 4, 4, 4),
+    "header": (5, 3, 5, 3),
+    "button_normal": (3, 3, 3, 3),
+    "button_hover": (3, 3, 3, 3),
+    "button_pressed": (3, 3, 3, 3),
+    "button_disabled": (3, 3, 3, 3),
+}
+
+
+def active_skin(data=None):
+    """The skin data/palette.json currently names, with its role maps."""
+    if data is None:
+        with open(PALETTE) as f:
+            data = json.load(f)
+    name = data["ui_skin"]
+    assert name in data["ui_skins"], "ui_skin names unknown skin %r" % (name,)
+    return name, data["ui_skins"][name], data
+
+
 def load_roles():
-    """The chassis role map plus every colour it is allowed to name. A role
-    pointing at a colour the palette does not have raises here rather than
-    painting something off palette, which is the point of the indirection."""
-    with open(PALETTE) as f:
-        data = json.load(f)
+    """The active skin's chassis role map plus every colour it is allowed to
+    name. A role pointing at a colour the palette does not have raises here
+    rather than painting something off palette, which is the point of the
+    indirection."""
+    name, skin, data = active_skin()
     colors = {}
-    for name, value in data["colors"].items():
+    for cname, value in data["colors"].items():
         t = value.lstrip("#")
-        colors[name] = (int(t[0:2], 16), int(t[2:4], 16), int(t[4:6], 16))
+        colors[cname] = (int(t[0:2], 16), int(t[2:4], 16), int(t[4:6], 16))
     roles = {}
-    for role, name in data["ui_chassis"].items():
-        assert name in colors, "ui_chassis role %r names unknown colour %r" % (role, name)
-        roles[role] = colors[name]
-    return roles, set(colors.values())
+    for role, cname in skin["chassis"].items():
+        assert cname in colors, "%s chassis role %r names unknown colour %r" % (
+            name, role, cname)
+        roles[role] = colors[cname]
+    return roles, set(colors.values()), name
 
 
 def verify(canvas, palette, path):
@@ -190,7 +219,8 @@ def button(R, state):
 
 
 def main():
-    R, palette = load_roles()
+    R, palette, skin = load_roles()
+    print("skin: %s" % skin)
     os.makedirs(OUT, exist_ok=True)
     jobs = [("plate", plate(R)), ("header", header(R))]
     for state in ("normal", "hover", "pressed", "disabled"):

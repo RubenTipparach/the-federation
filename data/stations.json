@@ -7,43 +7,43 @@
   "stations": {
     "shields": {
       "label": "Shields", "icon": "shld", "code": "", "side": "fight", "live": true,
-      "blurb": "Shield boxes are bought, not handed back. Two energy per box, paid out of the shields sink, into the facing picked here (3C7)."
+      "blurb": "Boxes are bought, not handed back: two energy each, into the facing picked here (3C7)."
     },
     "reactor": {
       "label": "Reactor", "icon": "warp", "code": "WARP", "side": "fight", "live": true,
-      "blurb": "Reactor output is what every other station spends. Fuel, coolant and the overload are not wired yet."
+      "blurb": "Output is what every other station spends. Fuel, coolant and overload are not wired yet."
     },
     "sensors": {
       "label": "Sensors", "icon": "sens", "code": "", "side": "fight", "live": false,
-      "blurb": "Discrete points shifted between jamming and seeing through jamming, and the lock quality that decides how much of a target's display you may read."
+      "blurb": "Discrete points between jamming and seeing through it, and the lock that decides what you may read."
     },
     "tractor": {
       "label": "Tractor", "icon": "trac", "code": "TRAC", "side": "fight", "live": false,
-      "blurb": "Hold, repel or tow, paid for out of the reactor while the beam is up."
+      "blurb": "Hold, repel or tow, paid from the reactor while the beam is up."
     },
     "marines": {
       "label": "Marines", "icon": "mrne", "code": "MRNE", "side": "fight", "live": false,
-      "blurb": "Boarding needs a shield down on the facing you transport through, which is a reason to care which facing you broke."
+      "blurb": "Boarding needs a shield down on the facing you transport through."
     },
     "shuttle": {
       "label": "Shuttle", "icon": "shtl", "code": "SHTL", "side": "fight", "live": false,
-      "blurb": "Shuttles launch from here, and so do mines: they are not fired, they are left behind."
+      "blurb": "Shuttles launch from here, and so do mines: not fired, left behind."
     },
     "repair": {
       "label": "Repair", "icon": "rpr", "code": "", "side": "keep", "live": true,
-      "blurb": "One job at a time, priced per box and not per system (5G4). Parts are a stock, not an income."
+      "blurb": "One job at a time, priced per box, not per system (5G4). Parts are a stock, not an income."
     },
     "life": {
       "label": "Life", "icon": "life", "code": "BRDG", "side": "keep", "live": true,
-      "blurb": "Crew aboard and the sections still sealed. Officer casualties are not wired yet."
+      "blurb": "Crew aboard and sections still sealed. Officer casualties are not wired yet."
     },
     "cargo": {
       "label": "Cargo", "icon": "cargo", "code": "", "side": "keep", "live": false,
-      "blurb": "In a fight this throws mass overboard and says how many spare parts are aboard. The manifest belongs to the base screens."
+      "blurb": "In a fight this throws mass overboard and counts the spare parts aboard."
     },
     "science": {
       "label": "Lab", "icon": "lab", "code": "LAB", "side": "keep", "live": false,
-      "blurb": "A probe fired at an enemy mid fight is how you learn a hull you have never seen."
+      "blurb": "A probe fired mid fight is how you learn a hull you have never seen."
     }
   }
 }
