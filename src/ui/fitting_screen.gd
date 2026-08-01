@@ -39,8 +39,6 @@ func bind_session(p_session: Session) -> void:
 		buttons[i].text = "Fire (%d)" % dmg
 		buttons[i].pressed.connect(_on_fire.bind(dmg))
 	$Center/V/Controls/Reset.pressed.connect(_reset_demo)
-	$Center/V/Ring.facing_selected.connect(func(f: int) -> void: _log(
-		"Attack facing #%d selected" % (f + 1), Palette.CYAN))
 	$Center/V/Ring.resized.connect(_layout_plate)
 
 
@@ -90,11 +88,6 @@ func _reset_demo() -> void:
 	_demo = ShipState.create(session.fit, rng)
 	_rebuild_internals()
 	_refresh_state_views()
-	$Center/V/Log.clear()
-	var h: Dictionary = session.fit.hull()
-	_log("%s (%s) in dry dock. Shields %d per facing." % [
-		String(h["name"]), String(h["cls"]), int(h["shield_per_facing"])], Palette.CYAN)
-	_log("Select a facing on the ring, then fire.", Palette.DIM)
 
 
 func _rebuild_internals() -> void:
@@ -185,20 +178,18 @@ func _refresh_budgets() -> void:
 		Palette.OK if d["blind"].is_empty() else Palette.CRIT)
 
 
+## The dry dock still fires: the shot resolves through the same damage model a
+## battle uses, and the SSD repaints to show what it did. What it no longer
+## does is narrate. Narration is a combat instrument (CLAUDE.md 6.3), and out
+## of a battle there is no stream of events to follow, so the panel that used
+## to accumulate lines here is gone.
+##
+## The sim still RETURNS its log lines. They are ignored here rather than
+## removed at the source, because removing them would force the combat screen
+## to rebuild the same strings from raw fields, which is the duplication
+## CLAUDE.md 4.1 forbids. Fix the consumer, not the producer.
 func _on_fire(damage: int) -> void:
 	var facing: int = $Center/V/Ring.selected_facing
 	var bearing: float = Sectors.facing_center_bearing(facing)
-	_log("Incoming %d on facing #%d" % [damage, facing + 1], Palette.CYAN)
-	var lines: Array[String] = _demo.apply_damage(bearing, float(damage))["log"]
-	for line in lines:
-		var hue: Color = Palette.DIM
-		if line.contains("DOWN") or line.contains("DESTROYED"):
-			hue = Palette.CRIT
-		_log("  " + line, hue)
+	_demo.apply_damage(bearing, float(damage))
 	_refresh_state_views()
-
-
-func _log(text: String, hue: Color) -> void:
-	$Center/V/Log.push_color(hue)
-	$Center/V/Log.add_text(text + "\n")
-	$Center/V/Log.pop()

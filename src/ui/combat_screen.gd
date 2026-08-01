@@ -8,11 +8,30 @@ signal battle_ended
 
 const WEAPON_ROW := preload("res://scenes/ui/weapon_row.tscn")
 
+## Throttle is a fraction in the sim, so the notch count is the whole of the
+## discretisation and lives here rather than in the sim.
+const THROTTLE_NOTCHES := 8
+## Where the helm starts a battle: most of the way up, leaving room to push.
+const OPENING_THROTTLE_NOTCH := 6
+## Each sink gets its own hue so the five strips are told apart at a glance
+## rather than by counting rows. The subsystem family colours only supply four,
+## which left shields and reserve identical, so these are named directly.
+static func _sink_tint(sink: String) -> Color:
+	match sink:
+		"Weapons": return Palette.MAGENTA
+		"Shields": return Palette.CYAN
+		"Engines": return Palette.BLUE
+		"Systems": return Palette.AMBER
+		_: return Palette.SLATE
+
 var session: Session
 var battle: Battle
 var paused: bool = false
 var _weapon_rows: Array = []
 var _dragging: bool = false
+## Live touch points, for pinch. Two fingers zoom; one still drags the camera.
+var _touches: Dictionary = {}
+var _pinch_span: float = -1.0
 var _drag_moved: float = 0.0
 var _report_lines: Array[String] = []
 var _wired: bool = false
@@ -34,17 +53,7 @@ func bind_session(p_session: Session) -> void:
 	if _wired:
 		return
 	_wired = true
-	var world: Node3D = _world()
 	var cam: Dictionary = Catalog.tuning()["camera"]
-	$Mid/CamRow/Pitch.min_value = float(cam["pitch_floor_deg"])
-	$Mid/CamRow/Pitch.max_value = float(cam["pitch_ceil_deg"])
-	$Mid/CamRow/Pitch.value_changed.connect(func(v: float) -> void:
-		world.set_pitch(v)
-		_sync_pitch_ui())
-	var presets: Dictionary = cam["presets"]
-	$Mid/CamRow/Tactical.pressed.connect(_set_pitch_preset.bind(float(presets["tactical"])))
-	$Mid/CamRow/Cinematic.pressed.connect(_set_pitch_preset.bind(float(presets["cinematic"])))
-	$Mid/CamRow/Plan.pressed.connect(_set_pitch_preset.bind(float(presets["plan"])))
 
 	$Mid/Actions/FireBeams.pressed.connect(_fire_beams)
 	$Mid/Actions/FireHeavy.pressed.connect(_fire_heavy)
@@ -55,12 +64,13 @@ func bind_session(p_session: Session) -> void:
 	$Mid/ViewPanel/Stack/EndOverlay/P/V/Return.pressed.connect(
 		func() -> void: battle_ended.emit())
 
-	$Left/ShipPanel/V/Throttle/Slider.value_changed.connect(func(v: float) -> void:
-		if battle != null:
-			battle.apply_command(0, "order", [battle.player().ordered_heading, v]))
+	var throttle: Control = $Left/ShipPanel/V/Throttle/Boxes
+	throttle.setup(Palette.CYAN)
+	throttle.level_picked.connect(_on_throttle_picked)
 	for sink in ["Weapons", "Shields", "Engines", "Systems", "Reserve"]:
-		var slider: HSlider = $Left/PowerPanel/V.get_node(sink + "/Slider")
-		slider.value_changed.connect(_on_power_slider.bind(sink.to_lower()))
+		var strip: Control = $Left/PowerPanel/V.get_node(sink + "/Boxes")
+		strip.setup(_sink_tint(sink))
+		strip.level_picked.connect(_on_power_picked.bind(sink.to_lower()))
 
 	var container: SubViewportContainer = $Mid/ViewPanel/Stack/ViewContainer
 	container.gui_input.connect(_on_view_input)
@@ -117,7 +127,6 @@ func start_replay(log: BattleLog) -> void:
 	$Mid/Actions/Pause.text = "Pause"
 	$Mid/ViewPanel/Stack/EndOverlay.visible = false
 	_build_weapon_rows()
-	_sync_pitch_ui()
 	_refresh_hud()
 	_sync_replay_bar()
 
@@ -132,15 +141,16 @@ func start_battle() -> void:
 	# and a bug someone else can reproduce (docs/11).
 	battle.log = BattleLog.create(battle.player().fit, session.enemy_hull_id,
 		battle.seed_value, float(Catalog.tuning()["combat"]["replay_step"]))
+	# Open at the throttle notch the strip will show, so the opening order and
+	# the panel agree without the panel having to be read first.
 	battle.apply_command(0, "order", [battle.player().heading,
-		float($Left/ShipPanel/V/Throttle/Slider.value)])
+		float(OPENING_THROTTLE_NOTCH) / float(THROTTLE_NOTCHES)])
 	_world().bind_battle(battle)
 	paused = false
 	_report_lines = []
 	$Mid/Actions/Pause.text = "Pause"
 	$Mid/ViewPanel/Stack/EndOverlay.visible = false
 	_build_weapon_rows()
-	_sync_pitch_ui()
 	_refresh_hud()
 
 
@@ -173,6 +183,19 @@ func _track_plan_camera() -> void:
 		Vector3(mid.x, 60, mid.y), Vector3(mid.x, 0, mid.y), Vector3(0, 0, 1))
 
 
+## Escape pauses, and it is the only key this screen claims. It is handled as
+## unhandled input so a control that genuinely wants the key can take it first,
+## and it is ignored while the screen is hidden so it cannot pause a battle the
+## player is not looking at (CLAUDE.md 6.2).
+func _unhandled_input(event: InputEvent) -> void:
+	if not visible or battle == null:
+		return
+	if event is InputEventKey and event.pressed and not event.echo \
+			and event.keycode == KEY_ESCAPE:
+		_toggle_pause()
+		get_viewport().set_input_as_handled()
+
+
 func _physics_process(delta: float) -> void:
 	if battle == null or not visible:
 		return
@@ -202,15 +225,24 @@ func _physics_process(delta: float) -> void:
 ## Clicking to one side of the ship turns it that way. The ship is the anchor,
 ## so the gesture is "come left" or "come right" rather than "fly to this
 ## point", which is what a helm order actually is.
+## Steer toward the point clicked, not merely to one side of the ship.
+##
+## The click is projected onto the battle plane, and the ship is ordered onto
+## the bearing from its own position to that point. The previous version only
+## read which side of the ship the click landed on and nudged the heading by a
+## fixed step, so pointing at somewhere specific did not take the ship there.
 func _helm_click(at: Vector2) -> void:
 	var me: ShipState = battle.player()
-	var here: Vector2 = _world().screen_pos(me.pos)
-	var step: float = float(Catalog.tuning()["combat"]["helm_click_turn_deg"])
-	var side: float = 1.0 if at.x >= here.x else -1.0
-	var heading: float = me.ordered_heading + side * step
+	var point: Vector2 = _world().plane_point(at)
+	if is_nan(point.x) or is_nan(point.y):
+		return
+	var to_point: Vector2 = point - me.pos
+	# A click on the ship itself has no direction in it; hold the current order.
+	if to_point.length() < 0.001:
+		return
+	var heading: float = Sectors.bearing_between(me.pos, point)
 	if battle.apply_command(0, "order", [heading, me.ordered_throttle]):
-		_note("Helm: come %s to %03d" % [
-			"starboard" if side > 0.0 else "port", int(Sectors.wrap_deg(heading))])
+		_note("Helm: come to %03d" % int(Sectors.wrap_deg(heading)))
 
 
 # ---- replay ------------------------------------------------------------------
@@ -329,6 +361,39 @@ func _on_view_input(event: InputEvent) -> void:
 	if battle == null:
 		return
 	var world: Node3D = _world()
+	# Godot emits a press AND a release for every wheel notch, so without the
+	# pressed guard each notch would zoom twice.
+	if event is InputEventMouseButton and event.pressed and (
+			event.button_index == MOUSE_BUTTON_WHEEL_UP
+			or event.button_index == MOUSE_BUTTON_WHEEL_DOWN):
+		var dir: float = -1.0 if event.button_index == MOUSE_BUTTON_WHEEL_UP else 1.0
+		world.zoom(dir * float(Catalog.tuning()["camera"]["zoom_step"]))
+		return
+	# Pinch. InputEventMagnifyGesture is not delivered by the web export, which
+	# is a shipping target, so the two finger distance is tracked by hand and
+	# the gesture event is treated as a bonus when a platform does send it.
+	if event is InputEventMagnifyGesture:
+		world.zoom((1.0 - event.factor) * float(
+			Catalog.tuning()["camera"]["zoom_pinch_scale"]))
+		return
+	if event is InputEventScreenTouch:
+		if event.pressed:
+			_touches[event.index] = event.position
+		else:
+			_touches.erase(event.index)
+		_pinch_span = -1.0
+		return
+	if event is InputEventScreenDrag:
+		_touches[event.index] = event.position
+		if _touches.size() == 2:
+			var keys: Array = _touches.keys()
+			var span: float = (_touches[keys[0]] as Vector2).distance_to(
+				_touches[keys[1]])
+			if _pinch_span > 0.0:
+				world.zoom((_pinch_span - span) * float(
+					Catalog.tuning()["camera"]["zoom_touch_scale"]))
+			_pinch_span = span
+			return
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:
 			_dragging = true
@@ -343,25 +408,22 @@ func _on_view_input(event: InputEvent) -> void:
 			var cam: Dictionary = Catalog.tuning()["camera"]
 			var speed: float = float(cam["orbit_speed"])
 			world.orbit(-event.relative.x * speed, event.relative.y * speed)
-			_sync_pitch_ui()
 
 
-func _set_pitch_preset(deg: float) -> void:
-	_world().set_pitch(deg)
-	_sync_pitch_ui()
-
-
-func _sync_pitch_ui() -> void:
-	var world: Node3D = _world()
-	$Mid/CamRow/Pitch.set_value_no_signal(world.pitch())
-	$Mid/CamRow/PitchOut.text = "%d deg" % int(world.pitch())
-	$Mid/CamRow/FloorNote.visible = world.at_pitch_floor()
-	$Mid/CamRow/FloorNote.add_theme_color_override("font_color", Palette.AMBER)
-
-
-func _on_power_slider(value: float, sink: String) -> void:
+## A box strip reports the level it was clicked to, which is already the whole
+## number of reactor points the sim wants. No rounding happens at the view.
+func _on_power_picked(level: int, sink: String) -> void:
 	if battle != null:
-		battle.apply_command(0, "power", [sink, value])
+		battle.apply_command(0, "power", [sink, float(level)])
+
+
+## Throttle is stored as a 0 to 1 fraction, so the notch count is the only
+## place the discretisation lives.
+func _on_throttle_picked(level: int) -> void:
+	if battle == null:
+		return
+	var frac: float = float(level) / float(THROTTLE_NOTCHES)
+	battle.apply_command(0, "order", [battle.player().ordered_heading, frac])
 
 
 ## Sim mutating commands are gated on pause and battle end, matching the
@@ -504,6 +566,10 @@ func _refresh_hud() -> void:
 	var foe: ShipState = battle.enemy()
 
 	$Left/ShipPanel/V/Head.text = String(me.fit.hull()["name"]).to_upper()
+	$Left/ShipPanel/V/Throttle/Boxes.paint(
+		int(roundf(me.ordered_throttle * float(THROTTLE_NOTCHES))), THROTTLE_NOTCHES)
+	$Left/ShipPanel/V/Throttle/Out.text = "%d" % int(
+		roundf(me.ordered_throttle * float(THROTTLE_NOTCHES)))
 	$Left/ShipPanel/V/Body.text = "\n".join([
 		"BOXES  %d / %d" % [me.total_boxes(), me.total_boxes_max()],
 		"SPEED  %.1f / %.1f" % [me.speed, me.max_speed()],
@@ -513,12 +579,17 @@ func _refresh_hud() -> void:
 	var out: float = me.power_output()
 	$Left/PowerPanel/V/Head.text = "POWER  %d / %d" % [int(out),
 		int(me.fit.hull()["budgets"]["power"])]
+	# The strip is as long as the reactor's SURVIVING output, so losing power
+	# boxes visibly shortens every row instead of silently rescaling them.
+	# One box per point of the hull's reactor budget, and the boxes past what
+	# the reactor still puts out are drawn as shot away, so damage shortens the
+	# usable strip in front of the player instead of quietly rescaling it.
+	var budget: int = int(me.fit.hull()["budgets"]["power"])
+	var ceiling: int = int(floorf(out))
 	for sink in ["Weapons", "Shields", "Engines", "Systems", "Reserve"]:
 		var row: HBoxContainer = $Left/PowerPanel/V.get_node(sink)
-		var slider: HSlider = row.get_node("Slider")
 		var units: float = me.alloc_units(sink.to_lower())
-		slider.max_value = maxf(out, 0.001)
-		slider.set_value_no_signal(units)
+		row.get_node("Boxes").paint(int(roundf(units)), budget, ceiling)
 		row.get_node("Out").text = str(int(roundf(units)))
 
 	var dmg: Array[String] = []

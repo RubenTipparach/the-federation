@@ -37,6 +37,11 @@ func _ready() -> void:
 func show_tab(tab: String) -> void:
 	for screen_name in ["Fitting", "Arcs", "Skirmish", "Combat"]:
 		$Root/Content.get_node(screen_name).visible = screen_name == tab
+	# The tabs are hidden for the whole battle rather than deleted: they are
+	# global chrome that the other three screens still navigate by, and a
+	# battle should be left by ending it, not by wandering off mid engagement
+	# (CLAUDE.md 6.2).
+	$Root/TopBar.visible = tab != "Combat"
 	$Root/TopBar/TabFitting.button_pressed = tab == "Fitting"
 	$Root/TopBar/TabArcs.button_pressed = tab == "Arcs"
 	$Root/TopBar/TabSkirmish.button_pressed = tab == "Skirmish"

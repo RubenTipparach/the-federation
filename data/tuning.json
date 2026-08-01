@@ -3,15 +3,15 @@
   "camera": {
     "pitch_floor_deg": 25.0,
     "pitch_ceil_deg": 90.0,
-    "default_pitch_deg": 55.0,
+    "default_pitch_deg": 30.0,
     "default_azimuth_deg": -35.0,
     "distance": 46.0,
+    "distance_min": 16.0,
+    "distance_max": 96.0,
+    "zoom_step": 0.12,
+    "zoom_pinch_scale": 1.4,
+    "zoom_touch_scale": 0.004,
     "orbit_speed": 0.3,
-    "presets": {
-      "tactical": 55.0,
-      "cinematic": 30.0,
-      "plan": 90.0
-    },
     "plan_inset_size": 62.0,
     "stick_turn_deg_per_sec": 90.0,
     "stick_orbit_deg_per_sec": 70.0

@@ -59,6 +59,29 @@ func orbit(delta_az_deg: float, delta_pitch_deg: float) -> void:
 	set_pitch(_pitch_deg + delta_pitch_deg)
 
 
+## The single distance clamp, the counterpart of clamp_pitch. Every zoom path
+## goes through it, so no input route can push the camera inside the ship or
+## out past the arena.
+func clamp_distance(d: float) -> float:
+	var cam: Dictionary = Catalog.tuning()["camera"]
+	return clampf(d, float(cam["distance_min"]), float(cam["distance_max"]))
+
+
+func set_distance(d: float) -> void:
+	_distance = clamp_distance(d)
+	_apply_camera()
+
+
+func distance() -> float:
+	return _distance
+
+
+## Zoom by a fraction of the current distance rather than a fixed number of
+## units, so one notch feels the same close in as far out.
+func zoom(amount: float) -> void:
+	set_distance(_distance * (1.0 + amount))
+
+
 ## The point the camera orbits: the player's ship, so turning and closing keep
 ## the ship in the middle instead of sliding it off the edge of the arena.
 func pivot() -> Vector3:

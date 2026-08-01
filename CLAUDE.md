@@ -228,6 +228,10 @@ about what is fitted, which is the one thing a player must always be able to tru
 The test to apply to anything proposed for this screen: *would a player reach for this
 while under fire?* If not, it belongs on a different screen.
 
+The replay bar is the one exception, and it proves the rule rather than bending it. Its
+scrub is a continuous seek through a recording, and nobody watching a replay is under
+fire. Sliders are banned from *fighting*, not from reviewing a fight.
+
 ### 6.3 Logging is a combat instrument
 
 **Only the tactical combat view narrates.** The comm log and damage report exist so a player
@@ -247,11 +251,13 @@ Exceptions to the rules above live here, with the reason. Nothing may be treated
 exception until it is listed in this section and agreed.
 
 - **Data driven 2D chart controls may paint via `Control._draw()`.** The SSD shield
-  ring and the 12 sector arc wheel are live data visualizations; their content cannot be
-  statically authored because it IS the data. The nodes are authored in their scenes, the
-  scripts only paint sim state and report clicks, and no node trees or meshes are
-  constructed. Agreed via the approved mockups and the instruction to build them
-  (2026-07-30).
+  ring, the 12 sector arc wheel, and the tactical view's allocation box strips are live
+  data visualizations; their content cannot be statically authored because it IS the
+  data. The box strip's length is the reactor's surviving output, which falls as the
+  reactor is damaged, so no static node tree could describe it. The nodes are authored in
+  their scenes, the scripts only paint sim state and report clicks, and no node trees or
+  meshes are constructed. Agreed via the approved mockups and the instruction to build
+  them (2026-07-30, extended to the box strips 2026-08-01).
 - **Tactical overlays compose committed unit meshes, placed by code.** The 3D combat
   view's arc wedges, shield segments, range rings, and beams are instances of committed
   `.obj` files (written by `tools/gen_meshes.py` per section 2), statically authored as

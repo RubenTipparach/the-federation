@@ -95,12 +95,6 @@ text = "Fire (32)"
 layout_mode = 2
 text = "Reset"
 
-[node name="Log" type="RichTextLabel" parent="Center/V"]
-layout_mode = 2
-custom_minimum_size = Vector2(0, 110)
-theme_override_font_sizes/normal_font_size = 11
-scroll_following = true
-
 [node name="Right" type="VBoxContainer" parent="."]
 layout_mode = 2
 custom_minimum_size = Vector2(300, 0)

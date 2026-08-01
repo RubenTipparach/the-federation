@@ -1,10 +1,11 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://src/ui/combat_screen.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/combat_world.tscn" id="2"]
 [ext_resource type="PackedScene" path="res://scenes/ui/shield_bar.tscn" id="3"]
 [ext_resource type="PackedScene" path="res://scenes/ui/touch_controls.tscn" id="4"]
 [ext_resource type="Environment" path="res://assets/materials/env_plan_inset.tres" id="5"]
+[ext_resource type="PackedScene" path="res://scenes/ui/box_strip.tscn" id="6"]
 
 [node name="Combat" type="HBoxContainer"]
 anchors_preset = 15
@@ -44,13 +45,15 @@ custom_minimum_size = Vector2(66, 0)
 theme_override_font_sizes/font_size = 10
 text = "THROTTLE"
 
-[node name="Slider" type="HSlider" parent="Left/ShipPanel/V/Throttle"]
+[node name="Boxes" parent="Left/ShipPanel/V/Throttle" instance=ExtResource("6")]
 layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 4
-max_value = 1.0
-step = 0.05
-value = 0.7
+
+[node name="Out" type="Label" parent="Left/ShipPanel/V/Throttle"]
+layout_mode = 2
+custom_minimum_size = Vector2(28, 0)
+theme_override_font_sizes/font_size = 11
+horizontal_alignment = 2
+text = "0"
 
 [node name="PowerPanel" type="PanelContainer" parent="Left"]
 layout_mode = 2
@@ -73,11 +76,8 @@ custom_minimum_size = Vector2(66, 0)
 theme_override_font_sizes/font_size = 10
 text = "WEAPONS"
 
-[node name="Slider" type="HSlider" parent="Left/PowerPanel/V/Weapons"]
+[node name="Boxes" parent="Left/PowerPanel/V/Weapons" instance=ExtResource("6")]
 layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 4
-step = 0.5
 
 [node name="Out" type="Label" parent="Left/PowerPanel/V/Weapons"]
 layout_mode = 2
@@ -95,11 +95,8 @@ custom_minimum_size = Vector2(66, 0)
 theme_override_font_sizes/font_size = 10
 text = "SHIELDS"
 
-[node name="Slider" type="HSlider" parent="Left/PowerPanel/V/Shields"]
+[node name="Boxes" parent="Left/PowerPanel/V/Shields" instance=ExtResource("6")]
 layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 4
-step = 0.5
 
 [node name="Out" type="Label" parent="Left/PowerPanel/V/Shields"]
 layout_mode = 2
@@ -117,11 +114,8 @@ custom_minimum_size = Vector2(66, 0)
 theme_override_font_sizes/font_size = 10
 text = "ENGINES"
 
-[node name="Slider" type="HSlider" parent="Left/PowerPanel/V/Engines"]
+[node name="Boxes" parent="Left/PowerPanel/V/Engines" instance=ExtResource("6")]
 layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 4
-step = 0.5
 
 [node name="Out" type="Label" parent="Left/PowerPanel/V/Engines"]
 layout_mode = 2
@@ -139,11 +133,8 @@ custom_minimum_size = Vector2(66, 0)
 theme_override_font_sizes/font_size = 10
 text = "SYSTEMS"
 
-[node name="Slider" type="HSlider" parent="Left/PowerPanel/V/Systems"]
+[node name="Boxes" parent="Left/PowerPanel/V/Systems" instance=ExtResource("6")]
 layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 4
-step = 0.5
 
 [node name="Out" type="Label" parent="Left/PowerPanel/V/Systems"]
 layout_mode = 2
@@ -161,11 +152,8 @@ custom_minimum_size = Vector2(66, 0)
 theme_override_font_sizes/font_size = 10
 text = "RESERVE"
 
-[node name="Slider" type="HSlider" parent="Left/PowerPanel/V/Reserve"]
+[node name="Boxes" parent="Left/PowerPanel/V/Reserve" instance=ExtResource("6")]
 layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 4
-step = 0.5
 
 [node name="Out" type="Label" parent="Left/PowerPanel/V/Reserve"]
 layout_mode = 2
@@ -324,52 +312,6 @@ text = ""
 [node name="Return" type="Button" parent="Mid/ViewPanel/Stack/EndOverlay/P/V"]
 layout_mode = 2
 text = "Return to skirmish setup"
-
-[node name="CamRow" type="HBoxContainer" parent="Mid"]
-layout_mode = 2
-theme_override_constants/separation = 6
-
-[node name="L" type="Label" parent="Mid/CamRow"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 10
-text = "CAMERA"
-
-[node name="Tactical" type="Button" parent="Mid/CamRow"]
-layout_mode = 2
-text = "Tactical"
-
-[node name="Cinematic" type="Button" parent="Mid/CamRow"]
-layout_mode = 2
-text = "Cinematic"
-
-[node name="Plan" type="Button" parent="Mid/CamRow"]
-layout_mode = 2
-text = "Plan"
-
-[node name="PitchLabel" type="Label" parent="Mid/CamRow"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 10
-text = "PITCH"
-
-[node name="Pitch" type="HSlider" parent="Mid/CamRow"]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 4
-min_value = 25.0
-max_value = 90.0
-value = 55.0
-
-[node name="PitchOut" type="Label" parent="Mid/CamRow"]
-layout_mode = 2
-custom_minimum_size = Vector2(56, 0)
-theme_override_font_sizes/font_size = 10
-text = "55 deg"
-
-[node name="FloorNote" type="Label" parent="Mid/CamRow"]
-visible = false
-layout_mode = 2
-theme_override_font_sizes/font_size = 10
-text = "PITCH FLOOR, LOOKING DOWN ONLY"
 
 [node name="ReplayBar" type="HBoxContainer" parent="Mid"]
 layout_mode = 2
