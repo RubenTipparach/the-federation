@@ -233,11 +233,71 @@ def armr(c):     # armor: layered chevrons
     c.poly([(24, 34), (40, 46), (34, 46), (24, 40), (14, 46), (8, 46)])
 
 
+# ---- station glyphs ----------------------------------------------------------
+#
+# The tactical view's subsystem tabs are labelled with the same masks, because
+# a tab is the console for a box and should carry that box's mark. Six of the
+# ten tabs already have one: reactor is WARP, tractor is TRAC, marines is MRNE,
+# shuttle is SHTL, science is LAB. These are the four that answer to no single
+# box, plus the shield tab, which answers to the ring rather than to a system.
+
+
+# The rasteriser only ever ADDS coverage, so a line drawn inside a filled shape
+# is invisible: white on white. Anything that needs internal detail is built as
+# an outline out of bars, with the detail sitting in the empty middle.
+
+
+def _outline(c, pts, w):
+    """Closed outline through pts, since there is no stroke primitive."""
+    for i in range(len(pts)):
+        x0, y0 = pts[i]
+        x1, y1 = pts[(i + 1) % len(pts)]
+        c.bar(x0, y0, x1, y1, w)
+
+
+def shld(c):     # shields: the six facing ring, flat side to the bow
+    hexa = []
+    for i in range(6):
+        a = math.radians(30 + i * 60)
+        hexa.append((24 + 19 * math.sin(a), 24 - 19 * math.cos(a)))
+    _outline(c, hexa, 4)
+    c.disc(24, 24, 5)
+
+
+def sens(c):     # sensors: a dish sweeping, with returns
+    c.arc(24, 40, 18, 4, -80, 80)
+    c.bar(24, 36, 24, 20, 3)
+    c.arc(24, 40, 26, 3, -34, -10)
+    c.arc(24, 40, 26, 3, 10, 34)
+
+
+def rpr(c):      # repairs: a spanner, open jaw at the top
+    c.disc(15, 14, 10, 5)
+    c.bar(19, 20, 39, 40, 7)
+    c.poly([(8, 8), (20, 8), (14, 16)])
+
+
+def life(c):     # life support: a pulse trace
+    c.bar(4, 24, 16, 24, 4)
+    c.bar(16, 24, 21, 10, 4)
+    c.bar(21, 10, 27, 38, 4)
+    c.bar(27, 38, 32, 24, 4)
+    c.bar(32, 24, 44, 24, 4)
+
+
+def cargo(c):    # cargo: a crate, banded
+    _outline(c, [(8, 13), (40, 13), (40, 41), (8, 41)], 4)
+    c.bar(8, 22, 40, 22, 3)
+    c.bar(19, 24, 19, 39, 3)
+    c.bar(29, 24, 29, 39, 3)
+
+
 ICONS = {
     "PH-1": ph1, "PH-3": ph3, "PHOT": phot, "DISR": disr, "LNCE": lnce,
     "DRN": drn, "BRDG": brdg, "WARP": warp, "IMP": imp, "AUXP": auxp,
     "BTTY": btty, "SHTL": shtl, "TRAN": tran, "TRAC": trac, "PRB": prb,
     "LAB": lab, "MRNE": mrne, "HULL": hull, "ARMR": armr,
+    "SHLD": shld, "SENS": sens, "RPR": rpr, "LIFE": life, "CARGO": cargo,
 }
 
 
