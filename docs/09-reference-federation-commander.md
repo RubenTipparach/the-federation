@@ -60,8 +60,9 @@ and rear sections for the damage allocation system," which First Missions omits 
 simplicity.
 
 **Energy.** Shield regeneration costs two energy tokens per shield box repaired
-(3C7). Reinforcement is paid from the same pool. Power is the currency behind every
-system, which is why the power split is a live decision rather than a fitting choice.
+(3C7), and reinforcement is paid from the same pool. Section 5 quotes both rules
+in full. Power is the currency behind every system, which is why the power split
+is a live decision rather than a fitting choice.
 
 ---
 
@@ -129,7 +130,7 @@ band, so the fitting screen's projection and a live shot cannot drift apart.
 |---|---|---|
 | Ship card, SSD | Ship systems display | Same object: the diagram carrying every box |
 | Box | Box | One hit point of one system |
-| Disabled box | Destroyed box | We do not model repair during a battle yet |
+| Disabled box | Damaged box | Repairable during a battle, section 5 |
 | Shield reinforcement | Reinforcement | Paid from the battery, `ShipState.reinforce` |
 | Firing arc (FA, RS, LF) | Sector field | We use 12 sectors of 30 degrees, finer than the source |
 
@@ -138,3 +139,105 @@ give each mount a list of 30 degree sectors, which is what
 `docs/02-ship-construction.md` describes and what the arc wheel draws. The six shield
 facings are the coarse grid, the twelve firing sectors are the fine one, and each
 facing is exactly two sectors wide.
+
+---
+
+## 5. Repair and shield regeneration
+
+The source treats these as two completely separate systems, and says so. Shields are
+bought back with energy, everything else is bought back with repair points, and
+neither currency can pay for the other.
+
+### 5.1 Shields cost energy
+
+**(3C7) Shield regeneration**, quoted in full:
+
+> "Shields can be regenerated. At the start of each turn, you can pay two Energy
+> Tokens to regenerate (remove the disabled mark from) any one shield box on any one
+> shield. You may do this for any number of shield boxes (up to the limit of Energy
+> Tokens you have available). The shields are repaired immediately."
+
+**(3C5) Shield reinforcement** is the other half of the same pool, and the rule that
+explains why batteries matter:
+
+> "Whenever a volley of damage strikes an active shield, the player who controls that
+> ship has the option to use a number of his remaining Energy Tokens (up to the number
+> of working batteries) to absorb some of the damage. Each Energy Token blocks one
+> point of damage. Note that while batteries limit the amount of power used on any
+> given volley, you can use that much power against every volley, even if you used it
+> on a previous volley of the same or a different impulse."
+
+Two things to notice. Regeneration is a **rate limited purchase, not a trickle**:
+nothing comes back unless the player spends for it, and the price is fixed per box.
+And the battery is a **throughput limit on reinforcement**, not a store that empties:
+the same batteries can block that many points again on the next volley.
+
+### 5.2 Everything else costs repair points
+
+**(5G1) Damage control rating.** Every ship carries a rating, "which is two for either
+cruiser," it is "not reduced by damage to the ship during combat," and "there is,
+effectively, no limit on the number of repairs a ship can perform on itself (given
+enough time)."
+
+**(5G2) Repair points**, quoted in full:
+
+> "Every turn, each ship generates a number of repair points equal to its Damage
+> Control Rating. There is no energy cost for this."
+
+**(5G3) Repair cost.** The price of a box depends on what kind of box it is:
+
+| Points | Boxes |
+|---|---|
+| 4 | All weapons: phasers, photon torpedoes, disruptors, drone racks, anti-drone racks |
+| 3 | All power systems: warp engine, impulse engine, reactor, battery |
+| 2 | Most ship systems: tractor, transporter, laboratory, probe launcher, shuttle |
+| 2 | Control systems: bridge, auxiliary control, flag bridge, emergency bridge |
+| 1 | Hull boxes, cargo boxes |
+
+And the line that keeps the two systems apart:
+
+> "Shields have their own repair system and cannot be repaired by these rules."
+
+**(5G4) Repair procedure.** Three constraints worth keeping:
+
+> "Note that the cost is per box, not per item, so a 15-box warp engine would take 45
+> repair points, not 3. Unused repair points cannot be carried over to the next turn.
+> Points could be applied to start repair on a single box, with the repair points of
+> the next turn used to finish (or at least work on) that box... A player must complete
+> the repairs of the box he started repairing before spending repair points on other
+> boxes."
+
+So repair is a **queue with one job at a time**, funded by a per turn income that is
+lost if unspent, and a big system is expensive in proportion to how big it is.
+
+### 5.3 What we take, and where we differ
+
+| Federation Commander | The Federation | Why |
+|---|---|---|
+| Regeneration costs 2 energy per shield box, player initiated | Same price, paid continuously out of the shield sink | Below |
+| Free passive shield regeneration | Does not exist | We currently have one, and it contradicts 3C7 |
+| Batteries cap reinforcement per volley, refill for the next | Same cap, per volley, not a store that drains | Below |
+| Repair points per turn from a damage control rating | Spare parts, a finite stock carried by the ship | Below |
+| No energy cost for repair | Same, repair costs parts and time, never reactor output | Keeps the two currencies separate as the source does |
+| 4 / 3 / 2 / 2 / 1 points by box family | Same relative ordering, our own numbers | Their numbers are theirs, section 10 of `CLAUDE.md` |
+| One box at a time, unused points lost | A queue the player orders, one job at a time | Below |
+
+**Our shield regeneration is wrong today and this is the rule that says so.**
+`data/tuning.json` carries `shield_regen_per_sec`, a free trickle that hands shields
+back whether or not the player pays for them. Under 3C7 nothing comes back unpaid.
+The fix is to make the shields sink buy boxes at a fixed price, which turns the power
+split into the decision it is in the source: points spent holding the shields up are
+points not spent shooting.
+
+**Repair points become spare parts, and that is a real difference.** The source
+regenerates repair capacity every turn forever, because a Federation Commander battle
+is a scenario that ends. Ours is an MMO where a ship flies out, fights, and comes
+home, so the interesting resource is one that runs out and has to be restocked at a
+base. Spare parts are the per turn income replaced by a stock: same cost table, same
+one job at a time, same "cannot repair shields," but a hold that empties.
+
+**Continuous time replaces the turn, the same way it does everywhere else.** The
+source's "at the start of each turn" and "during the Repair Phase" are both anchored
+to a turn structure we do not have. A repair takes a number of seconds proportional
+to the box cost, and shield regeneration is paid per box as the energy accrues,
+rather than in a batch at a fixed moment.
