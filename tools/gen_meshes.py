@@ -186,6 +186,34 @@ def sphere(segs=20, rings=12):
     o.write("sphere.obj", "Unit sphere, for nebula volumes, asteroids and planets")
 
 
+def debris():
+    # Wreckage: three irregular plates, each an extruded polygon of a different
+    # shape and thickness. Plates rather than lumps because these ships are made
+    # of plates, so a hull that comes apart should come apart into panels and
+    # sections rather than into gravel.
+    #
+    # The jitter is a fixed table, not a random draw. A generator that rolled
+    # dice would write a different file every run and the committed .obj would
+    # churn in every diff for no reason (CLAUDE.md section 2: the file on disk
+    # is the deliverable).
+    shapes = [
+        # (sides, radii per corner, half thickness)
+        (5, [1.00, 0.62, 0.88, 0.45, 0.74], 0.16),
+        (6, [0.70, 1.00, 0.55, 0.82, 0.48, 0.93], 0.10),
+        (4, [0.95, 0.40, 0.78, 0.58], 0.24),
+    ]
+    for index, (sides, radii, half) in enumerate(shapes):
+        o = Obj()
+        outline = []
+        for i in range(sides):
+            a = 2.0 * math.pi * i / sides
+            r = radii[i]
+            outline.append((math.sin(a) * r, math.cos(a) * r))
+        extrude(o, outline, -half, half)
+        o.write("debris_%d.obj" % index,
+                "Wreck plate %d, extruded irregular polygon, scaled in code" % index)
+
+
 def beam():
     o = Obj()
     n = o.normal(0, 1, 0)
@@ -311,6 +339,7 @@ def main():
     quad()
     disc()
     sphere()
+    debris()
     beam()
     hull()
 

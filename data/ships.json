@@ -13,7 +13,7 @@
       "budgets": { "space": 140, "power": 42, "mass": 140, "crew": 145 },
       "base_load": { "space": 85, "mass": 104, "crew": 110, "power_draw": 21 },
       "shield_per_facing": 24,
-      "max_speed": 5.0, "accel": 1.6, "turn_rate_deg": 26.0,
+      "max_speed": 20, "accel": 6.4, "turn_rate_deg": 26.0,
       "mounts": [
         { "id": "M1", "pos": "Fore spinal", "size": "Heavy", "families": ["torpedo", "lance"], "field": [11, 0], "default": "photon" },
         { "id": "M2", "pos": "Fore starboard", "size": "Medium", "families": ["beam", "disruptor"], "field": [0, 1, 2], "default": "ph1" },
@@ -43,7 +43,7 @@
       "budgets": { "space": 72, "power": 24, "mass": 70, "crew": 68 },
       "base_load": { "space": 44, "mass": 44, "crew": 52, "power_draw": 12 },
       "shield_per_facing": 14,
-      "max_speed": 7.0, "accel": 2.4, "turn_rate_deg": 40.0,
+      "max_speed": 28, "accel": 9.6, "turn_rate_deg": 40.0,
       "mounts": [
         { "id": "M1", "pos": "Fore port", "size": "Medium", "families": ["beam", "disruptor"], "field": [10, 11, 0], "default": "disruptor" },
         { "id": "M2", "pos": "Fore starboard", "size": "Medium", "families": ["beam", "disruptor"], "field": [0, 1, 2], "default": "disruptor" },
@@ -71,7 +71,7 @@
       "budgets": { "space": 200, "power": 60, "mass": 205, "crew": 240 },
       "base_load": { "space": 120, "mass": 148, "crew": 168, "power_draw": 28 },
       "shield_per_facing": 34,
-      "max_speed": 3.6, "accel": 1.0, "turn_rate_deg": 16.0,
+      "max_speed": 14.4, "accel": 4, "turn_rate_deg": 16.0,
       "mounts": [
         { "id": "M1", "pos": "Port spinal", "size": "Heavy", "families": ["lance", "torpedo"], "field": [11, 0], "default": "lance" },
         { "id": "M2", "pos": "Stbd spinal", "size": "Heavy", "families": ["lance", "torpedo"], "field": [0, 1], "default": "photon" },
@@ -101,7 +101,7 @@
       "budgets": { "space": 150, "power": 44, "mass": 150, "crew": 150 },
       "base_load": { "space": 92, "mass": 110, "crew": 112, "power_draw": 22 },
       "shield_per_facing": 24,
-      "max_speed": 4.6, "accel": 1.4, "turn_rate_deg": 20.0,
+      "max_speed": 18.4, "accel": 5.6, "turn_rate_deg": 20.0,
       "mounts": [
         { "id": "M1", "pos": "Fore port", "size": "Medium", "families": ["disruptor"], "field": [10, 11, 0], "default": "disruptor" },
         { "id": "M2", "pos": "Fore starboard", "size": "Medium", "families": ["disruptor"], "field": [0, 1, 2], "default": "disruptor" },
@@ -130,7 +130,7 @@
       "budgets": { "space": 50, "power": 18, "mass": 48, "crew": 46 },
       "base_load": { "space": 30, "mass": 30, "crew": 34, "power_draw": 9 },
       "shield_per_facing": 10,
-      "max_speed": 8.0, "accel": 3.0, "turn_rate_deg": 50.0,
+      "max_speed": 32, "accel": 12, "turn_rate_deg": 50.0,
       "mounts": [
         { "id": "M1", "pos": "Fore", "size": "Medium", "families": ["disruptor", "beam"], "field": [11, 0, 1], "default": "disruptor" },
         { "id": "M2", "pos": "Aft", "size": "Light", "families": ["beam"], "field": [5, 6, 7], "default": "ph3" }

@@ -17,8 +17,8 @@ const TargetBracket := preload("res://src/ui/target_bracket.gd")
 ## Markers authored in the scene, one per ship in a duel.
 const BRACKET_COUNT := 2
 ## Hull radius in sim units per ton, so a bracket is sized by the ship it is
-## drawn around rather than by a single number for every hull.
-const BRACKET_RADIUS_PER_TON := 0.022
+## drawn around rather than by a single number for every hull. It lives in
+## data/tuning.json with the other sizes it has to move with (CLAUDE.md 5.4).
 const BRACKET_MIN_PX := 16.0
 const BRACKET_MAX_PX := 120.0
 ## Extra pixels around a ship that still count as pointing at it.
@@ -909,7 +909,8 @@ func _refresh_brackets(world: Node3D, stack: Control) -> void:
 ## means the bracket tracks zoom and perspective without a second scale factor
 ## to keep in step with the camera.
 func _ship_screen_radius(world: Node3D, ship: ShipState) -> float:
-	var r: float = float(ship.fit.hull()["tonnage"]) * BRACKET_RADIUS_PER_TON
+	var r: float = float(ship.fit.hull()["tonnage"]) \
+		* float(Catalog.tuning()["view"]["bracket_radius_per_ton"])
 	var centre: Vector2 = world.screen_pos(ship.pos)
 	var edge: Vector2 = world.screen_pos(ship.pos + Vector2(r, 0.0))
 	return clampf(centre.distance_to(edge), BRACKET_MIN_PX, BRACKET_MAX_PX)

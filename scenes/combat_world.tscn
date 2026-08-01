@@ -35,6 +35,8 @@ script = ExtResource("7")
 
 [node name="EnemyRig" parent="." instance=ExtResource("4")]
 
+[node name="Wrecks" type="Node3D" parent="."]
+
 [node name="Beams" type="Node3D" parent="."]
 
 [node name="B0" type="MeshInstance3D" parent="Beams"]

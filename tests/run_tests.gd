@@ -470,25 +470,25 @@ func test_terrain() -> void:
 	# ---- nebulae: obscuration is a path length, not a flag ----
 	var cloudy = TerrainLib.new()
 	cloudy.features.append({ "kind": TerrainLib.KIND_NEBULA,
-		"pos": Vector2.ZERO, "body": 0.0, "field": 10.0 })
+		"pos": Vector2.ZERO, "body": 0.0, "field": 100.0 })
 	var opacity: float = float(CatalogLib.tuning()["terrain"]["nebula_opacity_length"])
-	near(cloudy.obscuration(Vector2(-20, 0), Vector2(20, 0)), 20.0 / opacity,
+	near(cloudy.obscuration(Vector2(-200, 0), Vector2(200, 0)), 200.0 / opacity,
 		"a line straight through a cloud counts its whole chord")
-	near(cloudy.obscuration(Vector2(20, 0), Vector2(-20, 0)), 20.0 / opacity,
+	near(cloudy.obscuration(Vector2(200, 0), Vector2(-200, 0)), 200.0 / opacity,
 		"obscuration is the same in both directions")
-	eq(cloudy.obscuration(Vector2(-20, 20), Vector2(20, 20)), 0.0,
+	eq(cloudy.obscuration(Vector2(-200, 200), Vector2(200, 200)), 0.0,
 		"a line that misses the cloud is not obscured")
 	# Sitting just inside the edge hides almost nothing, which is the point of
 	# measuring the path rather than testing a flag.
-	ok(cloudy.obscuration(Vector2(-9.5, 0), Vector2(-20, 0)) < 0.1,
+	ok(cloudy.obscuration(Vector2(-95.0, 0), Vector2(-200, 0)) < 0.1,
 		"one step inside the edge hides almost nothing")
 
 	var penalty: float = float(CatalogLib.tuning()["terrain"]["nebula_range_penalty"])
-	near(cloudy.apparent_range(Vector2(-12, 0), Vector2(12, 0), 24.0),
-		24.0 + 20.0 / opacity * penalty, "cloud is added to the range the guns see")
-	ok(cloudy.lock_broken(Vector2(-12, 0), Vector2(12, 0)),
+	near(cloudy.apparent_range(Vector2(-120, 0), Vector2(120, 0), 240.0),
+		240.0 + 200.0 / opacity * penalty, "cloud is added to the range the guns see")
+	ok(cloudy.lock_broken(Vector2(-120, 0), Vector2(120, 0)),
 		"a full crossing breaks the lock")
-	ok(not cloudy.lock_broken(Vector2(-30, 0), Vector2(-25, 0)),
+	ok(not cloudy.lock_broken(Vector2(-300, 0), Vector2(-250, 0)),
 		"a clear line holds the lock")
 
 	# Blinded means it cannot be shot at, through the same call the bracket uses.
@@ -496,8 +496,8 @@ func test_terrain() -> void:
 	blind.terrain = cloudy
 	for s in blind.ships:
 		s.terrain = cloudy
-	blind.player().pos = Vector2(-12, 0)
-	blind.enemy().pos = Vector2(12, 0)
+	blind.player().pos = Vector2(-120, 0)
+	blind.enemy().pos = Vector2(120, 0)
 	for w in blind.player().weapons_rt:
 		w["charge"] = 1.0
 	ok(not blind.player().can_see(blind.enemy().pos), "a blinded ship cannot see")
@@ -508,7 +508,7 @@ func test_terrain() -> void:
 	# ---- planets: the well pulls, the surface hurts ----
 	var world = TerrainLib.new()
 	world.features.append({ "kind": TerrainLib.KIND_PLANET,
-		"pos": Vector2(0, 12), "body": 4.0, "field": 18.0 })
+		"pos": Vector2(0, 120), "body": 40.0, "field": 180.0 })
 	var tuning: Dictionary = CatalogLib.tuning()
 	var drifter = ShipLib.create(FitLib.create_default("wayfarer"),
 		RandomNumberGenerator.new())
@@ -519,9 +519,9 @@ func test_terrain() -> void:
 	for _i in range(60):
 		drifter.step(1.0 / 10.0, tuning)
 	ok(drifter.drift.y > 0.0, "a gravity well gives a ship drift toward the planet")
-	ok(drifter.pos.y > 0.5, "and the ship slides toward it with its engines idle")
+	ok(drifter.pos.y > 5.0, "and the ship slides toward it with its engines idle")
 	near(drifter.heading, 180.0, "without turning the ship away from where it points", 0.5)
-	eq(world.pull_at(Vector2(0, -20)), Vector2.ZERO, "outside the well there is no pull")
+	eq(world.pull_at(Vector2(0, -200)), Vector2.ZERO, "outside the well there is no pull")
 
 	# Leaving the well sheds the drift rather than keeping it forever.
 	drifter.terrain = TerrainLib.new()
@@ -532,14 +532,14 @@ func test_terrain() -> void:
 	# ---- asteroids: the halo grinds, the rock collides ----
 	var rocks = TerrainLib.new()
 	rocks.features.append({ "kind": TerrainLib.KIND_ASTEROID,
-		"pos": Vector2.ZERO, "body": 1.0, "field": 4.0 })
+		"pos": Vector2.ZERO, "body": 10.0, "field": 40.0 })
 	var terrain_tuning: Dictionary = tuning["terrain"]
 	var floor_factor: float = float(terrain_tuning["asteroid_grind_speed_floor"])
 	var dps: float = float(terrain_tuning["asteroid_grind_dps"])
-	eq(rocks.grind_at(Vector2(0, 5), 4.0), 0.0, "outside the halo there is no dust")
-	near(rocks.grind_at(Vector2(0, 2.5), 0.0), dps * 0.5 * floor_factor,
+	eq(rocks.grind_at(Vector2(0, 50), 16.0), 0.0, "outside the halo there is no dust")
+	near(rocks.grind_at(Vector2(0, 25.0), 0.0), dps * 0.5 * floor_factor,
 		"the halo grinds harder the deeper you are in it")
-	ok(rocks.grind_at(Vector2(0, 2.5), 6.0) > rocks.grind_at(Vector2(0, 2.5), 0.0),
+	ok(rocks.grind_at(Vector2(0, 25.0), 24.0) > rocks.grind_at(Vector2(0, 25.0), 0.0),
 		"and harder the faster you cross it")
 
 	var grinding = BattleLib.create_duel(FitLib.create_default("wayfarer"), "talon", 21)
@@ -547,11 +547,11 @@ func test_terrain() -> void:
 	for s in grinding.ships:
 		s.terrain = rocks
 	var victim = grinding.player()
-	victim.pos = Vector2(0, 2.5)
+	victim.pos = Vector2(0, 25.0)
 	victim.heading = 0.0
 	victim.speed = 0.0
 	for _i in range(300):
-		victim.pos = Vector2(0, 2.5)
+		victim.pos = Vector2(0, 25.0)
 		grinding._step_terrain(1.0 / 10.0)
 	ok(victim.shields[0] < victim.shield_max,
 		"dust wears the facing the ship is pointing along")
@@ -562,8 +562,8 @@ func test_terrain() -> void:
 	for s in crashing.ships:
 		s.terrain = rocks
 	var wreck = crashing.player()
-	wreck.pos = Vector2(0.2, 0.0)
-	wreck.speed = 4.0
+	wreck.pos = Vector2(2.0, 0.0)
+	wreck.speed = 16.0
 	var before_shields: float = 0.0
 	for v in wreck.shields:
 		before_shields += v
@@ -574,7 +574,7 @@ func test_terrain() -> void:
 	near(before_shields - after_shields,
 		float(terrain_tuning["asteroid_collision_damage"]),
 		"running into a rock costs a lump of shield")
-	ok(wreck.speed < 1.0, "and most of the ship's way")
+	ok(wreck.speed < 4.0, "and most of the ship's way")
 	crashing._step_terrain(1.0 / 10.0)
 	var again: float = 0.0
 	for v in wreck.shields:
@@ -608,7 +608,7 @@ func test_tractors() -> void:
 	var me = duel.player()
 	var foe = duel.enemy()
 	me.pos = Vector2.ZERO
-	foe.pos = Vector2(0, 6)
+	foe.pos = Vector2(0, 24.0)
 
 	# ---- what stops a latch ----
 	eq(String(TractorLib.latch_check(me, foe, tuning)["reason"]), "no power",
@@ -616,10 +616,10 @@ func test_tractors() -> void:
 	me.set_alloc_units("tractor", 6.0)
 	eq(String(TractorLib.latch_check(me, foe, tuning)["reason"]), "ready",
 		"with power in the sink it can")
-	foe.pos = Vector2(0, float(t["range"]) + 2.0)
+	foe.pos = Vector2(0, float(t["range"]) + 8.0)
 	eq(String(TractorLib.latch_check(me, foe, tuning)["reason"]), "range",
 		"a tractor is short ranged and says so")
-	foe.pos = Vector2(0, 6)
+	foe.pos = Vector2(0, 24.0)
 	for sys in me.systems:
 		if String(sys["code"]) == TractorLib.BOX:
 			sys["boxes"] = 0
@@ -673,10 +673,10 @@ func test_tractors() -> void:
 	ok(duel.apply_command(0, "tractor_latch", [1]), "once the cooldown lapses it can")
 
 	# ---- range and damage snap it ----
-	foe.pos = Vector2(0, float(t["range"]) + 5.0)
+	foe.pos = Vector2(0, float(t["range"]) + 20.0)
 	duel._step_tractors(1.0 / 10.0, tuning)
 	ok(duel.tractors.is_empty(), "opening the range past the beam snaps it")
-	foe.pos = Vector2(0, 6)
+	foe.pos = Vector2(0, 24.0)
 	for _i in range(int(float(t["relatch_cooldown"]) * 10.0) + 2):
 		duel._step_tractors(1.0 / 10.0, tuning)
 	ok(duel.apply_command(0, "tractor_latch", [1]), "and it can be re-established")
@@ -691,20 +691,20 @@ func test_tractors() -> void:
 	var tug = tow_duel.player()
 	var prize = tow_duel.enemy()
 	tug.pos = Vector2.ZERO
-	prize.pos = Vector2(0, 6)
+	prize.pos = Vector2(0, 24.0)
 	tug.heading = 0.0
-	tug.speed = 5.0
+	tug.speed = 20.0
 	prize.heading = 0.0
 	prize.speed = 0.0
 	tug.set_alloc_units("tractor", 10.0)
 	ok(tow_duel.apply_command(0, "tractor_latch", [1]), "a tow can be set up")
 	var m_tug: float = TractorLib.tonnage(tug)
 	var m_prize: float = TractorLib.tonnage(prize)
-	var common: Vector2 = Vector2(0, 5.0) * m_tug / (m_tug + m_prize)
+	var common: Vector2 = Vector2(0, 20.0) * m_tug / (m_tug + m_prize)
 	tow_duel._step_tractors(1.0 / 10.0, tuning)
 	near(prize.tow_target.y, common.y,
 		"a held ship is asked for the pair's common momentum")
-	near(tug.tow_target.y, common.y - 5.0, "and so is the holder, from the other side")
+	near(tug.tow_target.y, common.y - 20.0, "and so is the holder, from the other side")
 
 	for _i in range(200):
 		for s in tow_duel.ships:
@@ -713,7 +713,7 @@ func test_tractors() -> void:
 		prize.set_order(prize.heading, 0.0)
 		for s in tow_duel.ships:
 			s.step(1.0 / 20.0, tuning)
-	ok(prize.pos.y > 6.5, "and it is dragged along behind the ship holding it")
+	ok(prize.pos.y > 26.0, "and it is dragged along behind the ship holding it")
 	# Attitude is deliberately untouched: taking a ship's arcs away takes the
 	# game away, and 5D says the beam holds position, not heading.
 	prize.set_order(90.0, 0.0)
@@ -741,7 +741,7 @@ func test_tractors() -> void:
 	var winch = reel_duel.player()
 	var catch = reel_duel.enemy()
 	winch.pos = Vector2.ZERO
-	catch.pos = Vector2(0, 8)
+	catch.pos = Vector2(0, 32.0)
 	winch.speed = 0.0
 	catch.speed = 0.0
 	winch.set_alloc_units("tractor", 10.0)
@@ -759,7 +759,7 @@ func test_tractors() -> void:
 		catch.set_order(catch.heading, 0.0)
 		for s in reel_duel.ships:
 			s.step(1.0 / 20.0, tuning)
-	ok(winch.pos.distance_to(catch.pos) < gap_before - 1.0, "reeling closes the range")
+	ok(winch.pos.distance_to(catch.pos) < gap_before - 4.0, "reeling closes the range")
 	ok(catch_start.distance_to(catch.pos) > winch_start.distance_to(winch.pos) * 2.0,
 		"and the light ship is the one that actually travels")
 
@@ -781,7 +781,7 @@ func test_tractors() -> void:
 	var grip = contested.player()
 	var prisoner = contested.enemy()
 	grip.pos = Vector2.ZERO
-	prisoner.pos = Vector2(0, 6)
+	prisoner.pos = Vector2(0, 24.0)
 	grip.set_alloc_units("tractor", 8.0)
 	eq(prisoner.alloc_units("tractor"), 0.0, "an untouched ai spends nothing on tractors")
 	ok(contested.apply_command(0, "tractor_latch", [1]), "the ai can be caught")
@@ -1137,28 +1137,46 @@ func test_falloff() -> void:
 	var photon: Dictionary = CatalogLib.weapon("photon")
 	var disr: Dictionary = CatalogLib.weapon("disruptor")
 
-	near(WeaponLib.max_range(ph1), 10.0, "reach is the outer edge of the last band")
-	eq(WeaponLib.max_damage(ph1), 8, "point blank damage is the first band")
+	# Every distance below is read out of the catalog rather than written down.
+	# When the arena grew ten times and weapon reach four, a suite full of
+	# literal ranges failed in a dozen places and said nothing about whether the
+	# falloff RULE still held, which is the only thing this test is about.
+	var ph1_reach: float = WeaponLib.max_range(ph1)
+	var ph1_band: float = float(ph1["falloff"][0]["to"])
+	near(ph1_reach, float(ph1["falloff"][-1]["to"]),
+		"reach is the outer edge of the last band")
+	eq(WeaponLib.max_damage(ph1), int(ph1["falloff"][0]["damage"]),
+		"point blank damage is the first band")
 
-	# A band edge belongs to its own band: at exactly 2.0 the shot is still
+	# A band edge belongs to its own band: at exactly the edge the shot is still
 	# point blank, at a hair beyond it is not. Off by one here would silently
 	# change every weapon's profile.
-	eq(WeaponLib.damage_at(ph1, 2.0), 8, "the band edge is inside the band")
-	eq(WeaponLib.damage_at(ph1, 2.001), 7, "just past the edge is the next band")
-	eq(WeaponLib.damage_at(ph1, 0.0), 8, "muzzle contact is point blank")
-	eq(WeaponLib.damage_at(ph1, 10.0), 2, "the last band reaches the stated range")
-	eq(WeaponLib.damage_at(ph1, 10.5), 0, "beyond reach scores nothing")
-	near(WeaponLib.hit_chance_at(ph1, 10.5), 0.0, "beyond reach cannot connect")
+	eq(WeaponLib.damage_at(ph1, ph1_band), int(ph1["falloff"][0]["damage"]),
+		"the band edge is inside the band")
+	eq(WeaponLib.damage_at(ph1, ph1_band + 0.001), int(ph1["falloff"][1]["damage"]),
+		"just past the edge is the next band")
+	eq(WeaponLib.damage_at(ph1, 0.0), int(ph1["falloff"][0]["damage"]),
+		"muzzle contact is point blank")
+	eq(WeaponLib.damage_at(ph1, ph1_reach), int(ph1["falloff"][-1]["damage"]),
+		"the last band reaches the stated range")
+	eq(WeaponLib.damage_at(ph1, ph1_reach * 1.05), 0, "beyond reach scores nothing")
+	near(WeaponLib.hit_chance_at(ph1, ph1_reach * 1.05), 0.0,
+		"beyond reach cannot connect")
 
 	# The three shapes from docs/09: beams lose damage and keep accuracy,
 	# torpedoes keep damage and lose accuracy, disruptors lose both.
-	near(WeaponLib.hit_chance_at(ph1, 9.0), 1.0, "a beam still connects at its edge")
-	ok(WeaponLib.damage_at(ph1, 9.0) < WeaponLib.max_damage(ph1), "a beam weakens with range")
-	eq(WeaponLib.damage_at(photon, 19.0), WeaponLib.max_damage(photon),
+	near(WeaponLib.hit_chance_at(ph1, ph1_reach * 0.9), 1.0,
+		"a beam still connects at its edge")
+	ok(WeaponLib.damage_at(ph1, ph1_reach * 0.9) < WeaponLib.max_damage(ph1),
+		"a beam weakens with range")
+	var photon_edge: float = WeaponLib.max_range(photon) * 0.95
+	eq(WeaponLib.damage_at(photon, photon_edge), WeaponLib.max_damage(photon),
 		"a torpedo hits as hard at the edge as at the muzzle")
-	ok(WeaponLib.hit_chance_at(photon, 19.0) < 1.0, "a torpedo loses accuracy instead")
-	ok(WeaponLib.damage_at(disr, 11.0) < WeaponLib.max_damage(disr)
-		and WeaponLib.hit_chance_at(disr, 11.0) < 1.0, "a disruptor loses both")
+	ok(WeaponLib.hit_chance_at(photon, photon_edge) < 1.0,
+		"a torpedo loses accuracy instead")
+	var disr_edge: float = WeaponLib.max_range(disr) * 0.9
+	ok(WeaponLib.damage_at(disr, disr_edge) < WeaponLib.max_damage(disr)
+		and WeaponLib.hit_chance_at(disr, disr_edge) < 1.0, "a disruptor loses both")
 
 	# Expected damage must never rise with range, for every weapon in the
 	# catalog. A band typo that made a weapon better far away would pass every
@@ -1184,25 +1202,29 @@ func test_falloff() -> void:
 	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 	rng.seed = 99
 	var beam_rolls_low: bool = false
+	var mid_band: float = ph1_reach * 0.5
+	var mid_damage: int = WeaponLib.damage_at(ph1, mid_band)
 	for i in range(200):
-		if WeaponLib.roll_damage(ph1, 5.0, rng) != 5:
+		if WeaponLib.roll_damage(ph1, mid_band, rng) != mid_damage:
 			beam_rolls_low = true
 	ok(not beam_rolls_low, "a certain beam always scores its band damage")
 
 	var misses: int = 0
 	var partials: int = 0
+	var long_shot: float = WeaponLib.max_range(photon) * 0.9
 	for i in range(400):
-		var scored: int = WeaponLib.roll_damage(photon, 18.0, rng)
+		var scored: int = WeaponLib.roll_damage(photon, long_shot, rng)
 		if scored == 0:
 			misses += 1
 		elif scored != WeaponLib.max_damage(photon):
 			partials += 1
 	ok(misses > 0, "a long torpedo shot can miss")
 	eq(partials, 0, "a torpedo that connects scores in full")
-	near(float(misses) / 400.0, 1.0 - WeaponLib.hit_chance_at(photon, 18.0),
+	near(float(misses) / 400.0, 1.0 - WeaponLib.hit_chance_at(photon, long_shot),
 		"miss rate tracks the band's hit chance", 0.08)
 
-	near(WeaponLib.longest_range(), 22.0, "the arc chart scale comes from the catalog")
+	near(WeaponLib.longest_range(), WeaponLib.max_range(CatalogLib.weapon("lance")),
+		"the arc chart scale comes from the catalog")
 
 	# A shot resolved through a ship carries the same numbers.
 	var shooter = _fresh_ship()
@@ -1241,7 +1263,8 @@ func test_movement_and_weapons() -> void:
 		if bool(still.fire_check(i, blind_pos)["ok"]):
 			none_bear = false
 	ok(none_bear, "nothing fires into the blind bearing")
-	eq(String(still.fire_check(0, still.pos + Vector2(0, 25))["reason"]), "range",
+	var past_reach: float = WeaponLib.longest_range() * 1.5
+	eq(String(still.fire_check(0, still.pos + Vector2(0, past_reach))["reason"]), "range",
 		"out of range is reported as range")
 
 	# Engine damage slows the ship through one shared integrity path.

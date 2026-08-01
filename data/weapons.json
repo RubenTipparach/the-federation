@@ -7,23 +7,23 @@
       "name": "PH-1 Beam", "short": "PH-1", "family": "beam", "size": "Medium",
       "price": 900, "reload": 3.0,
       "falloff": [
-        { "to": 2.0, "hit": 1.0, "damage": 8 },
-        { "to": 4.0, "hit": 1.0, "damage": 7 },
-        { "to": 6.0, "hit": 1.0, "damage": 5 },
-        { "to": 8.0, "hit": 1.0, "damage": 4 },
-        { "to": 10.0, "hit": 1.0, "damage": 2 }
+        { "to": 8, "hit": 1.0, "damage": 8 },
+        { "to": 16, "hit": 1.0, "damage": 7 },
+        { "to": 24, "hit": 1.0, "damage": 5 },
+        { "to": 32, "hit": 1.0, "damage": 4 },
+        { "to": 40, "hit": 1.0, "damage": 2 }
       ],
       "costs": { "space": 6, "mass": 5, "crew": 8, "power_draw": 3 }
     },
     "ph3": {
       "name": "PH-3 Beam", "short": "PH-3", "family": "beam", "size": "Light",
       "price": 420, "reload": 2.0,
-      "point_defense": true, "pd_range": 4.0, "pd_dps": 1.6,
+      "point_defense": true, "pd_range": 16, "pd_dps": 1.6,
       "falloff": [
-        { "to": 1.5, "hit": 1.0, "damage": 4 },
-        { "to": 3.0, "hit": 1.0, "damage": 3 },
-        { "to": 4.5, "hit": 1.0, "damage": 2 },
-        { "to": 6.0, "hit": 1.0, "damage": 1 }
+        { "to": 6, "hit": 1.0, "damage": 4 },
+        { "to": 12, "hit": 1.0, "damage": 3 },
+        { "to": 18, "hit": 1.0, "damage": 2 },
+        { "to": 24, "hit": 1.0, "damage": 1 }
       ],
       "costs": { "space": 3, "mass": 2, "crew": 4, "power_draw": 2 }
     },
@@ -31,11 +31,11 @@
       "name": "Photon Torpedo", "short": "PHOT", "family": "torpedo", "size": "Heavy",
       "price": 2100, "reload": 9.0,
       "falloff": [
-        { "to": 4.0, "hit": 1.0, "damage": 16 },
-        { "to": 8.0, "hit": 0.83, "damage": 16 },
-        { "to": 12.0, "hit": 0.67, "damage": 16 },
-        { "to": 16.0, "hit": 0.5, "damage": 16 },
-        { "to": 20.0, "hit": 0.33, "damage": 16 }
+        { "to": 16, "hit": 1.0, "damage": 16 },
+        { "to": 32, "hit": 0.83, "damage": 16 },
+        { "to": 48, "hit": 0.67, "damage": 16 },
+        { "to": 64, "hit": 0.5, "damage": 16 },
+        { "to": 80, "hit": 0.33, "damage": 16 }
       ],
       "costs": { "space": 12, "mass": 10, "crew": 14, "power_draw": 6 }
     },
@@ -43,10 +43,10 @@
       "name": "Disruptor Bank", "short": "DISR", "family": "disruptor", "size": "Medium",
       "price": 1150, "reload": 5.0,
       "falloff": [
-        { "to": 2.0, "hit": 1.0, "damage": 10 },
-        { "to": 5.0, "hit": 0.85, "damage": 9 },
-        { "to": 8.0, "hit": 0.7, "damage": 7 },
-        { "to": 12.0, "hit": 0.55, "damage": 5 }
+        { "to": 8, "hit": 1.0, "damage": 10 },
+        { "to": 20, "hit": 0.85, "damage": 9 },
+        { "to": 32, "hit": 0.7, "damage": 7 },
+        { "to": 48, "hit": 0.55, "damage": 5 }
       ],
       "costs": { "space": 7, "mass": 6, "crew": 9, "power_draw": 4 }
     },
@@ -54,19 +54,19 @@
       "name": "Lance Battery", "short": "LNCE", "family": "lance", "size": "Heavy",
       "price": 3400, "reload": 12.0,
       "falloff": [
-        { "to": 6.0, "hit": 1.0, "damage": 20 },
-        { "to": 12.0, "hit": 0.9, "damage": 18 },
-        { "to": 17.0, "hit": 0.75, "damage": 15 },
-        { "to": 22.0, "hit": 0.6, "damage": 12 }
+        { "to": 24, "hit": 1.0, "damage": 20 },
+        { "to": 48, "hit": 0.9, "damage": 18 },
+        { "to": 68, "hit": 0.75, "damage": 15 },
+        { "to": 88, "hit": 0.6, "damage": 12 }
       ],
       "costs": { "space": 16, "mass": 14, "crew": 18, "power_draw": 9 }
     },
     "drone": {
       "name": "Drone Rack", "short": "DRN", "family": "drone", "size": "Light",
       "price": 640, "reload": 6.0,
-      "seeking": true, "seeker_speed": 3.2, "seeker_hp": 2,
+      "seeking": true, "seeker_speed": 12.8, "seeker_hp": 2,
       "falloff": [
-        { "to": 14.0, "hit": 1.0, "damage": 6 }
+        { "to": 56, "hit": 1.0, "damage": 6 }
       ],
       "costs": { "space": 5, "mass": 4, "crew": 5, "power_draw": 2 }
     },
@@ -75,9 +75,9 @@
       "special": true, "override_field": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
       "price": 1500, "reload": 3.0,
       "falloff": [
-        { "to": 3.0, "hit": 1.0, "damage": 5 },
-        { "to": 5.0, "hit": 1.0, "damage": 4 },
-        { "to": 7.0, "hit": 1.0, "damage": 3 }
+        { "to": 12, "hit": 1.0, "damage": 5 },
+        { "to": 20, "hit": 1.0, "damage": 4 },
+        { "to": 28, "hit": 1.0, "damage": 3 }
       ],
       "costs": { "space": 5, "mass": 4, "crew": 6, "power_draw": 3 }
     }

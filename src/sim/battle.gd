@@ -149,6 +149,13 @@ func step(dt: float) -> Array[Dictionary]:
 			# here would sit in the panel forever showing a contest that has
 			# stopped being fought.
 			tractors.clear()
+			# Which hull came apart and where, so the view can put a wreck
+			# there. The sim says what happened; how a wreck looks is not its
+			# business, so nothing about the explosion is described here.
+			_events.append({
+				"type": "destroyed", "ship": i, "at": ships[i].pos,
+				"log": ["%s BREAKING UP" % String(ships[i].fit.hull()["name"]).to_upper()],
+			})
 			_events.append({ "type": "end", "winner": winner })
 			break
 	time += dt
