@@ -1,0 +1,134 @@
+[gd_resource type="Theme" load_steps=15 format=3]
+
+; The tactical view's skin: bronze plates, phosphor glass, bitmap type.
+;
+; A Godot Theme is CLAUDE.md 5.4's second case, a resource the engine genuinely
+; requires: there is no other way to hand a StyleBox to every PanelContainer.
+; It holds no gameplay and no colour of its own beyond what the committed
+; textures already carry; the lit colours live in data/palette.json and are
+; read by src/ui/palette.gd.
+;
+; The nine patch margins below are stated in device pixels and are twice the
+; block margins quoted in tools/gen_ui_plates.py, because that painter draws in
+; 2 pixel blocks. If one moves the other has to.
+;
+; Scope is the tactical view only, set on the Combat root in scenes/combat.tscn.
+; The fitting, shipyard and skirmish screens keep assets/ui/theme.tres until
+; each has had its own mockup pass (CLAUDE.md 6).
+
+[ext_resource type="Texture2D" path="res://assets/ui/plate.png" id="1"]
+[ext_resource type="Texture2D" path="res://assets/ui/button_normal.png" id="2"]
+[ext_resource type="Texture2D" path="res://assets/ui/button_hover.png" id="3"]
+[ext_resource type="Texture2D" path="res://assets/ui/button_pressed.png" id="4"]
+[ext_resource type="Texture2D" path="res://assets/ui/button_disabled.png" id="5"]
+[ext_resource type="FontFile" path="res://assets/ui/font_tactical.fnt" id="6"]
+[ext_resource type="Texture2D" path="res://assets/ui/header.png" id="7"]
+
+[sub_resource type="StyleBoxTexture" id="plate"]
+texture = ExtResource("1")
+texture_margin_left = 8.0
+texture_margin_top = 8.0
+texture_margin_right = 8.0
+texture_margin_bottom = 8.0
+content_margin_left = 10.0
+content_margin_top = 5.0
+content_margin_right = 10.0
+content_margin_bottom = 5.0
+axis_stretch_horizontal = 1
+axis_stretch_vertical = 1
+
+; The raised header bar. A Label variation rather than a container, so a panel
+; title becomes a header by naming a theme type and nothing is restructured.
+[sub_resource type="StyleBoxTexture" id="header"]
+texture = ExtResource("7")
+texture_margin_left = 10.0
+texture_margin_top = 6.0
+texture_margin_right = 10.0
+texture_margin_bottom = 6.0
+content_margin_left = 14.0
+content_margin_top = 2.0
+content_margin_right = 14.0
+content_margin_bottom = 2.0
+
+[sub_resource type="StyleBoxTexture" id="btn_normal"]
+texture = ExtResource("2")
+texture_margin_left = 6.0
+texture_margin_top = 6.0
+texture_margin_right = 6.0
+texture_margin_bottom = 6.0
+content_margin_left = 8.0
+content_margin_top = 4.0
+content_margin_right = 8.0
+content_margin_bottom = 4.0
+
+[sub_resource type="StyleBoxTexture" id="btn_hover"]
+texture = ExtResource("3")
+texture_margin_left = 6.0
+texture_margin_top = 6.0
+texture_margin_right = 6.0
+texture_margin_bottom = 6.0
+content_margin_left = 8.0
+content_margin_top = 4.0
+content_margin_right = 8.0
+content_margin_bottom = 4.0
+
+[sub_resource type="StyleBoxTexture" id="btn_pressed"]
+texture = ExtResource("4")
+texture_margin_left = 6.0
+texture_margin_top = 6.0
+texture_margin_right = 6.0
+texture_margin_bottom = 6.0
+content_margin_left = 8.0
+content_margin_top = 4.0
+content_margin_right = 8.0
+content_margin_bottom = 4.0
+
+[sub_resource type="StyleBoxTexture" id="btn_disabled"]
+texture = ExtResource("5")
+texture_margin_left = 6.0
+texture_margin_top = 6.0
+texture_margin_right = 6.0
+texture_margin_bottom = 6.0
+content_margin_left = 8.0
+content_margin_top = 4.0
+content_margin_right = 8.0
+content_margin_bottom = 4.0
+
+; The replay scrub. Sliders are banned from fighting (CLAUDE.md 6.2) and this
+; is the documented exception: nobody reviewing a recording is under fire.
+[sub_resource type="StyleBoxFlat" id="slider"]
+bg_color = Color(0.078, 0.121, 0.145, 1)
+content_margin_top = 3.0
+content_margin_bottom = 3.0
+
+[sub_resource type="StyleBoxFlat" id="grabber"]
+bg_color = Color(0.525, 0.706, 0.471, 1)
+content_margin_left = 4.0
+content_margin_right = 4.0
+
+[resource]
+default_font = ExtResource("6")
+default_font_size = 14
+Button/colors/font_color = Color(0.89, 0.867, 0.82, 1)
+Button/colors/font_hover_color = Color(1, 1, 1, 1)
+Button/colors/font_pressed_color = Color(0.525, 0.706, 0.471, 1)
+Button/colors/font_disabled_color = Color(0.565, 0.486, 0.459, 1)
+Button/colors/font_outline_color = Color(0.043, 0.063, 0.086, 1)
+Button/constants/outline_size = 2
+Button/styles/normal = SubResource("btn_normal")
+Button/styles/hover = SubResource("btn_hover")
+Button/styles/pressed = SubResource("btn_pressed")
+Button/styles/disabled = SubResource("btn_disabled")
+Button/styles/focus = SubResource("btn_hover")
+HSlider/styles/slider = SubResource("slider")
+HSlider/styles/grabber_area = SubResource("grabber")
+HSlider/styles/grabber_area_highlight = SubResource("grabber")
+Label/colors/font_color = Color(0.89, 0.867, 0.82, 1)
+HeaderLabel/base_type = &"Label"
+HeaderLabel/styles/normal = SubResource("header")
+HeaderLabel/colors/font_color = Color(0.89, 0.867, 0.82, 1)
+HeaderLabel/colors/font_outline_color = Color(0.043, 0.063, 0.086, 1)
+HeaderLabel/constants/outline_size = 2
+Panel/styles/panel = SubResource("plate")
+PanelContainer/styles/panel = SubResource("plate")
+RichTextLabel/colors/default_color = Color(0.741, 0.733, 0.682, 1)

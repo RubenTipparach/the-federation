@@ -138,7 +138,7 @@ func _render_shields() -> void:
 		_paint_row(f, "#%d" % (f + 1), cur, top, "%d/%d" % [cur, top],
 			Palette.shield_color(float(cur) / maxf(1.0, float(top))))
 	var reinf: int = 1 if _ship.battery >= 1.0 else 0
-	_paint_row(6, "REINF", reinf, 1, "%d pt / volley" % reinf, Palette.BLUE)
+	_paint_row(6, "REINF", reinf, 1, "%d PT" % reinf, Palette.BLUE)
 	$V/Picker.visible = true
 	for f in range(Sectors.FACING_COUNT):
 		var b: Button = $V/Picker.get_node("P%d" % f)
@@ -157,7 +157,7 @@ func _render_repair() -> void:
 		"%d/%d" % [_ship.parts, _ship.parts_max],
 		Palette.AMBER if _ship.parts * 4 < _ship.parts_max else Palette.SLATE)
 	_paint_row(1, "CREWS", _ship.damage_control, maxi(1, _ship.damage_control),
-		"%d part%s" % [_ship.damage_control, "" if _ship.damage_control == 1 else "ies"],
+		"%d CREW" % _ship.damage_control,
 		Palette.AMBER)
 
 	$V/Queue.visible = true

@@ -264,6 +264,13 @@ exception until it is listed in this section and agreed.
   scene children, with code doing rotation in 30 degree steps, scaling, and authored
   material selection only. This is the placement pattern section 7 anticipated and it
   keeps section 5.1 intact rather than excepting it.
+- **The target bracket paints itself.** `src/ui/target_bracket.gd` draws its four corner
+  arms and hull bar in `Control._draw()` for the same reason the SSD ring does: its size
+  is the target's projected extent on screen, which changes every frame as the ship moves
+  and the camera orbits, so no static node tree can describe it. Its own comment already
+  claimed this exception before the list granted it; that is corrected here rather than
+  left standing, because section 7 says nothing may be treated as an exception until it
+  is listed. Agreed with the tactical reskin (2026-08-01).
 
 **One candidate is pending a decision.** Rendering roughly 3,000 hexes with smooth zoom and
 several frequently changing per hex overlays is hard to do with statically authored nodes

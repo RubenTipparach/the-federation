@@ -1,36 +1,86 @@
 class_name Palette
 extends RefCounted
 
-## The one place UI colors are defined, taken from the approved mockup.
-## Presentation constants, not gameplay tuning, so they live in code rather
-## than data/tuning.json; gameplay numbers must never appear here.
+## The one place UI colors are read. It does not own them: every value below is
+## a role looked up in data/palette.json, which CLAUDE.md 3.1 names as the
+## single colour authority. That file says which palette entry plays "accent"
+## or "warn"; this file only gives those roles names GDScript can use.
+##
+## Two pools back the roles. The chassis draws from `colors`, the Waldgeist
+## palette, verbatim, because plates and bezels are committed art. The lit
+## readouts draw from `ui_colors`, a small set of emissives, because an
+## instrument that is on emits rather than reflects and no reflective palette
+## entry sits bright enough to say so. Ship art can never reach that second
+## pool: tools/shiplib.py verify() checks hulls against `colors` alone.
+##
+## These are presentation, not gameplay tuning, which is why the roles are here
+## rather than in data/tuning.json. Gameplay numbers must never appear here.
 
-const BG := Color("080d14")
-const PANEL := Color("0d151f")
-const PANEL_2 := Color("111b28")
-const LINE := Color("1e2c3c")
-const LINE_HOT := Color("2c4258")
-const FG := Color("c6d5e2")
-const DIM := Color("6d8296")
-const CYAN := Color("5fd4e8")
-const CYAN_DIM := Color("2b7f92")
-const AMBER := Color("e8a54a")
-const MAGENTA := Color("d4649b")
-const BLUE := Color("6f9fe0")
-const SLATE := Color("8c9bab")
-const OK := Color("57c98a")
-const CRIT := Color("e2564f")
+const PALETTE_PATH: String = "res://data/palette.json"
 
-const FAMILY_COLORS: Dictionary = {
-	"weapon": MAGENTA,
-	"power": BLUE,
-	"control": AMBER,
-	"hull": SLATE,
-}
+static var _roles: Dictionary = {}
+
+
+## Resolve the role map once. Roles name a colour, colours name a hex, and a
+## missing role is a hard failure rather than a silent fallback: a role that
+## quietly paints black because someone typoed it is worse than one that stops.
+static func _role(name: String) -> Color:
+	if _roles.is_empty():
+		var f: FileAccess = FileAccess.open(PALETTE_PATH, FileAccess.READ)
+		assert(f != null, "missing palette: " + PALETTE_PATH)
+		var data: Dictionary = JSON.parse_string(f.get_as_text())
+		var pool: Dictionary = {}
+		pool.merge(data["colors"])
+		pool.merge(data["ui_colors"])
+		for key in data["ui"]:
+			var entry: String = String(data["ui"][key])
+			assert(pool.has(entry), "ui role %s names unknown colour %s" % [key, entry])
+			_roles[key] = Color(String(pool[entry]))
+	assert(_roles.has(name), "unknown ui role: " + name)
+	return _roles[name]
+
+
+static var BG: Color:
+	get: return _role("bg")
+static var PANEL: Color:
+	get: return _role("panel")
+static var PANEL_2: Color:
+	get: return _role("panel_2")
+static var LINE: Color:
+	get: return _role("line")
+static var LINE_HOT: Color:
+	get: return _role("line_hot")
+static var FG: Color:
+	get: return _role("fg")
+static var DIM: Color:
+	get: return _role("dim")
+
+## The lit set. The names are what the widgets have always called them, so the
+## skin changes underneath every readout without a single call site moving.
+static var CYAN: Color:
+	get: return _role("accent")
+static var CYAN_DIM: Color:
+	get: return _role("accent_dim")
+static var AMBER: Color:
+	get: return _role("warn")
+static var MAGENTA: Color:
+	get: return _role("weapon")
+static var BLUE: Color:
+	get: return _role("power")
+static var SLATE: Color:
+	get: return _role("neutral")
+static var OK: Color:
+	get: return _role("ok")
+static var CRIT: Color:
+	get: return _role("crit")
 
 
 static func family_color(family: String) -> Color:
-	return FAMILY_COLORS.get(family, SLATE)
+	match family:
+		"weapon": return _role("family_weapon")
+		"power": return _role("family_power")
+		"control": return _role("family_control")
+		_: return _role("family_hull")
 
 
 ## Shield state band by remaining fraction. The one place the thresholds

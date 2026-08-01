@@ -64,6 +64,107 @@
     "black": "#0b1016"
   },
 
+  "ui_note": [
+    "The tactical view's skin. Two kinds of colour, and both answer to this file.",
+    "",
+    "The CHASSIS is committed art: plates, bezels and the font atlas are written",
+    "as .png by tools/gen_ui_plates.py and tools/gen_font.py, and every pixel of",
+    "them is an entry from 'colors' above, verbatim. The ui_chassis role map below",
+    "says which entry plays which part, so a repaint is a change here and a rerun",
+    "of the generators, never an edit to the painter.",
+    "",
+    "The GLASS is light rather than paint: the phosphor readouts a Control draws",
+    "at runtime. Those need to sit brighter than any Waldgeist entry does, because",
+    "a lit instrument is emitting rather than reflecting, so they live in",
+    "'ui_colors' as their own named set. Each one is a Waldgeist hue lifted toward",
+    "emission and its base is named beside it here:",
+    "",
+    "  phos_hi phos phos_lo phos_faint   from green",
+    "  shield_hi shield                  from teal",
+    "  gold_hi                           from gold",
+    "  blue_hi                           from blue_light",
+    "  wine_hi rose_hi                   from wine",
+    "  alert alert_hi                    from clay",
+    "",
+    "They are deliberately NOT in 'colors', because tools/shiplib.py verify()",
+    "checks ship art against that block and an emissive must never be paintable",
+    "onto a hull. Ship art stays strictly Waldgeist; only lit UI may use these.",
+    "",
+    "src/ui/palette.gd reads the ui role map below rather than holding hex values",
+    "of its own, so this file is the single colour authority CLAUDE.md 3.1 asks",
+    "for and a skin swap stays a one file change."
+  ],
+
+  "ui_colors": {
+    "phos_hi": "#a8d79a",
+    "phos": "#86b478",
+    "phos_lo": "#4a6b45",
+    "phos_faint": "#28402b",
+
+    "shield_hi": "#9ad2c4",
+    "shield": "#6fb3a4",
+
+    "gold_hi": "#d9b866",
+    "blue_hi": "#7ea9cf",
+    "wine_hi": "#b25c77",
+    "rose_hi": "#d98ba0",
+
+    "alert": "#cf6a53",
+    "alert_hi": "#eb8b6d"
+  },
+
+  "ui": {
+    "bg": "black",
+    "panel": "navy_deep",
+    "panel_2": "navy",
+    "line": "navy",
+    "line_hot": "teal_deep",
+
+    "fg": "cream",
+    "dim": "bone",
+
+    "accent": "shield",
+    "accent_dim": "phos_lo",
+    "warn": "gold_hi",
+    "weapon": "wine_hi",
+    "power": "blue_hi",
+    "neutral": "bone",
+    "ok": "phos",
+    "crit": "alert",
+
+    "family_weapon": "wine_hi",
+    "family_power": "blue_hi",
+    "family_control": "gold_hi",
+    "family_hull": "bone"
+  },
+
+  "ui_chassis": {
+    "face": "bronze",
+    "fleck_a": "clay_deep",
+    "fleck_b": "bark",
+
+    "bevel_hi": "gold",
+    "bevel_hi_2": "gold_deep",
+    "bevel_lo": "maroon",
+    "outline": "black",
+
+    "rivet": "gold",
+    "rivet_shadow": "bark",
+
+    "head_text": "cream",
+    "head_shadow": "black",
+
+    "glass": "black",
+    "scan": "navy_deep",
+
+    "face_down": "drab_deep",
+    "face_disabled": "char",
+    "face_alert": "maroon",
+
+    "label": "cream",
+    "label_disabled": "taupe_deep"
+  },
+
   "ships": {
     "frigate": {
       "base": "indigo",

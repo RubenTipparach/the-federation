@@ -136,19 +136,28 @@ def rings(mask, width):
 
 
 class Px:
-    """A pixel art painter: flat fills, hard outlines, no anti aliasing."""
+    """A pixel art painter: flat fills, hard outlines, no anti aliasing.
 
-    def __init__(self, size, background=(0, 0, 0)):
+    Square by default, because the ship sheets are square atlases. Pass a
+    height for the oblong canvases the UI plates need; everything else on the
+    class works the same either way, which is why this grew a second dimension
+    rather than the UI getting a painter of its own (CLAUDE.md 4.1)."""
+
+    def __init__(self, size, background=(0, 0, 0), height=None, alpha=255):
         self.size = size
-        bg = (background[0], background[1], background[2], 255)
-        self.px = [bg] * (size * size)
+        self.height = size if height is None else height
+        bg = (background[0], background[1], background[2], alpha)
+        self.px = [bg] * (self.size * self.height)
 
     def get(self, x, y):
         return self.px[y * self.size + x]
 
-    def put(self, x, y, rgb):
-        if 0 <= x < self.size and 0 <= y < self.size:
-            self.px[y * self.size + x] = (rgb[0], rgb[1], rgb[2], 255)
+    def put(self, x, y, rgb, alpha=255):
+        """Alpha is opaque unless asked otherwise. The ship sheets never use
+        it; the UI plates do, because a notched corner has to let the wall
+        behind it show rather than painting a black triangle over it."""
+        if 0 <= x < self.size and 0 <= y < self.height:
+            self.px[y * self.size + x] = (rgb[0], rgb[1], rgb[2], alpha)
 
     def fill(self, rect, rgb):
         x0, y0, x1, y1 = rect
@@ -245,15 +254,15 @@ class Px:
         fill; one with a dark line below or to its right takes the shade.
         One pass after all lines are drawn; fills stay flat elsewhere."""
         shade_by_fill = shade_by_fill or {}
-        size = self.size
+        size, height = self.size, self.height
         snapshot = list(self.px)
 
         def at(x, y):
-            if 0 <= x < size and 0 <= y < size:
+            if 0 <= x < size and 0 <= y < height:
                 return snapshot[y * size + x][:3]
             return None
 
-        for y in range(size):
+        for y in range(height):
             for x in range(size):
                 fill = snapshot[y * size + x][:3]
                 lit = light_by_fill.get(fill)
@@ -269,11 +278,12 @@ class Px:
         The sheets are authored at their reference resolution (128) and
         exported 2x so every logical pixel stays a fat 2x2 block, the chunk
         the R1 and R6 sheets are built from."""
-        out = self.size * scale
+        out_w = self.size * scale
+        out_h = self.height * scale
         rows = []
-        for y in range(out):
+        for y in range(out_h):
             row = bytearray([0])
-            for x in range(out):
+            for x in range(out_w):
                 row += bytes(self.px[(y // scale) * self.size + (x // scale)])
             rows.append(bytes(row))
         raw = b"".join(rows)
@@ -283,7 +293,7 @@ class Px:
                     + struct.pack(">I", zlib.crc32(tag + data) & 0xFFFFFFFF))
 
         png = (b"\x89PNG\r\n\x1a\n"
-               + chunk(b"IHDR", struct.pack(">IIBBBBB", out, out,
+               + chunk(b"IHDR", struct.pack(">IIBBBBB", out_w, out_h,
                                             8, 6, 0, 0, 0))
                + chunk(b"IDAT", zlib.compress(raw, 9))
                + chunk(b"IEND", b""))

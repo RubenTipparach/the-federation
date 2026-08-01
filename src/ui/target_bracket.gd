@@ -10,7 +10,8 @@ extends Control
 ## name and the hull bar, which is the information a player wants about the
 ## ship they have actually chosen to shoot.
 ##
-## Painted in _draw() under the section 7 data driven exception: the bracket's
+## Painted in _draw() under the section 7 data driven exception, granted with
+## the tactical reskin: the bracket's
 ## size follows the ship's projected extent, which changes with zoom and range
 ## every frame, so there is no static node tree that could describe it. Only
 ## the name Label is a real node, because text is not worth hand drawing.
