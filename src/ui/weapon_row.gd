@@ -13,6 +13,7 @@ static func chip_color(reason: String) -> Color:
 		"bears": return Palette.OK
 		"charging": return Palette.AMBER
 		"no arc", "destroyed": return Palette.CRIT
+		"no lock": return Palette.LINE_HOT
 		"empty": return Palette.LINE_HOT
 		_: return Palette.DIM
 

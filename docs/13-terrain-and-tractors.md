@@ -177,7 +177,7 @@ Four to start, in `data/maps.json`:
 | Id | Name | Contains |
 |---|---|---|
 | `open` | Open Space | nothing, the arena as it is today |
-| `nebula` | Nebula Shoals | 3 to 5 overlapping clouds covering roughly half the arena |
+| `nebula` | Nebula Shoals | 5 to 7 overlapping clouds, covering a third of the arena or more |
 | `belt` | Debris Belt | 2 to 3 clusters of 4 to 7 rocks each |
 | `orbit` | High Orbit | 1 planet, off centre, with its well covering a third of the arena |
 
@@ -192,6 +192,10 @@ Placement rules that every recipe obeys:
   *meant* to.
 - Everything is placed inside the arena, allowing for its field radius, so that
   `Battle._keep_in_arena` never traps a ship against a wall inside a planet.
+- **A battle opens with a lock.** Clouds may degrade the line between the two starting
+  positions as far as they like, but no cloud is placed that would push that line past
+  the lock threshold. Losing contact should be something a captain does, not something
+  the map did before the first tick.
 
 ---
 

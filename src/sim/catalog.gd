@@ -8,6 +8,7 @@ const SHIPS_PATH: String = "res://data/ships.json"
 const WEAPONS_PATH: String = "res://data/weapons.json"
 const TUNING_PATH: String = "res://data/tuning.json"
 const STATIONS_PATH: String = "res://data/stations.json"
+const MAPS_PATH: String = "res://data/maps.json"
 
 static var _cache: Dictionary = {}
 
@@ -73,6 +74,29 @@ static func station_ids(side: String = "") -> PackedStringArray:
 		var key: String = String(id)
 		if all.has(key) and (side.is_empty() or String(all[key]["side"]) == side):
 			out.append(key)
+	return out
+
+
+## The skirmish map recipes (docs/13 section 5). A recipe says how many of each
+## kind of feature to place and in what size band; where they land is drawn
+## from the battle seed, in Terrain.
+static func maps() -> Dictionary:
+	return _load_json(MAPS_PATH)["maps"]
+
+
+static func map(id: String) -> Dictionary:
+	var all: Dictionary = maps()
+	assert(all.has(id), "unknown map: " + id)
+	return all[id]
+
+
+## Map ids in display order, so reordering the picker is a data change.
+static func map_ids() -> PackedStringArray:
+	var out: PackedStringArray = PackedStringArray()
+	var all: Dictionary = maps()
+	for id in _load_json(MAPS_PATH)["order"]:
+		if all.has(String(id)):
+			out.append(String(id))
 	return out
 
 

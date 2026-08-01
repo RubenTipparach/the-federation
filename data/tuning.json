@@ -37,6 +37,32 @@
     "bank_deg_per_turn_rate": 1.1,
     "bank_ease": 4.0
   },
+  "terrain": {
+    "_comment": "docs/13. Terrain is circles on the combat plane. nebula_opacity_length is how much cloud a line of sight must cross to be worth one full unit of obscuration; nebula_range_penalty is how many arena units of apparent range one unit of obscuration adds, which is how the cloud degrades gunnery without a second damage rule. Lock breaks at nebula_lock_obscuration and above.",
+    "nebula_opacity_length": 9.0,
+    "nebula_range_penalty": 10.0,
+    "nebula_lock_obscuration": 1.0,
+    "asteroid_grind_dps": 3.2,
+    "asteroid_grind_speed_ref": 4.0,
+    "asteroid_grind_speed_floor": 0.25,
+    "asteroid_collision_damage": 12.0,
+    "planet_collision_damage": 45.0,
+    "planet_pull": 3.4,
+    "drift_accel": 1.2,
+    "collision_speed_frac": 0.2,
+    "collision_cooldown": 2.0,
+    "spawn_clearance": 8.0,
+    "placement_tries": 60
+  },
+  "tractor": {
+    "_comment": "docs/13 section 6. The bid is whatever the tractor power sink holds, so there is no separate currency. break_seconds is how long the breaker must stay ahead before the beam snaps, which is what makes the struggle readable instead of a coin flip on one tick.",
+    "range": 12.0,
+    "min_units": 2.0,
+    "break_seconds": 2.5,
+    "relatch_cooldown": 4.0,
+    "blend_rate": 1.6,
+    "reel_speed": 1.4
+  },
   "repair": {
     "_comment": "Federation Commander 5G3 prices a repair by what kind of box it is, weapons dearest and hull cheapest. The ordering is theirs, the numbers are ours. seconds_per_box is our replacement for their per turn repair points, because a real time game has no Repair Phase to spend them in. 5G3 also says shields cannot be repaired this way, which is why there is no shield entry: they are bought with energy instead (combat.shield_energy_per_box).",
     "parts_per_box": { "weapon": 4, "power": 3, "control": 2, "hull": 1 },

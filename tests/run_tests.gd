@@ -20,6 +20,7 @@ const YardLib = preload("res://src/sim/shipyard.gd")
 const SeekerLib = preload("res://src/sim/seeker.gd")
 const LogLib = preload("res://src/sim/battle_log.gd")
 const RepairLib = preload("res://src/sim/repair_model.gd")
+const TerrainLib = preload("res://src/sim/terrain.gd")
 
 var checks: int = 0
 var failures: int = 0
@@ -56,6 +57,7 @@ func _initialize() -> void:
 	test_shields()
 	test_repairs()
 	test_shipyard()
+	test_terrain()
 	test_replay()
 	print("")
 	if failures == 0:
@@ -390,6 +392,203 @@ func _scripted_battle(record: bool) -> Variant:
 	if battle.log != null and battle.log.end_tick < 0:
 		battle.log.close(battle)
 	return battle
+
+
+## Terrain: what is in the arena besides the ships (docs/13 sections 1 to 5).
+##
+## The geometry tests build a Terrain by hand rather than by recipe, because a
+## recipe places bodies randomly and a test of "does a gravity well pull" should
+## not also be a test of where the planet landed.
+func test_terrain() -> void:
+	print("\n== terrain ==")
+
+	# The empty arena must be genuinely free. If placing "open" drew even one
+	# number from the battle rng, every battle recorded before terrain existed
+	# would replay differently, so this is checked directly.
+	var untouched = RandomNumberGenerator.new()
+	untouched.seed = 77
+	TerrainLib.create("open", untouched, [])
+	var fresh = RandomNumberGenerator.new()
+	fresh.seed = 77
+	near(untouched.randf(), fresh.randf(), "the open map draws nothing from the battle rng")
+
+	var before = BattleLib.create_duel(FitLib.create_default("wayfarer"), "bloodletter", 31)
+	var after = BattleLib.create_duel(FitLib.create_default("wayfarer"), "bloodletter", 31, "open")
+	for _i in range(120):
+		before.step(1.0 / 30.0)
+		after.step(1.0 / 30.0)
+	eq(str(LogLib.fingerprint(before)), str(LogLib.fingerprint(after)),
+		"an open battle matches one created without a map at all")
+
+	# Same seed, same map, same arena. This is what lets a replay rebuild the
+	# terrain from the recipe name instead of storing every circle.
+	var twin_a = BattleLib.create_duel(FitLib.create_default("wayfarer"), "talon", 4242, "belt")
+	var twin_b = BattleLib.create_duel(FitLib.create_default("wayfarer"), "talon", 4242, "belt")
+	eq(str(twin_a.terrain.features), str(twin_b.terrain.features),
+		"the same seed places the same terrain")
+	ok(twin_a.terrain.features.size() >= 8, "the debris belt places a field of rocks")
+
+	# Every recipe must land inside the arena and leave the starting positions
+	# survivable, on any seed.
+	var half: float = float(CatalogLib.tuning()["combat"]["arena_half_extent"])
+	var clearance: float = float(CatalogLib.tuning()["terrain"]["spawn_clearance"])
+	var contained: bool = true
+	var clear_of_spawns: bool = true
+	var bodies_apart: bool = true
+	var opens_with_lock: bool = true
+	for map_id in CatalogLib.map_ids():
+		for seed_value in [1, 2, 3, 17, 900]:
+			var b = BattleLib.create_duel(FitLib.create_default("kestrel"),
+				"talon", seed_value, String(map_id))
+			var starts: Array = [b.player().pos, b.enemy().pos]
+			if b.terrain.lock_broken(starts[0], starts[1]):
+				opens_with_lock = false
+			for f in b.terrain.features:
+				var at: Vector2 = f["pos"]
+				var body: float = float(f["body"])
+				var field: float = float(f["field"])
+				if absf(at.x) > half - field + 0.001 or absf(at.y) > half - field + 0.001:
+					contained = false
+				for start in starts:
+					if String(f["kind"]) == TerrainLib.KIND_NEBULA:
+						if at.distance_to(start) <= field:
+							clear_of_spawns = false
+					elif at.distance_to(start) <= clearance + body:
+						clear_of_spawns = false
+				for g in b.terrain.features:
+					if g == f or body <= 0.0 or float(g["body"]) <= 0.0:
+						continue
+					if at.distance_to(g["pos"]) <= body + float(g["body"]):
+						bodies_apart = false
+	ok(contained, "every feature lands inside the arena, field and all")
+	ok(clear_of_spawns, "nothing is placed on top of a starting position")
+	ok(bodies_apart, "solid bodies never overlap each other")
+	ok(opens_with_lock, "no map begins with the two sides unable to see each other")
+
+	# ---- nebulae: obscuration is a path length, not a flag ----
+	var cloudy = TerrainLib.new()
+	cloudy.features.append({ "kind": TerrainLib.KIND_NEBULA,
+		"pos": Vector2.ZERO, "body": 0.0, "field": 10.0 })
+	var opacity: float = float(CatalogLib.tuning()["terrain"]["nebula_opacity_length"])
+	near(cloudy.obscuration(Vector2(-20, 0), Vector2(20, 0)), 20.0 / opacity,
+		"a line straight through a cloud counts its whole chord")
+	near(cloudy.obscuration(Vector2(20, 0), Vector2(-20, 0)), 20.0 / opacity,
+		"obscuration is the same in both directions")
+	eq(cloudy.obscuration(Vector2(-20, 20), Vector2(20, 20)), 0.0,
+		"a line that misses the cloud is not obscured")
+	# Sitting just inside the edge hides almost nothing, which is the point of
+	# measuring the path rather than testing a flag.
+	ok(cloudy.obscuration(Vector2(-9.5, 0), Vector2(-20, 0)) < 0.1,
+		"one step inside the edge hides almost nothing")
+
+	var penalty: float = float(CatalogLib.tuning()["terrain"]["nebula_range_penalty"])
+	near(cloudy.apparent_range(Vector2(-12, 0), Vector2(12, 0), 24.0),
+		24.0 + 20.0 / opacity * penalty, "cloud is added to the range the guns see")
+	ok(cloudy.lock_broken(Vector2(-12, 0), Vector2(12, 0)),
+		"a full crossing breaks the lock")
+	ok(not cloudy.lock_broken(Vector2(-30, 0), Vector2(-25, 0)),
+		"a clear line holds the lock")
+
+	# Blinded means it cannot be shot at, through the same call the bracket uses.
+	var blind = BattleLib.create_duel(FitLib.create_default("wayfarer"), "talon", 11)
+	blind.terrain = cloudy
+	for s in blind.ships:
+		s.terrain = cloudy
+	blind.player().pos = Vector2(-12, 0)
+	blind.enemy().pos = Vector2(12, 0)
+	for w in blind.player().weapons_rt:
+		w["charge"] = 1.0
+	ok(not blind.player().can_see(blind.enemy().pos), "a blinded ship cannot see")
+	eq(String(blind.player().fire_check(0, blind.enemy().pos)["reason"]), "no lock",
+		"the firing check refuses without a lock")
+	eq(blind.try_fire(blind.player(), 0), false, "and no shot leaves the tube")
+
+	# ---- planets: the well pulls, the surface hurts ----
+	var world = TerrainLib.new()
+	world.features.append({ "kind": TerrainLib.KIND_PLANET,
+		"pos": Vector2(0, 12), "body": 4.0, "field": 18.0 })
+	var tuning: Dictionary = CatalogLib.tuning()
+	var drifter = ShipLib.create(FitLib.create_default("wayfarer"),
+		RandomNumberGenerator.new())
+	drifter.terrain = world
+	drifter.pos = Vector2.ZERO
+	drifter.heading = 180.0
+	drifter.set_order(180.0, 0.0)
+	for _i in range(60):
+		drifter.step(1.0 / 10.0, tuning)
+	ok(drifter.drift.y > 0.0, "a gravity well gives a ship drift toward the planet")
+	ok(drifter.pos.y > 0.5, "and the ship slides toward it with its engines idle")
+	near(drifter.heading, 180.0, "without turning the ship away from where it points", 0.5)
+	eq(world.pull_at(Vector2(0, -20)), Vector2.ZERO, "outside the well there is no pull")
+
+	# Leaving the well sheds the drift rather than keeping it forever.
+	drifter.terrain = TerrainLib.new()
+	for _i in range(200):
+		drifter.step(1.0 / 10.0, tuning)
+	near(drifter.drift.length(), 0.0, "drift decays once the well is behind you", 0.001)
+
+	# ---- asteroids: the halo grinds, the rock collides ----
+	var rocks = TerrainLib.new()
+	rocks.features.append({ "kind": TerrainLib.KIND_ASTEROID,
+		"pos": Vector2.ZERO, "body": 1.0, "field": 4.0 })
+	var terrain_tuning: Dictionary = tuning["terrain"]
+	var floor_factor: float = float(terrain_tuning["asteroid_grind_speed_floor"])
+	var dps: float = float(terrain_tuning["asteroid_grind_dps"])
+	eq(rocks.grind_at(Vector2(0, 5), 4.0), 0.0, "outside the halo there is no dust")
+	near(rocks.grind_at(Vector2(0, 2.5), 0.0), dps * 0.5 * floor_factor,
+		"the halo grinds harder the deeper you are in it")
+	ok(rocks.grind_at(Vector2(0, 2.5), 6.0) > rocks.grind_at(Vector2(0, 2.5), 0.0),
+		"and harder the faster you cross it")
+
+	var grinding = BattleLib.create_duel(FitLib.create_default("wayfarer"), "talon", 21)
+	grinding.terrain = rocks
+	for s in grinding.ships:
+		s.terrain = rocks
+	var victim = grinding.player()
+	victim.pos = Vector2(0, 2.5)
+	victim.heading = 0.0
+	victim.speed = 0.0
+	for _i in range(300):
+		victim.pos = Vector2(0, 2.5)
+		grinding._step_terrain(1.0 / 10.0)
+	ok(victim.shields[0] < victim.shield_max,
+		"dust wears the facing the ship is pointing along")
+	near(victim.shields[3], victim.shield_max, "and leaves the trailing facing alone")
+
+	var crashing = BattleLib.create_duel(FitLib.create_default("wayfarer"), "talon", 22)
+	crashing.terrain = rocks
+	for s in crashing.ships:
+		s.terrain = rocks
+	var wreck = crashing.player()
+	wreck.pos = Vector2(0.2, 0.0)
+	wreck.speed = 4.0
+	var before_shields: float = 0.0
+	for v in wreck.shields:
+		before_shields += v
+	crashing._step_terrain(1.0 / 10.0)
+	var after_shields: float = 0.0
+	for v in wreck.shields:
+		after_shields += v
+	near(before_shields - after_shields,
+		float(terrain_tuning["asteroid_collision_damage"]),
+		"running into a rock costs a lump of shield")
+	ok(wreck.speed < 1.0, "and most of the ship's way")
+	crashing._step_terrain(1.0 / 10.0)
+	var again: float = 0.0
+	for v in wreck.shields:
+		again += v
+	near(again, after_shields, "the cooldown stops a rock hitting every tick")
+
+	# A collision narrates itself, so the comm log can explain what happened.
+	var narrated: bool = false
+	wreck.collision_grace = 0.0
+	for e in crashing._drain():
+		pass
+	crashing._step_terrain(1.0 / 10.0)
+	for e in crashing._drain():
+		if String(e["type"]) == "hazard":
+			narrated = true
+	ok(narrated, "a hazard emits an event the comm log can print")
 
 
 func test_replay() -> void:

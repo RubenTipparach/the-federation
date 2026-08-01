@@ -176,12 +176,13 @@ func start_battle() -> void:
 	replay_log = null
 	$Mid/ReplayBar.visible = false
 	battle = Battle.create_duel(session.fit.duplicate_fit(), session.enemy_hull_id,
-		int(Time.get_ticks_usec()) % 1000000007)
+		int(Time.get_ticks_usec()) % 1000000007, session.map_id)
 	# Every battle is recorded. A log is small, it is written from the one
 	# command path, and it is the difference between "it did something odd"
 	# and a bug someone else can reproduce (docs/11).
 	battle.log = BattleLog.create(battle.player().fit, session.enemy_hull_id,
-		battle.seed_value, float(Catalog.tuning()["combat"]["replay_step"]))
+		battle.seed_value, float(Catalog.tuning()["combat"]["replay_step"]),
+		session.map_id)
 	# Open at the throttle notch the strip will show, so the opening order and
 	# the panel agree without the panel having to be read first.
 	battle.apply_command(0, "order", [battle.player().heading,

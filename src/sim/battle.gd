@@ -12,6 +12,11 @@ var over: bool = false
 var winner: int = -1
 var seekers: Array[Seeker] = []
 
+## What is in the arena besides the ships. Always present: an "open" battle
+## flies in an empty Terrain rather than in a null one, so nothing downstream
+## needs a special case for a bare arena.
+var terrain: Terrain = Terrain.new()
+
 ## Fixed step counter. Commands are stamped with it, never with wall clock
 ## time, because that is what makes a log replayable (see BattleLog).
 var tick: int = 0
@@ -26,7 +31,11 @@ var _events: Array[Dictionary] = []
 var _targets: Dictionary = {}
 
 
-static func create_duel(player_fit: ShipFit, enemy_hull_id: String, seed_value: int) -> Battle:
+## map_id names a recipe in data/maps.json. It defaults to the empty arena, and
+## an "open" battle draws nothing at all from the rng for terrain, so every
+## battle recorded before terrain existed still replays bit for bit.
+static func create_duel(player_fit: ShipFit, enemy_hull_id: String, seed_value: int,
+		map_id: String = "open") -> Battle:
 	var b: Battle = Battle.new()
 	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 	rng.seed = seed_value
@@ -46,6 +55,12 @@ static func create_duel(player_fit: ShipFit, enemy_hull_id: String, seed_value: 
 
 	b.ships.append(player)
 	b.ships.append(enemy)
+
+	# Terrain is drawn last, from the same rng, so it is reproduced by the seed
+	# along with everything else. Both starting positions are kept clear.
+	b.terrain = Terrain.create(map_id, rng, [player.pos, enemy.pos])
+	for s in b.ships:
+		s.terrain = b.terrain
 	return b
 
 
@@ -100,6 +115,7 @@ func step(dt: float) -> Array[Dictionary]:
 	for s in ships:
 		s.step(dt, tuning)
 	_step_seekers(dt, tuning)
+	_step_terrain(dt)
 
 	_keep_in_arena(tuning)
 
@@ -170,6 +186,74 @@ func _step_seekers(dt: float, tuning: Dictionary) -> void:
 		survivors.append(seeker)
 
 	seekers = survivors
+
+
+## What the arena does to the ships in it. Gravity is deliberately not here: a
+## pull is a drift the ship carries and integrates with its own motion
+## (ShipState._step_drift), so there is one integration rather than two.
+##
+## Hazard damage resolves through apply_damage exactly as a shot does, so
+## shields absorb it and internals take the remainder under the one damage rule
+## this project has (CLAUDE.md 4.1).
+func _step_terrain(dt: float) -> void:
+	if terrain.features.is_empty():
+		return
+	for s in ships:
+		if not s.alive:
+			continue
+		_apply_grind(s, dt)
+		_apply_collision(s)
+
+
+## Micrometeor dust wears at the facing pointing along the ship's motion, since
+## that is the facing meeting it.
+##
+## Damage is banked until it is worth a whole point rather than applied every
+## tick. A tick's worth is a fraction of a box, and apply_internal turns a
+## fraction into a random chance of a box, so applying it sixty times a second
+## would spend the battle's rng on dust and fill the comm log with lines saying
+## nothing happened.
+func _apply_grind(ship: ShipState, dt: float) -> void:
+	var motion: Vector2 = ship.velocity()
+	ship.grind_credit += terrain.grind_at(ship.pos, motion.length()) * dt
+	if ship.grind_credit < 1.0:
+		return
+	var whole: float = floorf(ship.grind_credit)
+	ship.grind_credit -= whole
+	var ahead: Vector2 = motion if motion.length() > 0.001 else ship.heading_vector()
+	var result: Dictionary = ship.apply_damage(
+		Sectors.bearing_between(ship.pos, ship.pos + ahead), whole)
+	var lines: Array[String] = result["log"]
+	lines.insert(0, "Micrometeor wash, %d damage" % [int(whole)])
+	_events.append({
+		"type": "hazard", "hazard": Terrain.KIND_ASTEROID, "damage": whole,
+		"facing": int(result["facing"]), "target_player": ship == player(),
+		"at": ship.pos, "log": lines,
+	})
+
+
+## Touching a solid body costs a lump of damage and most of the ship's speed.
+## There is no bounce and no contact physics: a collision is an event with a
+## price (docs/13 section 3.2).
+func _apply_collision(ship: ShipState) -> void:
+	if ship.collision_grace > 0.0:
+		return
+	var hit: Dictionary = terrain.collision_at(ship.pos)
+	if hit.is_empty():
+		return
+	var terrain_tuning: Dictionary = Catalog.tuning()["terrain"]
+	ship.collision_grace = float(terrain_tuning["collision_cooldown"])
+	ship.speed *= float(terrain_tuning["collision_speed_frac"])
+	var amount: float = float(hit["damage"])
+	var result: Dictionary = ship.apply_damage(
+		Sectors.bearing_between(ship.pos, hit["pos"]), amount)
+	var lines: Array[String] = result["log"]
+	lines.insert(0, "COLLISION, %s, %d damage" % [String(hit["kind"]), int(amount)])
+	_events.append({
+		"type": "hazard", "hazard": String(hit["kind"]), "damage": amount,
+		"facing": int(result["facing"]), "target_player": ship == player(),
+		"at": ship.pos, "log": lines,
+	})
 
 
 func _drain() -> Array[Dictionary]:

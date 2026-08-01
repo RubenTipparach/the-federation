@@ -39,6 +39,26 @@ var battery: float = 0.0
 
 var alive: bool = true
 
+## The world this ship is flying in. Every terrain question a ship asks goes
+## through here, so firing, the AI, and the target bracket cannot disagree about
+## whether a contact is visible (CLAUDE.md 4.1). A bare ShipState outside a
+## battle flies in an empty arena, which is why this is never null.
+var terrain: Terrain = Terrain.new()
+
+## Velocity the ship carries that its own engines did not ask for: a gravity
+## well pulling, or a tractor beam towing. Added to the heading vector during
+## integration, so the ship keeps pointing where it was told and slides
+## (docs/13 section 4.1).
+var drift: Vector2 = Vector2.ZERO
+
+## Seconds before this hull can be hurt by running into something again, so
+## resting against a rock is not damage every tick.
+var collision_grace: float = 0.0
+
+## Micrometeor damage banked but not yet worth a whole point. See
+## Battle._apply_grind for why dust is not applied every tick.
+var grind_credit: float = 0.0
+
 ## The facing the shield engineer is buying boxes for. Federation Commander
 ## 3C7 makes regeneration a purchase aimed at one shield at a time, so this is
 ## the choice of which shield, not a weighting.
@@ -194,9 +214,11 @@ func set_order(p_heading: float, p_throttle: float) -> void:
 
 
 func step(dt: float, tuning: Dictionary) -> void:
+	collision_grace = maxf(0.0, collision_grace - dt)
 	if not alive:
 		speed = maxf(0.0, speed - float(tuning["combat"]["dead_ship_decel"]) * dt)
-		pos += Vector2(sin(deg_to_rad(heading)), cos(deg_to_rad(heading))) * speed * dt
+		_step_drift(dt, tuning)
+		pos += velocity() * dt
 		return
 	var combat: Dictionary = tuning["combat"]
 
@@ -214,7 +236,8 @@ func step(dt: float, tuning: Dictionary) -> void:
 	var accel: float = float(fit.hull()["accel"]) * maxf(
 		eng_share, float(combat["min_accel_factor"]))
 	speed = move_toward(speed, target_speed, accel * dt)
-	pos += Vector2(sin(deg_to_rad(heading)), cos(deg_to_rad(heading))) * speed * dt
+	_step_drift(dt, tuning)
+	pos += velocity() * dt
 
 	# Weapon capacitors charge at a rate scaled by the weapons power share.
 	var draw: float = maxf(fit.total_weapon_draw(), 0.001)
@@ -232,6 +255,45 @@ func step(dt: float, tuning: Dictionary) -> void:
 	# Reserve power charges the battery that pays for shield reinforcement.
 	battery = minf(1.0, battery + dt * alloc_units("reserve")
 		* float(combat["battery_charge_per_reserve_unit"]))
+
+
+func heading_vector() -> Vector2:
+	return Vector2(sin(deg_to_rad(heading)), cos(deg_to_rad(heading)))
+
+
+## Where the hull is actually going: what the engines are doing plus whatever is
+## dragging it. One answer, used by integration, by the dust that grinds the
+## leading facing, and by anything that needs to draw a velocity.
+func velocity() -> Vector2:
+	return heading_vector() * speed + drift
+
+
+## Ease the carried velocity toward what the world is currently pulling with,
+## and toward nothing when it is pulling with nothing. Easing rather than
+## integrating a force keeps this stable at any timestep, which a replay depends
+## on (docs/13 section 4.1).
+func _step_drift(dt: float, tuning: Dictionary) -> void:
+	if terrain.features.is_empty() and drift == Vector2.ZERO:
+		return
+	var want: Vector2 = terrain.pull_at(pos)
+	var rate: float = float(tuning["terrain"]["drift_accel"]) * dt
+	drift = Vector2(
+		move_toward(drift.x, want.x, rate),
+		move_toward(drift.y, want.y, rate))
+
+
+## The range the gunnery computer believes it is shooting at: the true distance
+## plus whatever cloud is in the way. Every range decision a ship makes reads
+## this rather than pos.distance_to, so nebulae degrade gunnery through the one
+## falloff rule WeaponModel already owns.
+func apparent_range_to(target_pos: Vector2) -> float:
+	return terrain.apparent_range(pos, target_pos, pos.distance_to(target_pos))
+
+
+## Whether a lock can be held on a point at all. The firing check and the target
+## bracket both call this, so a contact that cannot be shot at cannot be drawn.
+func can_see(target_pos: Vector2) -> bool:
+	return not terrain.lock_broken(pos, target_pos)
 
 
 ## Shield boxes are bought, not handed back. Federation Commander 3C7: "you can
@@ -338,7 +400,9 @@ func fire_check(index: int, target_pos: Vector2) -> Dictionary:
 		return { "ok": false, "reason": "destroyed" }
 	if float(w["charge"]) < 1.0:
 		return { "ok": false, "reason": "charging" }
-	if pos.distance_to(target_pos) > WeaponModel.max_range(w["weapon"]):
+	if not can_see(target_pos):
+		return { "ok": false, "reason": "no lock" }
+	if apparent_range_to(target_pos) > WeaponModel.max_range(w["weapon"]):
 		return { "ok": false, "reason": "range" }
 	var rel: float = Sectors.relative_bearing(Sectors.bearing_between(pos, target_pos), heading)
 	if not fit.effective_field(w["mount"]).has(Sectors.sector_of_bearing(rel)):
@@ -353,8 +417,10 @@ func fire_at(index: int, target: ShipState) -> Dictionary:
 	var distance: float = pos.distance_to(target.pos)
 	# Range decides both whether the shot connects and what it scores, so a
 	# weapon fired at its extreme edge is worth less than the same weapon
-	# fired point blank (WeaponModel).
-	var damage: int = WeaponModel.roll_damage(w["weapon"], distance, rng)
+	# fired point blank (WeaponModel). Cloud between the two hulls counts as
+	# extra range, which is the whole of the nebula's effect on gunnery.
+	var damage: int = WeaponModel.roll_damage(
+		w["weapon"], apparent_range_to(target.pos), rng)
 	var arrive_bearing: float = Sectors.bearing_between(target.pos, pos)
 	var log_lines: Array[String] = []
 	# -1 means nothing was struck, so a miss cannot light a shield up.
