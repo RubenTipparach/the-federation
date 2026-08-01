@@ -12,7 +12,7 @@
       "cinematic": 30.0,
       "plan": 90.0
     },
-    "plan_inset_size": 70.0,
+    "plan_inset_size": 62.0,
     "stick_turn_deg_per_sec": 90.0,
     "stick_orbit_deg_per_sec": 70.0
   },
@@ -24,7 +24,7 @@
     "battery_charge_per_reserve_unit": 0.02,
     "reinforce_amount": 6.0,
     "beam_fade_sec": 0.45,
-    "shield_flash_sec": 0.55,
+    "shield_flash_sec": 0.8,
     "engine_power_demand": 10.0,
     "overdrive_cap": 1.25,
     "min_accel_factor": 0.2,

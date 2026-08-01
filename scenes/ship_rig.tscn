@@ -18,6 +18,7 @@ material_override = ExtResource("6")
 
 [node name="RangeRing" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.02, 0)
+layers = 2
 mesh = ExtResource("5")
 
 [node name="Wedges" type="Node3D" parent="."]
@@ -28,61 +29,73 @@ mesh = ExtResource("5")
 
 [node name="W0" type="MeshInstance3D" parent="Wedges"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, 0)
+layers = 2
 mesh = ExtResource("3")
 visible = false
 
 [node name="W1" type="MeshInstance3D" parent="Wedges"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, 0)
+layers = 2
 mesh = ExtResource("3")
 visible = false
 
 [node name="W2" type="MeshInstance3D" parent="Wedges"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, 0)
+layers = 2
 mesh = ExtResource("3")
 visible = false
 
 [node name="W3" type="MeshInstance3D" parent="Wedges"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, 0)
+layers = 2
 mesh = ExtResource("3")
 visible = false
 
 [node name="W4" type="MeshInstance3D" parent="Wedges"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, 0)
+layers = 2
 mesh = ExtResource("3")
 visible = false
 
 [node name="W5" type="MeshInstance3D" parent="Wedges"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, 0)
+layers = 2
 mesh = ExtResource("3")
 visible = false
 
 [node name="W6" type="MeshInstance3D" parent="Wedges"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, 0)
+layers = 2
 mesh = ExtResource("3")
 visible = false
 
 [node name="W7" type="MeshInstance3D" parent="Wedges"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, 0)
+layers = 2
 mesh = ExtResource("3")
 visible = false
 
 [node name="W8" type="MeshInstance3D" parent="Wedges"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, 0)
+layers = 2
 mesh = ExtResource("3")
 visible = false
 
 [node name="W9" type="MeshInstance3D" parent="Wedges"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, 0)
+layers = 2
 mesh = ExtResource("3")
 visible = false
 
 [node name="W10" type="MeshInstance3D" parent="Wedges"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, 0)
+layers = 2
 mesh = ExtResource("3")
 visible = false
 
 [node name="W11" type="MeshInstance3D" parent="Wedges"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, 0)
+layers = 2
 mesh = ExtResource("3")
 visible = false
 

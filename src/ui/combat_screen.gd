@@ -73,9 +73,12 @@ func bind_session(p_session: Session) -> void:
 	# window's world, which happened to work). find_world_3d resolves the world
 	# actually in use, so the sharing is explicit instead of coincidental.
 	inset.world_3d = ($Mid/ViewPanel/Stack/ViewContainer/View as SubViewport).find_world_3d()
+	# cull_mask 1 on this camera, set in the scene, is what keeps the weapon arc
+	# wedges and range rings out of the inset. See assets/materials/
+	# env_plan_inset.tres for the layer convention.
 	var plan_cam: Camera3D = inset.get_node("PlanCamera")
 	plan_cam.size = float(cam["plan_inset_size"])
-	plan_cam.look_at_from_position(Vector3(0, 60, 0), Vector3.ZERO, Vector3(0, 0, 1))
+	_track_plan_camera()
 
 	# Touch play. The sticks and the target buttons drive the same paths the
 	# desktop controls do, so mobile is a second surface on one implementation
@@ -152,6 +155,24 @@ func _build_weapon_rows() -> void:
 		_weapon_rows.append(row)
 
 
+## Keep the plan inset looking straight down at the midpoint between the two
+## ships. It used to be nailed to the world origin, which meant that once the
+## pair drifted toward a corner of the arena they sat jammed against the edge
+## of a 128 pixel readout with most of it empty.
+##
+## The size is deliberately fixed rather than zoomed to fit: a display whose
+## scale changes under you is hard to read distance off, and at this size the
+## fixed frame already holds the two ships apart at almost any separation they
+## reach. So the inset pans and never zooms.
+func _track_plan_camera() -> void:
+	if battle == null:
+		return
+	var mid: Vector2 = (battle.player().pos + battle.enemy().pos) * 0.5
+	var cam: Camera3D = $Mid/ViewPanel/Stack/InsetFrame/InsetContainer/Inset/PlanCamera
+	cam.look_at_from_position(
+		Vector3(mid.x, 60, mid.y), Vector3(mid.x, 0, mid.y), Vector3(0, 0, 1))
+
+
 func _physics_process(delta: float) -> void:
 	if battle == null or not visible:
 		return
@@ -163,6 +184,7 @@ func _physics_process(delta: float) -> void:
 		events = battle.step(delta)
 	_world().update_visuals(delta, events)
 	_world().follow_pivot(delta)
+	_track_plan_camera()
 	for e in events:
 		# Every event that narrates itself gets narrated: shots, launches,
 		# interceptions, and drones running out of fuel.

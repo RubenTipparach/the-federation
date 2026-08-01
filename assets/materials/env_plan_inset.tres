@@ -15,6 +15,15 @@
 ; since Godot renders in linear and this value is used directly rather than
 ; sampled from a texture. The ambient light matches combat_world.tscn exactly:
 ; only the background differs, so a hull is lit the same in both views.
+;
+; VISUAL LAYER CONVENTION, which the inset's camera depends on:
+;   layer 1  hulls, grid, shield rings, impact flares, beams  (both cameras)
+;   layer 2  weapon arc wedges and range rings                (main view only)
+; The wedges and range rings are the right size in a full view and shapeless
+; blobs in a 128 pixel one, where they covered the contacts they were supposed
+; to be describing. PlanCamera therefore sets cull_mask = 1. Anything added to
+; a ship rig that is metres wide belongs on layer 2; anything that marks where
+; a ship IS belongs on layer 1.
 
 [resource]
 background_mode = 1

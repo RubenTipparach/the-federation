@@ -8,18 +8,23 @@
 ; sit at the default 0, so a hit reads over the readout rather than under it.
 ; The grid is at -1 for the same reason in the other direction.
 ;
-; The colour is the tactical overlay cyan, not a palette entry. That is
-; deliberate and matches the shields, wedges, and rings it sits among: those
-; are the readability layer rather than art, and CLAUDE.md section 3.1 governs
-; committed art. A muted palette colour here would read as damage to the ship
-; rather than as a shield holding.
+; The colour is a near white in the tactical overlay's cyan family, not a
+; palette entry. That is deliberate and matches the shields, wedges, and rings
+; it sits among: those are the readability layer rather than art, and
+; CLAUDE.md section 3.1 governs committed art. A muted palette colour here
+; would read as damage to the ship rather than as a shield holding.
+;
+; It is near WHITE rather than the shields' own cyan for a specific reason:
+; the flare sits directly on top of a cyan shield band, and at the first pass
+; it was the same hue, so a hit read as the ring going briefly blurry instead
+; of as one facing lighting up. The hot core separates it from what it covers.
 
 [ext_resource type="Shader" path="res://assets/shaders/shield_glow.gdshader" id="1"]
 
 [resource]
 render_priority = 1
 shader = ExtResource("1")
-shader_parameter/flare_color = Color(0.55, 0.93, 1, 1)
+shader_parameter/flare_color = Color(0.88, 0.98, 1, 1)
 shader_parameter/arc_half_deg = 44.0
 shader_parameter/arc_falloff = 1.6
 shader_parameter/inner_radius = 0.66
