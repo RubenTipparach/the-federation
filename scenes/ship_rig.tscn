@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="Script" path="res://src/ui/ship_rig.gd" id="1"]
 [ext_resource type="ArrayMesh" path="res://assets/meshes/hull_placeholder.obj" id="2"]
@@ -7,6 +7,7 @@
 [ext_resource type="ArrayMesh" path="res://assets/meshes/ring.obj" id="5"]
 [ext_resource type="Material" path="res://assets/materials/mat_hull_friend.tres" id="6"]
 [ext_resource type="ArrayMesh" path="res://assets/meshes/arc_glow.obj" id="7"]
+[ext_resource type="ArrayMesh" path="res://assets/meshes/turn_arc.obj" id="8"]
 
 [node name="ShipRig" type="Node3D"]
 script = ExtResource("1")
@@ -20,6 +21,12 @@ material_override = ExtResource("6")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.02, 0)
 layers = 2
 mesh = ExtResource("5")
+
+[node name="TurnArc" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.04, 0)
+layers = 2
+mesh = ExtResource("8")
+visible = false
 
 [node name="Wedges" type="Node3D" parent="."]
 

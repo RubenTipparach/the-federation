@@ -16,10 +16,18 @@ const MAT_RING_FOE := preload("res://assets/materials/mat_ring_foe.tres")
 const MAT_HULL_FRIEND := preload("res://assets/materials/mat_hull_friend.tres")
 const MAT_HULL_FOE := preload("res://assets/materials/mat_hull_foe.tres")
 const MAT_SHIELD_GLOW := preload("res://assets/materials/mat_shield_glow.tres")
+const MAT_TURN_ARC := preload("res://assets/materials/mat_turn_arc.tres")
 
 const SHIELD_RING_RADIUS := 3.4
+## Well outside the shield band at 3.4. At 4.6 the arc sat almost on top of
+## the shields and in the same colour, and the two read as one confusing ring.
+const TURN_ARC_RADIUS := 6.2
 
 var _state: ShipState
+## The arc is only drawn for the player's own ship: it shows an ORDER, and the
+## enemy's orders are not something the player should be able to read off the
+## screen before the ship acts on them.
+var _friendly: bool = false
 
 ## Impact energy per facing, 1.0 the moment a shield is struck and decaying to
 ## 0. Presentation only: the sim never reads this, so a battle plays out the
@@ -53,6 +61,14 @@ func bind_ship(state: ShipState, friendly: bool) -> void:
 		glow.scale = seg.scale
 		glow.material_override = MAT_SHIELD_GLOW.duplicate()
 		glow.visible = false
+	# Own material for the same reason: the sweep is this ship's, not shared.
+	# Amber rather than the allegiance colour, because this is a helm gauge and
+	# not a shield: sharing the shields' cyan is what made the first cut
+	# unreadable.
+	_friendly = friendly
+	$TurnArc.material_override = MAT_TURN_ARC.duplicate()
+	$TurnArc.scale = Vector3(TURN_ARC_RADIUS, 1.0, TURN_ARC_RADIUS)
+	$TurnArc.material_override.set_shader_parameter("arc_color", Palette.AMBER)
 	# The hull mesh is named by the hull's own data, so a Federation cruiser and
 	# a Kthaari raider are two committed .obj files and one placement path
 	# (CLAUDE.md 2 and 5.1). No geometry is built here.
@@ -168,6 +184,14 @@ func refresh() -> void:
 				seg.material_override = MAT_SHIELD_WARN
 			_:
 				seg.material_override = MAT_SHIELD_OK
+
+	# How far the helm still has to bring the ship round. The rig is already
+	# rotated to the current heading, so the arc is the signed turn delta and
+	# the shader needs nothing else to place it.
+	var sweep: float = Sectors.turn_delta(_state.heading, _state.ordered_heading)
+	$TurnArc.visible = _state.alive and _friendly
+	if $TurnArc.visible:
+		$TurnArc.material_override.set_shader_parameter("sweep_deg", sweep)
 
 	$Hull.visible = true
 	if not _state.alive:

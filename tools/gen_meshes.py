@@ -117,6 +117,17 @@ def arc_glow():
     o.write("arc_glow.obj", "Unit shield impact flare, 88 degrees, wider than one facing")
 
 
+def turn_arc():
+    o = Obj()
+    # A FULL circle, because the turn it shows is any angle from nothing to a
+    # half turn and a mesh cannot change its angular span. The shader masks it
+    # down to the arc actually being swept (assets/shaders/turn_arc.gdshader),
+    # which keeps one committed mesh instead of a family of fixed wedges or
+    # geometry built at runtime.
+    flat_band(o, 0, 360, 0.90, 1.0, 120)
+    o.write("turn_arc.obj", "Unit band for the helm turn arc, masked by angle in the shader")
+
+
 def ring():
     o = Obj()
     flat_band(o, 0, 360, 0.982, 1.0, 96)
@@ -284,6 +295,7 @@ def main():
     wedge30()
     arc_segment()
     arc_glow()
+    turn_arc()
     ring()
     quad()
     beam()
