@@ -23,6 +23,10 @@ const BRACKET_MIN_PX := 16.0
 const BRACKET_MAX_PX := 120.0
 ## Extra pixels around a ship that still count as pointing at it.
 const BRACKET_PICK_SLACK := 10.0
+## How far the pointer may travel before a right button press stops being a
+## click and becomes a camera orbit. Small enough that a deliberate drag is
+## never read as a lock, large enough that a hand tremor is not a drag.
+const DRAG_SLOP := 6.0
 ## Each sink gets its own hue so the five strips are told apart at a glance
 ## rather than by counting rows. The subsystem family colours only supply four,
 ## which left shields and reserve identical, so these are named directly.
@@ -38,8 +42,12 @@ var session: Session
 var battle: Battle
 var paused: bool = false
 var _weapon_rows: Array = []
-var _dragging: bool = false
-## Live touch points, for pinch. Two fingers zoom; one still drags the camera.
+## Set while the right button is held. Right drag orbits the camera; right
+## click, meaning a press and release that never travelled, locks a target.
+## Left is the helm and nothing else, so an order can never be mistaken for a
+## camera move.
+var _orbiting: bool = false
+## Live touch points, for pinch. Two fingers zoom; the camera stick orbits.
 var _touches: Dictionary = {}
 var _pinch_span: float = -1.0
 var _drag_moved: float = 0.0
@@ -404,31 +412,51 @@ func _on_view_input(event: InputEvent) -> void:
 					Catalog.tuning()["camera"]["zoom_touch_scale"]))
 			_pinch_span = span
 			return
-	# Right click locks onto the contact under the cursor. It routes through the
-	# same target command the cycle buttons use, so there is one notion of what
-	# is targeted rather than a second one owned by the mouse.
-	if event is InputEventMouseButton and event.pressed \
-			and event.button_index == MOUSE_BUTTON_RIGHT:
-		var picked: int = _ship_under_mouse()
-		if picked >= 0 and battle.ships[picked] != battle.player() and _can_command():
-			if battle.apply_command(0, "target", [picked]):
-				_note("Locked on %s" % String(
-					battle.ships[picked].fit.hull()["name"]).to_upper())
-		return
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+	# The right button does both camera and targeting, told apart by whether the
+	# pointer moved: hold and drag to look around, click to lock the contact
+	# under the cursor. The lock routes through the same target command the
+	# cycle buttons use, so there is one notion of what is targeted rather than
+	# a second one owned by the mouse.
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_RIGHT:
 		if event.pressed:
-			_dragging = true
+			_orbiting = true
 			_drag_moved = 0.0
 		else:
-			if _dragging and _drag_moved < 6.0 and _can_command():
-				_helm_click(event.position)
-			_dragging = false
-	elif event is InputEventMouseMotion and _dragging:
+			if _orbiting and _drag_moved < DRAG_SLOP:
+				_lock_under_mouse()
+			_orbiting = false
+		return
+	if event is InputEventMouseMotion and _orbiting:
 		_drag_moved += event.relative.length()
-		if _drag_moved >= 6.0:
+		if _drag_moved >= DRAG_SLOP:
 			var cam: Dictionary = Catalog.tuning()["camera"]
 			var speed: float = float(cam["orbit_speed"])
 			world.orbit(-event.relative.x * speed, event.relative.y * speed)
+		return
+	# Left is the helm. It fires on press rather than release because the order
+	# is a single point and there is nothing to wait for; the camera no longer
+	# shares this button, so there is no drag to disambiguate from.
+	if event is InputEventMouseButton and event.pressed \
+			and event.button_index == MOUSE_BUTTON_LEFT:
+		# A pinch emits an emulated left click from the first finger, which
+		# would otherwise fling the helm at wherever that finger happened to
+		# land while the player was only zooming.
+		if _touches.size() >= 2:
+			return
+		if _can_command():
+			_helm_click(event.position)
+
+
+## Lock whatever contact the cursor is over, if it is a contact and not us.
+func _lock_under_mouse() -> void:
+	if not _can_command():
+		return
+	var picked: int = _ship_under_mouse()
+	if picked < 0 or battle.ships[picked] == battle.player():
+		return
+	if battle.apply_command(0, "target", [picked]):
+		_note("Locked on %s" % String(
+			battle.ships[picked].fit.hull()["name"]).to_upper())
 
 
 ## A box strip reports the level it was clicked to, which is already the whole
