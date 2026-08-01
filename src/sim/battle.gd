@@ -40,6 +40,15 @@ var _events: Array[Dictionary] = []
 var _targets: Dictionary = {}
 
 
+## Where the two sides start, in the fixed order [player, enemy]. Terrain
+## placement keeps these clear and the map picker previews them, so they exist
+## once here rather than being worked out again by whoever needs them
+## (CLAUDE.md 4.1).
+static func start_positions() -> Array[Vector2]:
+	var sep: float = float(Catalog.tuning()["combat"]["start_separation"])
+	return [Vector2(-sep * 0.5, sep * 0.35), Vector2(sep * 0.5, -sep * 0.35)]
+
+
 ## map_id names a recipe in data/maps.json. It defaults to the empty arena, and
 ## an "open" battle draws nothing at all from the rng for terrain, so every
 ## battle recorded before terrain existed still replays bit for bit.
@@ -49,16 +58,15 @@ static func create_duel(player_fit: ShipFit, enemy_hull_id: String, seed_value: 
 	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 	rng.seed = seed_value
 	b.seed_value = seed_value
-	var tuning: Dictionary = Catalog.tuning()["combat"]
-	var sep: float = float(tuning["start_separation"])
+	var starts: Array[Vector2] = Battle.start_positions()
 
 	var player: ShipState = ShipState.create(player_fit, rng, false)
-	player.pos = Vector2(-sep * 0.5, sep * 0.35)
+	player.pos = starts[0]
 	player.heading = Sectors.bearing_between(player.pos, Vector2.ZERO)
 	player.ordered_heading = player.heading
 
 	var enemy: ShipState = ShipState.create(ShipFit.create_default(enemy_hull_id), rng, true)
-	enemy.pos = Vector2(sep * 0.5, -sep * 0.35)
+	enemy.pos = starts[1]
 	enemy.heading = Sectors.bearing_between(enemy.pos, Vector2.ZERO)
 	enemy.ordered_heading = enemy.heading
 
@@ -137,6 +145,10 @@ func step(dt: float) -> Array[Dictionary]:
 		if not ships[i].alive:
 			over = true
 			winner = 1 - i
+			# Nothing steps again once the battle is over, so a beam left up
+			# here would sit in the panel forever showing a contest that has
+			# stopped being fought.
+			tractors.clear()
 			_events.append({ "type": "end", "winner": winner })
 			break
 	time += dt

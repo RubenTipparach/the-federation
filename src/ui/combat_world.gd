@@ -30,6 +30,9 @@ func _ready() -> void:
 
 func bind_battle(battle: Battle) -> void:
 	_battle = battle
+	# Terrain is placed once, because it does not move. Both cameras looking at
+	# this world get it, which is why the plan inset needs no painter of its own.
+	$Terrain.build(battle.terrain)
 	$PlayerRig.bind_ship(battle.player(), true)
 	$EnemyRig.bind_ship(battle.enemy(), false)
 

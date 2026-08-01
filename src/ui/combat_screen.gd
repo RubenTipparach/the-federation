@@ -47,6 +47,11 @@ var _weapon_rows: Array = []
 ## Left is the helm and nothing else, so an order can never be mistaken for a
 ## camera move.
 var _orbiting: bool = false
+## The last range and bearing the sensors actually measured, and when. Held so
+## a lost lock can show a stale reading with its age instead of a blank panel.
+var _last_seen_range: float = 0.0
+var _last_seen_bearing: float = 0.0
+var _last_seen_at: float = 0.0
 ## Live touch points, for pinch. Two fingers zoom; the camera stick orbits.
 var _touches: Dictionary = {}
 var _pinch_span: float = -1.0
@@ -83,11 +88,13 @@ func bind_session(p_session: Session) -> void:
 		func() -> void: battle_ended.emit())
 
 	var throttle: Control = $Left/ShipPanel/V/Throttle/Boxes
-	throttle.setup(Palette.CYAN)
+	# Both of these are controls, not readouts, so their empty boxes are drawn
+	# bright enough to click at.
+	throttle.setup(Palette.CYAN, true)
 	throttle.level_picked.connect(_on_throttle_picked)
 	for sink in ["Weapons", "Shields", "Engines", "Systems", "Reserve"]:
 		var strip: Control = $Left/PowerPanel/V.get_node(sink + "/Boxes")
-		strip.setup(_sink_tint(sink))
+		strip.setup(_sink_tint(sink), true)
 		strip.level_picked.connect(_on_power_picked.bind(sink.to_lower()))
 
 	# Two strips of the same component, split by CLAUDE.md 6.2's own test:
@@ -105,6 +112,10 @@ func bind_session(p_session: Session) -> void:
 		panel.repair_requested.connect(_on_repair_requested)
 		panel.repair_dropped.connect(_on_repair_dropped)
 		panel.regen_facing_picked.connect(_on_regen_facing_picked)
+		panel.tractor_latch_requested.connect(_on_tractor_latch)
+		panel.tractor_release_requested.connect(_on_tractor_release)
+		panel.tractor_mode_picked.connect(_on_tractor_mode)
+		panel.tractor_bid_picked.connect(_on_power_picked.bind(Tractor.SINK))
 
 	# The own ship display is where a repair is ordered. The target's is the
 	# same component with detail and editing off, which is what stops an
@@ -207,6 +218,10 @@ func _bind_displays() -> void:
 	var me: ShipState = battle.player()
 	$Right/OwnPanel/V/Display.bind_ship(me, true, true)
 	$Right/TargetDisplayPanel/V/Display.bind_ship(battle.target_for(me), false, false)
+	# A tractor beam is a relationship between two ships, so the panel that draws
+	# it needs the battle. Everything else it draws comes from the one ship.
+	$Right/FightPanel.battle = battle
+	$Left/KeepPanel.battle = battle
 	$Right/FightPanel.show_station($Right/FightTabs.selected(), me)
 	$Left/KeepPanel.show_station($Left/KeepTabs.selected(), me)
 
@@ -559,6 +574,28 @@ func _on_power_picked(level: int, sink: String) -> void:
 		battle.apply_command(0, "power", [sink, float(level)])
 
 
+## The three tractor orders. Like every other order on this screen they go
+## through Battle.apply_command, so a recording sees them and a replay repeats
+## them (docs/11).
+func _on_tractor_latch() -> void:
+	if battle == null:
+		return
+	var target: ShipState = battle.target_for(battle.player())
+	var index: int = battle.ships.find(target)
+	if index >= 0:
+		battle.apply_command(0, "tractor_latch", [index])
+
+
+func _on_tractor_release() -> void:
+	if battle != null:
+		battle.apply_command(0, "tractor_release", [])
+
+
+func _on_tractor_mode(mode: String) -> void:
+	if battle != null:
+		battle.apply_command(0, "tractor_mode", [mode])
+
+
 ## Throttle is stored as a 0 to 1 fraction, so the notch count is the only
 ## place the discretisation lives.
 func _on_throttle_picked(level: int) -> void:
@@ -742,15 +779,7 @@ func _refresh_hud() -> void:
 	$Left/DamagePanel/V/Body.text = "No damage." if dmg.is_empty() else "\n".join(dmg)
 	$Left/DamagePanel/V/CommLog.text = "\n".join(_report_lines.slice(-6))
 
-	var dist: float = me.pos.distance_to(foe.pos)
-	var bearing: float = Sectors.bearing_between(me.pos, foe.pos)
-	# Range and bearing share a line: a five mount hull needs five weapon rows
-	# below, and at the bitmap face's fixed size the column has no spare row.
-	$Right/TargetPanel/V/Body.text = "\n".join([
-		"CONTACT  %s" % String(foe.fit.hull()["name"]),
-		"BOXES  %d / %d" % [foe.total_boxes(), foe.total_boxes_max()],
-		"RANGE  %.1f   BRG  %03d" % [dist, int(bearing)],
-	])
+	_refresh_target_readout(me, foe)
 	$Right/OwnPanel/V/Display.refresh()
 	$Right/TargetDisplayPanel/V/Display.refresh()
 	$Right/FightTabs.refresh(me.systems, me.repair_queue)
@@ -771,6 +800,39 @@ func _refresh_hud() -> void:
 		Palette.OK if me.battery >= 1.0 else Palette.DIM)
 
 
+## The contact readout, and what it says when the sensors cannot hold a lock.
+##
+## A nebula does not delete the enemy, it stops you measuring them, so the panel
+## keeps the last reading rather than blanking. The numbers go dim and the age
+## of the reading is printed, which is the difference between "he is at 18.4"
+## and "he WAS at 18.4, three seconds ago". Hiding the readout instead would
+## read as a bug, and blanking the numbers would throw away the only
+## information a captain still has.
+##
+## Whether the lock holds is asked of the ship, which asks the terrain. The
+## firing check asks the same question through the same call, so a contact that
+## cannot be shot at is never shown as one that can (CLAUDE.md 4.1).
+func _refresh_target_readout(me: ShipState, foe: ShipState) -> void:
+	var seen: bool = me.can_see(foe.pos)
+	if seen:
+		_last_seen_range = me.pos.distance_to(foe.pos)
+		_last_seen_bearing = Sectors.bearing_between(me.pos, foe.pos)
+		_last_seen_at = battle.time
+	# Range and bearing share a line: a five mount hull needs five weapon rows
+	# below, and at the bitmap face's fixed size the column has no spare row.
+	var body: Label = $Right/TargetPanel/V/Body
+	body.text = "\n".join([
+		"CONTACT  %s" % String(foe.fit.hull()["name"]),
+		"BOXES  %d / %d" % [foe.total_boxes(), foe.total_boxes_max()],
+		"RANGE  %.1f   BRG  %03d" % [_last_seen_range, int(_last_seen_bearing)],
+	])
+	body.add_theme_color_override("font_color", Palette.FG if seen else Palette.DIM)
+	var lock: Label = $Right/TargetPanel/V/Lock
+	lock.visible = not seen
+	lock.text = "SENSOR LOCK LOST   %.1fs" % [battle.time - _last_seen_at]
+	lock.add_theme_color_override("font_color", Palette.CRIT)
+
+
 func _position_ship_labels() -> void:
 	if battle == null:
 		return
@@ -783,6 +845,9 @@ func _position_ship_labels() -> void:
 	stack.get_node("PlayerLabel").position = p + Vector2(-30, -46)
 	stack.get_node("PlayerLabel").text = String(me.fit.hull()["name"]).to_upper()
 	stack.get_node("PlayerLabel").add_theme_color_override("font_color", Palette.CYAN)
+	# Which shields are down is a sensor reading like any other, so it goes with
+	# the lock rather than surviving it.
+	var seen: bool = me.can_see(foe.pos)
 	var q: Vector2 = world.screen_pos(foe.pos)
 	stack.get_node("EnemyLabel").position = q + Vector2(-34, -58)
 	stack.get_node("EnemyLabel").text = String(foe.fit.hull()["name"]).to_upper()
@@ -793,7 +858,7 @@ func _position_ship_labels() -> void:
 		if foe.shields[f] <= 0.0:
 			downs.append("#%d" % (f + 1))
 	status.position = q + Vector2(-40, -42)
-	status.text = "" if downs.is_empty() else "SHIELD %s DOWN" % " ".join(downs)
+	status.text = "" if downs.is_empty() or not seen else "SHIELD %s DOWN" % " ".join(downs)
 	status.add_theme_color_override("font_color", Palette.AMBER)
 	_refresh_brackets(world, stack)
 
@@ -812,16 +877,21 @@ func _refresh_brackets(world: Node3D, stack: Control) -> void:
 			break
 		var ship: ShipState = battle.ships[i]
 		var bracket: Control = stack.get_node("Bracket%d" % i)
+		# A contact the sensors cannot hold is not drawn. The bracket carries a
+		# name and a hull bar, which are exactly the readings a broken lock has
+		# taken away, so drawing it would claim knowledge the ship does not have.
+		var seen: bool = i == 0 or battle.player().can_see(ship.pos)
 		var state: int = TargetBracket.State.HIDDEN
-		if ship.alive and target != null and ship == target:
+		if seen and ship.alive and target != null and ship == target:
 			state = TargetBracket.State.LOCKED
-		elif ship.alive and i == picked:
+		elif seen and ship.alive and i == picked:
 			state = TargetBracket.State.HOVER
 		# A locked bracket carries the ship's name itself, so the floating label
 		# for that ship stands down rather than printing the name twice on top
-		# of itself.
+		# of itself. An unseen contact loses the label too: the readout is where
+		# a stale position belongs, not floating over a hull nobody can find.
 		var label: String = "PlayerLabel" if i == 0 else "EnemyLabel"
-		stack.get_node(label).visible = state != TargetBracket.State.LOCKED
+		stack.get_node(label).visible = seen and state != TargetBracket.State.LOCKED
 		if state == TargetBracket.State.HIDDEN:
 			bracket.visible = false
 			continue
@@ -859,6 +929,10 @@ func _ship_under_mouse() -> int:
 	for i in range(battle.ships.size()):
 		var ship: ShipState = battle.ships[i]
 		if not ship.alive:
+			continue
+		# A contact you cannot hold a lock on cannot be picked either. Otherwise
+		# a player could right click a hull the guns will then refuse to fire on.
+		if i != 0 and not battle.player().can_see(ship.pos):
 			continue
 		var d: float = mouse.distance_to(world.screen_pos(ship.pos))
 		if d < _ship_screen_radius(world, ship) + BRACKET_PICK_SLACK and d < best_d:

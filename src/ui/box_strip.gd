@@ -25,13 +25,19 @@ const MIN_BOX := 3.0
 var capacity: int = 24
 var level: int = 0
 var accent: Color = Palette.CYAN
+## What an unfilled box is drawn in. A readout strip sits at the panel line
+## colour and all but disappears when nothing is lit, which is right for a
+## readout and wrong for a control: a strip a player is meant to CLICK has to
+## show where the boxes are before any of them are filled.
+var empty: Color = Palette.LINE
 ## Boxes past this are drawn as unavailable rather than merely empty, so a
 ## reactor that has lost output shows the loss instead of silently shrinking.
 var ceiling: int = -1
 
 
-func setup(p_accent: Color) -> void:
+func setup(p_accent: Color, clickable: bool = false) -> void:
 	accent = p_accent
+	empty = Palette.LINE_HOT if clickable else Palette.LINE
 	queue_redraw()
 
 
@@ -75,7 +81,7 @@ func _draw() -> void:
 	var limit: int = capacity if ceiling < 0 else clampi(ceiling, 0, capacity)
 	for i in range(capacity):
 		var x: float = float(i) * (w + gap)
-		var col: Color = Palette.LINE
+		var col: Color = empty
 		if i >= limit:
 			# Output this box used to represent has been shot away.
 			col = Palette.PANEL_2

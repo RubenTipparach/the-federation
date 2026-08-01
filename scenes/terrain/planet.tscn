@@ -1,0 +1,23 @@
+[gd_scene load_steps=6 format=3]
+
+; A world and the edge of its gravity well. Field is a ring rather than a fill:
+; the well does no damage at its edge, it only begins to pull there, and a
+; filled disc that size would sit under a third of the arena.
+
+[ext_resource type="Script" path="res://src/ui/terrain_feature.gd" id="1"]
+[ext_resource type="ArrayMesh" path="res://assets/meshes/sphere.obj" id="2"]
+[ext_resource type="Material" path="res://assets/materials/mat_planet.tres" id="3"]
+[ext_resource type="ArrayMesh" path="res://assets/meshes/ring.obj" id="4"]
+[ext_resource type="Material" path="res://assets/materials/mat_well_ring.tres" id="5"]
+
+[node name="Planet" type="Node3D"]
+script = ExtResource("1")
+
+[node name="Body" type="MeshInstance3D" parent="."]
+mesh = ExtResource("2")
+material_override = ExtResource("3")
+
+[node name="Field" type="MeshInstance3D" parent="."]
+mesh = ExtResource("4")
+material_override = ExtResource("5")
+cast_shadow = 0

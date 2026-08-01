@@ -48,5 +48,9 @@ static func describe(log: BattleLog) -> String:
 			outcome = "you won" if int(log.result.get("winner", -1)) == 0 else "you lost"
 		else:
 			outcome = "disengaged"
-	return "%s vs %s   %ds   %d orders   %s" % [
-		player, foe, int(seconds), log.commands.size(), outcome]
+	# Where it was fought is part of what a battle was: the same two hulls play
+	# very differently in a cloud bank and in open space.
+	var where: String = String(Catalog.map(log.map_id)["name"]) \
+		if Catalog.maps().has(log.map_id) else "Open Space"
+	return "%s vs %s   %s   %ds   %d orders   %s" % [
+		player, foe, where, int(seconds), log.commands.size(), outcome]

@@ -1,0 +1,12 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3]
+
+; The edge of a gravity well: where the pull starts. A ring rather than a fill,
+; because unlike the dust halo the well does no damage at its edge, it only
+; begins to tug, and a filled disc that size would sit under half the arena.
+
+[ext_resource type="Shader" path="res://assets/shaders/tint.gdshader" id="1"]
+
+[resource]
+render_priority = -1
+shader = ExtResource("1")
+shader_parameter/tint = Color(0.494, 0.663, 0.812, 0.35)

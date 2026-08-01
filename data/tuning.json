@@ -54,6 +54,12 @@
     "spawn_clearance": 8.0,
     "placement_tries": 60
   },
+  "terrain_view": {
+    "_comment": "How terrain is drawn, as opposed to what it does. The simulation owns every position and radius; only the vertical proportion of a cloud and the floor on a drawn rock are view decisions, and they live here rather than in an inspector field (CLAUDE.md 5.4).",
+    "nebula_flatten": 0.5,
+    "body_min_radius": 0.55,
+    "field_y": 0.03
+  },
   "tractor": {
     "_comment": "docs/13 section 6. The bid is whatever the tractor power sink holds, so there is no separate currency. break_seconds is how long the breaker must stay ahead before the beam snaps, which is what makes the struggle readable instead of a coin flip on one tick.",
     "range": 12.0,
@@ -61,7 +67,9 @@
     "break_seconds": 2.5,
     "relatch_cooldown": 4.0,
     "blend_rate": 1.6,
-    "reel_speed": 1.4
+    "reel_speed": 1.4,
+    "_bar_note": "How many boxes long each half of the tug of war strip is. One box is one reactor unit, which is the claim that makes the strip readable next to the bid strip above it, so the strip is bounded rather than scaled: a contest fought above this saturates and the exact figures underneath say by how much. Sixteen covers any bid a captain would actually make, since even a battlecruiser only has sixty units to spend on everything.",
+    "bar_units": 16
   },
   "repair": {
     "_comment": "Federation Commander 5G3 prices a repair by what kind of box it is, weapons dearest and hull cheapest. The ordering is theirs, the numbers are ours. seconds_per_box is our replacement for their per turn repair points, because a real time game has no Repair Phase to spend them in. 5G3 also says shields cannot be repaired this way, which is why there is no shield entry: they are bought with energy instead (combat.shield_energy_per_box).",
@@ -102,7 +110,8 @@
     "back_off_throttle": 0.3,
     "weak_facing_frac": 0.3,
     "presenting_offset_deg": 60.0,
-    "fallback_best_range": 8.0
+    "fallback_best_range": 8.0,
+    "tractor_break_margin": 1.5
   },
   "fitting_demo": {
     "volleys": [
@@ -112,7 +121,9 @@
     ]
   },
   "skirmish": {
-    "command_tonnage": 240
+    "command_tonnage": 240,
+    "_preview_note": "The seed the map picker draws its plans from. Fixed, because the battle's seed does not exist until Begin is pressed: the card shows a real arena the recipe can make, not the one you are about to fight in.",
+    "preview_seed": 20260801
   },
   "shipyard": {
     "sell_back_frac": 0.6,

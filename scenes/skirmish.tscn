@@ -35,7 +35,7 @@ text = "COMMAND TONNAGE  0 / 240"
 
 [node name="Mid" type="VBoxContainer" parent="."]
 layout_mode = 2
-custom_minimum_size = Vector2(190, 0)
+custom_minimum_size = Vector2(320, 0)
 alignment = 1
 theme_override_constants/separation = 10
 
@@ -51,6 +51,23 @@ autowrap_mode = 2
 theme_override_font_sizes/font_size = 11
 horizontal_alignment = 1
 text = "FLEET ACTION / DEEP SPACE"
+
+[node name="WhereHead" type="Label" parent="Mid"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "WHERE"
+theme_type_variation = &"HeaderLabel"
+
+[node name="Maps" type="HBoxContainer" parent="Mid"]
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="MapBlurb" type="Label" parent="Mid"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 30)
+theme_override_font_sizes/font_size = 10
+autowrap_mode = 2
+text = ""
 
 [node name="Begin" type="Button" parent="Mid"]
 layout_mode = 2

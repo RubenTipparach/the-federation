@@ -251,19 +251,35 @@ Exceptions to the rules above live here, with the reason. Nothing may be treated
 exception until it is listed in this section and agreed.
 
 - **Data driven 2D chart controls may paint via `Control._draw()`.** The SSD shield
-  ring, the 12 sector arc wheel, and the tactical view's allocation box strips are live
-  data visualizations; their content cannot be statically authored because it IS the
+  ring, the 12 sector arc wheel, the tactical view's allocation box strips, the tractor
+  station's tug of war bar, and the skirmish map picker's arena plans are live data
+  visualizations; their content cannot be statically authored because it IS the
   data. The box strip's length is the reactor's surviving output, which falls as the
-  reactor is damaged, so no static node tree could describe it. The nodes are authored in
-  their scenes, the scripts only paint sim state and report clicks, and no node trees or
-  meshes are constructed. Agreed via the approved mockups and the instruction to build
-  them (2026-07-30, extended to the box strips 2026-08-01).
+  reactor is damaged, so no static node tree could describe it. The tug bar is two of
+  those strips meeting at a seam, painting a contest that changes every tick. An arena
+  plan is between zero and eighteen circles at positions drawn from a battle seed, so
+  neither a node tree nor a committed mesh could describe it either. The nodes are
+  authored in their scenes, the scripts only paint sim state and report clicks, and no
+  node trees or meshes are constructed. Agreed via the approved mockups and the
+  instruction to build them (2026-07-30, extended to the box strips 2026-08-01, and to
+  the tug bar and the arena plans with the approved terrain and tractor mockup on the
+  same day).
 - **Tactical overlays compose committed unit meshes, placed by code.** The 3D combat
   view's arc wedges, shield segments, range rings, and beams are instances of committed
   `.obj` files (written by `tools/gen_meshes.py` per section 2), statically authored as
   scene children, with code doing rotation in 30 degree steps, scaling, and authored
   material selection only. This is the placement pattern section 7 anticipated and it
   keeps section 5.1 intact rather than excepting it.
+- **Terrain is committed meshes in committed scenes, placed by code.** The three
+  feature scenes under `scenes/terrain/` are authored `.tscn` files instancing
+  `sphere.obj`, `disc.obj`, and `ring.obj` from `tools/gen_meshes.py`, with authored
+  materials. `src/ui/terrain_field.gd` instantiates one of those scenes per feature and
+  sets its position and scale, which is exactly what section 5.1 permits: prebuilt
+  scenes instantiated and configured, never node trees assembled in code. It is listed
+  here anyway because the NUMBER of instances comes from a battle seed, and that is the
+  part a reader would otherwise have to check. Agreed with the approved terrain and
+  tractor mockup (2026-08-01).
+
 - **The target bracket paints itself.** `src/ui/target_bracket.gd` draws its four corner
   arms and hull bar in `Control._draw()` for the same reason the SSD ring does: its size
   is the target's projected extent on screen, which changes every frame as the ship moves

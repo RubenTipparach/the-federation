@@ -300,16 +300,29 @@ exists to prevent.
 
 ---
 
-## 8. What needs a mockup
+## 8. The screens
 
-Per CLAUDE.md section 6, both of these need approval before implementation:
+Both were mocked up and approved before any of them was built, per CLAUDE.md section 6.
 
-- **The map picker** on the skirmish setup screen: choosing among the four map types,
-  with enough of a preview that the choice means something.
-- **The tractor station panel**, which is one of the tabs already stubbed in
-  `data/stations.json`. It needs the bid strip, the latch control, the HOLD and REEL
-  choice, and a readout of the contest that makes it obvious who is winning and by how
-  much.
+- **The map picker** sits in the middle column of the skirmish screen, directly above
+  Begin, as four cards in one row. Each card carries a plan of a real placement drawn
+  from a fixed preview seed, so choosing Debris Belt means having seen what a debris
+  belt looks like. The battle then draws its own arena from its own seed, which is why
+  there is no regenerate button: there is nothing to regenerate until Begin is pressed.
+- **Terrain in the tactical view** costs no new control, because none of it is
+  something a player operates. The 3D world carries the features and the plan inset
+  looks at that same world, so the map appears in both without a second painter. A lost
+  lock greys the target readout, prints the age of the last reading, and takes the
+  bracket and the floating label away; the weapon rows say `no lock` in the same chip
+  that already says `no arc`.
+- **The tractor station** is the bid strip, the latch control, the HOLD and REEL
+  choice, and the contest drawn as two box strips meeting at a seam. One panel serves
+  both ends of a beam: the geometry is fixed, grip on the left and shove on the right,
+  and the colour says which of them is yours. It is also the one station that stays
+  reachable with its box shot out, because shoving needs engines rather than an
+  emitter, and that exception lives in `data/stations.json` rather than being named in
+  code.
 
-The sim work in sections 1 through 6 does not wait on those, because it is testable
-headlessly and the UI is a view onto it.
+**One thing the mockup did not cover and the game does not yet draw: the beam itself.**
+A tractor currently shows in the panel and in how the two ships move, but there is no
+line between them in the 3D view. That needs its own mockup.

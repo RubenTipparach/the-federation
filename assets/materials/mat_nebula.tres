@@ -1,0 +1,18 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3]
+
+; Ionised cloud. The colours are the palette's shield teal for the core and
+; phos_lo for the rim (data/palette.json), so a nebula reads as the same family
+; of green as the shield ring rather than as an invented colour.
+;
+; render_priority sits above the grid's -1 and below everything else, so a
+; cloud draws over the deck grid and under the ships and their overlays.
+
+[ext_resource type="Shader" path="res://assets/shaders/nebula.gdshader" id="1"]
+
+[resource]
+render_priority = 0
+shader = ExtResource("1")
+shader_parameter/core = Color(0.435, 0.702, 0.643, 1.0)
+shader_parameter/rim = Color(0.29, 0.42, 0.271, 1.0)
+shader_parameter/density = 0.3
+shader_parameter/falloff = 2.2

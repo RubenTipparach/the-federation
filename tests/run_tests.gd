@@ -772,6 +772,30 @@ func test_tractors() -> void:
 	ok(caught.break_bid() > 0.0,
 		"but it can still shove against a beam already on it")
 
+	# ---- the opponent fights back ----
+	# Without this the auction would be a button: the player would win every
+	# contest unopposed. The ships are held still so the only thing that can
+	# snap the beam is the contest itself, not the range opening.
+	var AiLib = preload("res://src/sim/ai.gd")
+	var contested = BattleLib.create_duel(FitLib.create_default("wayfarer"), "bloodletter", 15)
+	var grip = contested.player()
+	var prisoner = contested.enemy()
+	grip.pos = Vector2.ZERO
+	prisoner.pos = Vector2(0, 6)
+	grip.set_alloc_units("tractor", 8.0)
+	eq(prisoner.alloc_units("tractor"), 0.0, "an untouched ai spends nothing on tractors")
+	ok(contested.apply_command(0, "tractor_latch", [1]), "the ai can be caught")
+	var broke: bool = false
+	for _i in range(200):
+		AiLib.act(prisoner, grip, contested)
+		contested._step_tractors(1.0 / 20.0, tuning)
+		if contested.tractors.is_empty():
+			broke = true
+			break
+	ok(broke, "and shoves its way out rather than being towed forever")
+	AiLib.act(prisoner, grip, contested)
+	near(prisoner.alloc_units("tractor"), 0.0, "then stops paying once it is loose", 0.01)
+
 
 func test_replay() -> void:
 	print("\n== battle log and replay ==")

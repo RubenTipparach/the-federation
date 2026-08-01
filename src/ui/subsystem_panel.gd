@@ -17,6 +17,13 @@ signal repair_requested(system_index: int)
 signal regen_facing_picked(facing: int)
 ## The player took a job off the repair queue.
 signal repair_dropped(system_index: int)
+## The tractor orders. The panel does not know which ship it is drawing, so the
+## screen turns each of these into a Battle command (docs/11: one command path).
+signal tractor_latch_requested
+signal tractor_release_requested
+signal tractor_mode_picked(mode: String)
+## The player set the tractor bid, in whole reactor units.
+signal tractor_bid_picked(units: int)
 
 const REPAIR_JOB := preload("res://scenes/ui/repair_job.tscn")
 const ICON_DIR: String = "res://assets/icons/"
@@ -27,6 +34,11 @@ var _ship: ShipState = null
 var _renderers: Dictionary = {}
 var _wired: bool = false
 
+## The battle this ship is in, needed only by the tractor station: a beam is a
+## relationship between two ships and neither of them owns it. Left null on any
+## screen that has no battle, and the tractor renderer copes.
+var battle: Battle = null
+
 
 func _ready() -> void:
 	_renderers = {
@@ -34,6 +46,7 @@ func _ready() -> void:
 		"repair": _render_repair,
 		"reactor": _render_reactor,
 		"life": _render_life,
+		"tractor": _render_tractor,
 	}
 	if not _wired:
 		_wired = true
@@ -41,6 +54,10 @@ func _ready() -> void:
 		for f in range(Sectors.FACING_COUNT):
 			var b: Button = $V/Picker.get_node("P%d" % f)
 			b.pressed.connect(_on_pick.bind(f))
+		$V/Cmds/Latch.pressed.connect(_on_latch)
+		$V/Cmds/Hold.pressed.connect(_on_mode.bind(Tractor.MODE_HOLD))
+		$V/Cmds/Reel.pressed.connect(_on_mode.bind(Tractor.MODE_REEL))
+		_row(0).get_node("Boxes").level_picked.connect(_on_bid_picked)
 
 
 func show_station(id: String, ship: ShipState) -> void:
@@ -68,12 +85,18 @@ func refresh() -> void:
 	$V/Picker.visible = false
 	$V/Queue.visible = false
 	$V/Total.visible = false
+	$V/Tug.visible = false
+	$V/Cmds.visible = false
 
 	var out: bool = index >= 0 and int(_ship.systems[index]["boxes"]) <= 0
+	# One station keeps working with its hardware gone, and it is in the data
+	# rather than named here: the tractor's emitter is what latches a ship, and
+	# shoving against a beam already on you needs engines, not an emitter.
+	var survives: bool = bool(spec.get("survives_box", false))
 	var badge: String = "LIVE"
 	var badge_tint: Color = Palette.OK
 	if out:
-		badge = "OFFLINE"
+		badge = "NO EMITTER" if survives else "OFFLINE"
 		badge_tint = Palette.CRIT
 	elif not live:
 		badge = "DEFERRED"
@@ -84,7 +107,7 @@ func refresh() -> void:
 	# A station whose box is gone shows the box, and nothing it could not
 	# actually do. The way back is the repair button, which is the same answer
 	# on every station and so lives here rather than in ten places.
-	if out:
+	if out and not survives:
 		_render_backing(index)
 	elif _renderers.has(_station):
 		(_renderers[_station] as Callable).call()
@@ -99,17 +122,21 @@ func _row(i: int) -> HBoxContainer:
 
 
 ## Configure one authored row: a name, a strip of discrete boxes, a number.
+## Most rows are readouts, so the strip ignores the mouse. The tractor's bid is
+## the exception: it is a control, and it is the same strip rather than a second
+## kind of one, because the thing being set is a power sink like any other.
 func _paint_row(i: int, label: String, level: int, capacity: int, out: String,
-		tint: Color, ceiling: int = -1) -> void:
+		tint: Color, ceiling: int = -1, clickable: bool = false) -> void:
 	var row: HBoxContainer = _row(i)
 	row.visible = true
 	row.get_node("L").text = label
 	row.get_node("Out").text = out
 	row.get_node("Out").add_theme_color_override("font_color", tint)
 	var boxes: Control = row.get_node("Boxes")
-	boxes.setup(tint)
+	boxes.setup(tint, clickable)
 	boxes.paint(level, maxi(1, capacity), ceiling)
-	boxes.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	boxes.mouse_filter = Control.MOUSE_FILTER_STOP if clickable \
+		else Control.MOUSE_FILTER_IGNORE
 
 
 ## The health of the box a station speaks for. Every station that has one shows
@@ -240,6 +267,122 @@ func _render_reactor() -> void:
 		Palette.AMBER if out * 2 < top else Palette.BLUE)
 
 
+## The tractor auction (docs/13 section 6).
+##
+## Federation Commander does not print its tractor rules and says so, which
+## docs/09 section 6 records in full, so the contest below is ours. What the
+## panel shows is what the simulation compares: a grip, a shove weighted by
+## tonnage, and how long the loser has before the beam gives.
+##
+## Everything here is discrete or a countdown. The bid is boxes, the contest is
+## boxes, the orders are buttons, and the one continuous thing on the panel is
+## the strain, which is a clock and not a control (CLAUDE.md 6.2).
+func _render_tractor() -> void:
+	var tuning: Dictionary = Catalog.tuning()
+	# The bid strip is as long as the tug bar below it, not as long as the whole
+	# reactor. Sixteen boxes are more bid than any contest needs, and a strip of
+	# sixty in this column would be thinner than the gaps between its boxes,
+	# which turns discrete boxes back into the bar CLAUDE.md 6.2 banned. What the
+	# reactor can actually afford is the ceiling: boxes past it draw as
+	# unavailable, so a shot up reactor visibly shortens what you may spend.
+	var bid: int = int(roundf(_ship.alloc_units(Tractor.SINK)))
+	var span: int = int(tuning["tractor"]["bar_units"])
+	var afford: int = mini(span, int(floorf(_ship.power_output())))
+	_paint_row(0, "BID", bid, span, "%d u" % bid, Palette.CYAN, afford, true)
+
+	$V/Cmds.visible = true
+	var beam: Tractor = battle.tractor_on(_ship) if battle != null else null
+	if beam == null:
+		_render_tractor_idle(tuning)
+	else:
+		_render_tractor_contest(beam, tuning)
+
+
+## Nothing held. The badge carries the reason a latch would be refused, in the
+## same words the weapon rows use for a shot that cannot be taken.
+func _render_tractor_idle(tuning: Dictionary) -> void:
+	var target: ShipState = battle.target_for(_ship) if battle != null else null
+	var check: Dictionary = { "ok": false, "reason": "empty" }
+	if target != null:
+		check = Tractor.latch_check(_ship, target, tuning)
+	var ok: bool = bool(check["ok"])
+	$V/Head/Badge.text = String(check["reason"]).to_upper()
+	$V/Head/Badge.add_theme_color_override("font_color",
+		Palette.OK if ok else Palette.AMBER)
+	$V/Cmds/Latch.text = "LATCH"
+	$V/Cmds/Latch.disabled = not ok
+	for name in ["Hold", "Reel"]:
+		var b: Button = $V/Cmds.get_node(name)
+		b.disabled = true
+		b.button_pressed = false
+
+
+## A beam is up. The same panel serves both ends of it: the geometry is fixed,
+## grip on the left and shove on the right, and the colour says which of them is
+## yours (docs/13 section 6.3).
+func _render_tractor_contest(beam: Tractor, tuning: Dictionary) -> void:
+	var holding: bool = beam.holder == _ship
+	var other: ShipState = beam.held if holding else beam.holder
+	var grip: float = beam.hold_bid()
+	var shove: float = beam.break_bid()
+	var mine: Color = Palette.CYAN
+	var theirs: Color = Palette.MAGENTA
+
+	$V/Head/Badge.text = "HOLDING" if holding else "UNDER TOW"
+	$V/Head/Badge.add_theme_color_override("font_color",
+		Palette.OK if holding == (grip > shove) else Palette.AMBER)
+
+	$V/Tug.visible = true
+	$V/Tug/Bar.paint(grip, mine if holding else theirs,
+		shove, theirs if holding else mine,
+		int(tuning["tractor"]["bar_units"]))
+	$V/Tug/Labels/L.text = "YOUR GRIP" if holding else "THEIR GRIP"
+	$V/Tug/Labels/L.add_theme_color_override("font_color", mine if holding else theirs)
+	$V/Tug/Labels/R.text = "THEIR SHOVE" if holding else "YOUR SHOVE"
+	$V/Tug/Labels/R.add_theme_color_override("font_color", theirs if holding else mine)
+
+	# The multiplication is printed rather than hidden, because a captain losing
+	# to a lighter ship has earned an explanation.
+	var ratio: float = Tractor.tonnage(beam.held) / Tractor.tonnage(beam.holder)
+	$V/Tug/Reading/L.text = "%.1f grip" % grip
+	$V/Tug/Reading/L.add_theme_color_override("font_color", mine if holding else theirs)
+	$V/Tug/Reading/R.text = "%.1f x %.2f = %.1f" % [
+		Tractor.bid_of(beam.held), ratio, shove]
+	$V/Tug/Reading/R.add_theme_color_override("font_color", theirs if holding else mine)
+
+	var frac: float = beam.strain_frac(tuning)
+	var track: ColorRect = $V/Tug/Strain
+	var fill: ColorRect = $V/Tug/Strain/Fill
+	track.color = Palette.LINE
+	fill.color = Palette.CRIT if frac > 0.6 else Palette.AMBER
+	fill.anchor_right = maxf(frac, 0.001)
+	var seconds_left: float = maxf(0.0,
+		float(tuning["tractor"]["break_seconds"]) - beam.strain)
+	if frac <= 0.0:
+		$V/Tug/Note/L.text = "Grip secure"
+		$V/Tug/Note/L.add_theme_color_override("font_color", Palette.DIM)
+	elif holding:
+		$V/Tug/Note/L.text = "Grip failing in %.1fs" % seconds_left
+		$V/Tug/Note/L.add_theme_color_override("font_color", Palette.AMBER)
+	else:
+		$V/Tug/Note/L.text = "Breaking free in %.1fs" % seconds_left
+		$V/Tug/Note/L.add_theme_color_override("font_color", Palette.OK)
+	$V/Tug/Note/R.text = "%d t against %d t, %s" % [
+		int(Tractor.tonnage(beam.held)), int(Tractor.tonnage(beam.holder)),
+		"reeling in" if beam.mode == Tractor.MODE_REEL else "holding range"]
+	$V/Tug/Note/R.add_theme_color_override("font_color", Palette.DIM)
+
+	# Only the holder chooses hold or reel. The prisoner does not get a say in
+	# whether it is being pulled closer, so those buttons are simply not theirs.
+	$V/Cmds/Latch.text = "RELEASE" if holding else "HELD BY %s" % String(
+		other.fit.hull()["name"]).to_upper()
+	$V/Cmds/Latch.disabled = not holding
+	for entry in [["Hold", Tractor.MODE_HOLD], ["Reel", Tractor.MODE_REEL]]:
+		var b: Button = $V/Cmds.get_node(String(entry[0]))
+		b.disabled = not holding
+		b.button_pressed = holding and beam.mode == String(entry[1])
+
+
 ## Crew aboard and the control boxes that keep them alive. Casualties and the
 ## officer roster are in the mockup and not in the sim, so they are not faked.
 func _render_life() -> void:
@@ -286,6 +429,25 @@ func _on_fix() -> void:
 
 func _on_pick(facing: int) -> void:
 	regen_facing_picked.emit(facing)
+
+
+## One button for both ends of the beam: latch when nothing is held, release
+## when something is. A prisoner's copy is disabled, so this only ever fires for
+## the holder or for a ship about to become one.
+func _on_latch() -> void:
+	if battle != null and battle.tractor_on(_ship) != null:
+		tractor_release_requested.emit()
+	else:
+		tractor_latch_requested.emit()
+
+
+func _on_mode(mode: String) -> void:
+	tractor_mode_picked.emit(mode)
+
+
+func _on_bid_picked(level: int) -> void:
+	if _station == Tractor.SINK:
+		tractor_bid_picked.emit(level)
 
 
 func _on_drop(job: Node) -> void:

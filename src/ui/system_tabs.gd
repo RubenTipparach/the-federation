@@ -123,7 +123,11 @@ func refresh(systems: Array[Dictionary], queue: Array[int]) -> void:
 		var hurt: bool = index >= 0 and boxes > 0 and boxes < boxes_max
 		var queued: bool = index >= 0 and queue.has(index)
 
-		b.disabled = out
+		# A dark console usually cannot be opened, because there is nothing on
+		# the other end of it. One station in the data says otherwise: the
+		# tractor still lets a prisoner shove with its emitter shot away, so its
+		# tab wears the repair chip without being locked out.
+		b.disabled = out and not bool(spec.get("survives_box", false))
 		var tint: Color = Palette.DIM
 		if out:
 			tint = Palette.CRIT

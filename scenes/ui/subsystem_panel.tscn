@@ -1,4 +1,4 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=4 format=3]
 
 ; The body of whichever subsystem station is open. One authored panel serves
 ; all ten: the rows are authored here and each station shows and configures
@@ -10,6 +10,7 @@
 
 [ext_resource type="Script" path="res://src/ui/subsystem_panel.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/ui/stat_row.tscn" id="2"]
+[ext_resource type="Script" path="res://src/ui/tug_bar.gd" id="3"]
 
 [node name="SubsystemPanel" type="PanelContainer"]
 clip_contents = true
@@ -59,6 +60,102 @@ layout_mode = 2
 
 [node name="R7" parent="V/Rows" instance=ExtResource("2")]
 layout_mode = 2
+
+[node name="Tug" type="VBoxContainer" parent="V"]
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="Labels" type="HBoxContainer" parent="V/Tug"]
+layout_mode = 2
+
+[node name="L" type="Label" parent="V/Tug/Labels"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 9
+text = "GRIP"
+
+[node name="R" type="Label" parent="V/Tug/Labels"]
+layout_mode = 2
+size_flags_horizontal = 3
+horizontal_alignment = 2
+theme_override_font_sizes/font_size = 9
+text = "SHOVE"
+
+[node name="Bar" type="Control" parent="V/Tug"]
+custom_minimum_size = Vector2(0, 16)
+layout_mode = 2
+mouse_filter = 2
+script = ExtResource("3")
+
+[node name="Reading" type="HBoxContainer" parent="V/Tug"]
+layout_mode = 2
+
+[node name="L" type="Label" parent="V/Tug/Reading"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 10
+text = ""
+
+[node name="R" type="Label" parent="V/Tug/Reading"]
+layout_mode = 2
+size_flags_horizontal = 3
+horizontal_alignment = 2
+theme_override_font_sizes/font_size = 10
+text = ""
+
+[node name="Strain" type="ColorRect" parent="V/Tug"]
+custom_minimum_size = Vector2(0, 4)
+layout_mode = 2
+
+[node name="Fill" type="ColorRect" parent="V/Tug/Strain"]
+layout_mode = 1
+anchors_preset = 9
+anchor_bottom = 1.0
+anchor_right = 0.0
+grow_vertical = 2
+
+[node name="Note" type="HBoxContainer" parent="V/Tug"]
+layout_mode = 2
+
+[node name="L" type="Label" parent="V/Tug/Note"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 9
+text = ""
+
+[node name="R" type="Label" parent="V/Tug/Note"]
+layout_mode = 2
+size_flags_horizontal = 3
+horizontal_alignment = 2
+theme_override_font_sizes/font_size = 9
+text = ""
+
+[node name="Cmds" type="HBoxContainer" parent="V"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Latch" type="Button" parent="V/Cmds"]
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+theme_override_font_sizes/font_size = 10
+text = "LATCH"
+
+[node name="Hold" type="Button" parent="V/Cmds"]
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+focus_mode = 0
+theme_override_font_sizes/font_size = 10
+text = "HOLD"
+
+[node name="Reel" type="Button" parent="V/Cmds"]
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+focus_mode = 0
+theme_override_font_sizes/font_size = 10
+text = "REEL"
 
 [node name="Picker" type="HBoxContainer" parent="V"]
 layout_mode = 2

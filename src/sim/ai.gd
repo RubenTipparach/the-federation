@@ -45,7 +45,35 @@ static func act(me: ShipState, foe: ShipState, battle) -> void:
 		throttle = float(tuning["back_off_throttle"])
 
 	me.set_order(desired, throttle)
+	_work_tractor(me, battle)
 
 	# Fire everything that bears. The battle applies the shots.
 	for i in range(me.weapons_rt.size()):
 		battle.try_fire(me, i)
+
+
+## The opponent's tractor doctrine, which is one sentence long: if something has
+## hold of you, shove; otherwise spend nothing on it.
+##
+## The AI does not latch. Deciding WHEN to grab an enemy is a real tactical
+## question and it does not have an answer worth shipping yet, so it is left
+## undone rather than faked. Breaking free is not that question: a captain under
+## tow always wants out, so the only decision is how much to spend, and pouring
+## in enough to beat the grip is the right answer every time.
+##
+## Without this the player would win every tug of war unopposed, which would
+## make the whole auction look like a button rather than a contest.
+static func _work_tractor(me: ShipState, battle) -> void:
+	var beam = battle.tractor_on(me)
+	var tuning: Dictionary = Catalog.tuning()
+	if beam == null or beam.holder == me:
+		if me.alloc_units(Tractor.SINK) > 0.0:
+			me.set_alloc_units(Tractor.SINK, 0.0)
+		return
+	# Bid enough to out-shove the grip, plus a margin, and never more than the
+	# reactor has. The tonnage weighting is the simulation's, so the shove asked
+	# for here is divided back out through it.
+	var ratio: float = Tractor.tonnage(beam.held) / Tractor.tonnage(beam.holder)
+	var wanted: float = beam.hold_bid() / maxf(0.01, ratio) \
+		+ float(tuning["ai"]["tractor_break_margin"])
+	me.set_alloc_units(Tractor.SINK, minf(wanted, me.power_output()))

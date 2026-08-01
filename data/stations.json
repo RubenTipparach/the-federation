@@ -1,5 +1,5 @@
 {
-  "_comment": "The subsystem stations of the tactical view, one per tab. side is which strip the tab belongs to: 'fight' is the right hand strip beside the target, for the things a player reaches for while under fire, and 'keep' is the left hand strip beside the log, for the condition of the ship and its stores. That split is CLAUDE.md 6.2's test made into a layout. icon names a committed mask in assets/icons. code is the box the station speaks for, so the tab can go dark when its hardware does; an empty code means the station answers to no single box and can never be knocked out, which is true of the shield ring and of the repair parties themselves. live is false for a station that is drawn but not yet wired, which is deliberate: the layout has to be settled before the wiring, or every one of them is a relayout later.",
+  "_comment": "The subsystem stations of the tactical view, one per tab. side is which strip the tab belongs to: 'fight' is the right hand strip beside the target, for the things a player reaches for while under fire, and 'keep' is the left hand strip beside the log, for the condition of the ship and its stores. That split is CLAUDE.md 6.2's test made into a layout. icon names a committed mask in assets/icons. code is the box the station speaks for, so the tab can go dark when its hardware does; an empty code means the station answers to no single box and can never be knocked out, which is true of the shield ring and of the repair parties themselves. live is false for a station that is drawn but not yet wired, which is deliberate: the layout has to be settled before the wiring, or every one of them is a relayout later. survives_box is the one exception to a dark console being unusable: the tractor's emitter is what LATCHES a ship, and shoving against a beam already on you is done with the engines, so its tab stays reachable with the box shot out (docs/13 section 6.2).",
   "order": [
     "shields", "reactor", "sensors", "tractor", "marines", "shuttle",
     "repair", "life", "cargo", "science"
@@ -18,8 +18,9 @@
       "blurb": "Discrete points between jamming and seeing through it, and the lock that decides what you may read."
     },
     "tractor": {
-      "label": "Tractor", "icon": "trac", "code": "TRAC", "side": "fight", "live": false,
-      "blurb": "Hold, repel or tow, paid from the reactor while the beam is up."
+      "label": "Tractor", "icon": "trac", "code": "TRAC", "side": "fight", "live": true,
+      "survives_box": true,
+      "blurb": "A standing bid out of the reactor, weighted by tonnage. Both sides pay for every second of it."
     },
     "marines": {
       "label": "Marines", "icon": "mrne", "code": "MRNE", "side": "fight", "live": false,

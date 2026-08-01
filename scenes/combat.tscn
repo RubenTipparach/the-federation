@@ -430,6 +430,12 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 12
 text = "status"
 
+[node name="Lock" type="Label" parent="Right/TargetPanel/V"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+visible = false
+text = "SENSOR LOCK LOST"
+
 [node name="OwnPanel" type="PanelContainer" parent="Right"]
 layout_mode = 2
 
