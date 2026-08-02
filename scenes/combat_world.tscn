@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://src/ui/combat_world.gd" id="1"]
 [ext_resource type="ArrayMesh" path="res://assets/meshes/quad.obj" id="2"]
@@ -6,6 +6,7 @@
 [ext_resource type="PackedScene" path="res://scenes/ship_rig.tscn" id="4"]
 [ext_resource type="ArrayMesh" path="res://assets/meshes/beam.obj" id="5"]
 [ext_resource type="Sky" path="res://assets/materials/sky_stars.tres" id="6"]
+[ext_resource type="Script" path="res://src/ui/terrain_field.gd" id="7"]
 
 [sub_resource type="Environment" id="env"]
 background_mode = 2
@@ -27,9 +28,14 @@ light_energy = 0.9
 mesh = ExtResource("2")
 material_override = ExtResource("3")
 
+[node name="Terrain" type="Node3D" parent="."]
+script = ExtResource("7")
+
 [node name="PlayerRig" parent="." instance=ExtResource("4")]
 
 [node name="EnemyRig" parent="." instance=ExtResource("4")]
+
+[node name="Wrecks" type="Node3D" parent="."]
 
 [node name="Beams" type="Node3D" parent="."]
 

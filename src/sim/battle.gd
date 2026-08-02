@@ -12,6 +12,20 @@ var over: bool = false
 var winner: int = -1
 var seekers: Array[Seeker] = []
 
+## What is in the arena besides the ships. Always present: an "open" battle
+## flies in an empty Terrain rather than in a null one, so nothing downstream
+## needs a special case for a bare arena.
+var terrain: Terrain = Terrain.new()
+
+## Tractor beams currently up, at most one per holder. See Tractor and docs/13
+## section 6.
+var tractors: Array[Tractor] = []
+
+## Seconds left before a pair may latch each other again after a beam snapped,
+## keyed by the two ship indices. A pair, not a ship: breaking one grip should
+## not stop a third party latching on.
+var _relatch: Dictionary = {}
+
 ## Fixed step counter. Commands are stamped with it, never with wall clock
 ## time, because that is what makes a log replayable (see BattleLog).
 var tick: int = 0
@@ -26,26 +40,44 @@ var _events: Array[Dictionary] = []
 var _targets: Dictionary = {}
 
 
-static func create_duel(player_fit: ShipFit, enemy_hull_id: String, seed_value: int) -> Battle:
+## Where the two sides start, in the fixed order [player, enemy]. Terrain
+## placement keeps these clear and the map picker previews them, so they exist
+## once here rather than being worked out again by whoever needs them
+## (CLAUDE.md 4.1).
+static func start_positions() -> Array[Vector2]:
+	var sep: float = float(Catalog.tuning()["combat"]["start_separation"])
+	return [Vector2(-sep * 0.5, sep * 0.35), Vector2(sep * 0.5, -sep * 0.35)]
+
+
+## map_id names a recipe in data/maps.json. It defaults to the empty arena, and
+## an "open" battle draws nothing at all from the rng for terrain, so every
+## battle recorded before terrain existed still replays bit for bit.
+static func create_duel(player_fit: ShipFit, enemy_hull_id: String, seed_value: int,
+		map_id: String = "open") -> Battle:
 	var b: Battle = Battle.new()
 	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 	rng.seed = seed_value
 	b.seed_value = seed_value
-	var tuning: Dictionary = Catalog.tuning()["combat"]
-	var sep: float = float(tuning["start_separation"])
+	var starts: Array[Vector2] = Battle.start_positions()
 
 	var player: ShipState = ShipState.create(player_fit, rng, false)
-	player.pos = Vector2(-sep * 0.5, sep * 0.35)
+	player.pos = starts[0]
 	player.heading = Sectors.bearing_between(player.pos, Vector2.ZERO)
 	player.ordered_heading = player.heading
 
 	var enemy: ShipState = ShipState.create(ShipFit.create_default(enemy_hull_id), rng, true)
-	enemy.pos = Vector2(sep * 0.5, -sep * 0.35)
+	enemy.pos = starts[1]
 	enemy.heading = Sectors.bearing_between(enemy.pos, Vector2.ZERO)
 	enemy.ordered_heading = enemy.heading
 
 	b.ships.append(player)
 	b.ships.append(enemy)
+
+	# Terrain is drawn last, from the same rng, so it is reproduced by the seed
+	# along with everything else. Both starting positions are kept clear.
+	b.terrain = Terrain.create(map_id, rng, [player.pos, enemy.pos])
+	for s in b.ships:
+		s.terrain = b.terrain
 	return b
 
 
@@ -97,9 +129,15 @@ func step(dt: float) -> Array[Dictionary]:
 	var tuning: Dictionary = Catalog.tuning()
 
 	CombatAi.act(enemy(), player(), self)
+	# Tows are cleared and rewritten every step, so a beam that snapped this
+	# frame stops pulling without anything having to remember it was there.
+	for s in ships:
+		s.tow_target = Vector2.ZERO
+	_step_tractors(dt, tuning)
 	for s in ships:
 		s.step(dt, tuning)
 	_step_seekers(dt, tuning)
+	_step_terrain(dt)
 
 	_keep_in_arena(tuning)
 
@@ -107,6 +145,17 @@ func step(dt: float) -> Array[Dictionary]:
 		if not ships[i].alive:
 			over = true
 			winner = 1 - i
+			# Nothing steps again once the battle is over, so a beam left up
+			# here would sit in the panel forever showing a contest that has
+			# stopped being fought.
+			tractors.clear()
+			# Which hull came apart and where, so the view can put a wreck
+			# there. The sim says what happened; how a wreck looks is not its
+			# business, so nothing about the explosion is described here.
+			_events.append({
+				"type": "destroyed", "ship": i, "at": ships[i].pos,
+				"log": ["%s BREAKING UP" % String(ships[i].fit.hull()["name"]).to_upper()],
+			})
 			_events.append({ "type": "end", "winner": winner })
 			break
 	time += dt
@@ -172,6 +221,154 @@ func _step_seekers(dt: float, tuning: Dictionary) -> void:
 	seekers = survivors
 
 
+## Work every beam that is up: resolve its contest, and let the survivors tow.
+## A beam that snaps starts the pair's relatch cooldown, so a captain who has
+## just wrenched free is not grabbed again on the next tick.
+func _step_tractors(dt: float, tuning: Dictionary) -> void:
+	for key in _relatch.keys():
+		_relatch[key] = maxf(0.0, float(_relatch[key]) - dt)
+	if tractors.is_empty():
+		return
+	var survivors: Array[Tractor] = []
+	for beam in tractors:
+		var snap: String = beam.step(dt, tuning)
+		if snap.is_empty():
+			beam.apply_tow(tuning)
+			survivors.append(beam)
+			continue
+		_relatch[_pair_key(beam.holder, beam.held)] = float(
+			tuning["tractor"]["relatch_cooldown"])
+		_events.append({
+			"type": "tractor", "state": "released", "reason": snap,
+			"holder_player": beam.holder == player(),
+			"log": ["Tractor lost, %s" % [snap]],
+		})
+	tractors = survivors
+
+
+## Order a beam onto a target. Refused for the same reasons a shot is, plus a
+## pair that is still on its relatch cooldown and a hull that is already holding
+## something: one emitter, one grip.
+func latch_tractor(attacker: ShipState, target: ShipState) -> bool:
+	if over:
+		return false
+	var tuning: Dictionary = Catalog.tuning()
+	if float(_relatch.get(_pair_key(attacker, target), 0.0)) > 0.0:
+		return false
+	for beam in tractors:
+		if beam.holder == attacker or beam.held == attacker:
+			return false
+		if beam.holder == target and beam.held == attacker:
+			return false
+	if not bool(Tractor.latch_check(attacker, target, tuning)["ok"]):
+		return false
+	tractors.append(Tractor.create(attacker, target))
+	_events.append({
+		"type": "tractor", "state": "latched",
+		"holder_player": attacker == player(),
+		"log": ["Tractor locked on"],
+	})
+	return true
+
+
+## Let go. A voluntary release carries no cooldown: it was the holder's choice.
+func release_tractor(attacker: ShipState) -> bool:
+	for i in range(tractors.size()):
+		if tractors[i].holder != attacker:
+			continue
+		tractors.remove_at(i)
+		_events.append({
+			"type": "tractor", "state": "released", "reason": "released",
+			"holder_player": attacker == player(),
+			"log": ["Tractor released"],
+		})
+		return true
+	return false
+
+
+## The beam on this ship, whether it is holding or being held. Nothing keeps two
+## copies of the answer: the panel, the AI, and the renderer all ask here.
+func tractor_on(ship: ShipState) -> Tractor:
+	for beam in tractors:
+		if beam.holder == ship or beam.held == ship:
+			return beam
+	return null
+
+
+func _pair_key(a: ShipState, b: ShipState) -> String:
+	var i: int = ships.find(a)
+	var j: int = ships.find(b)
+	return "%d-%d" % [mini(i, j), maxi(i, j)]
+
+
+## What the arena does to the ships in it. Gravity is deliberately not here: a
+## pull is a drift the ship carries and integrates with its own motion
+## (ShipState._step_drift), so there is one integration rather than two.
+##
+## Hazard damage resolves through apply_damage exactly as a shot does, so
+## shields absorb it and internals take the remainder under the one damage rule
+## this project has (CLAUDE.md 4.1).
+func _step_terrain(dt: float) -> void:
+	if terrain.features.is_empty():
+		return
+	for s in ships:
+		if not s.alive:
+			continue
+		_apply_grind(s, dt)
+		_apply_collision(s)
+
+
+## Micrometeor dust wears at the facing pointing along the ship's motion, since
+## that is the facing meeting it.
+##
+## Damage is banked until it is worth a whole point rather than applied every
+## tick. A tick's worth is a fraction of a box, and apply_internal turns a
+## fraction into a random chance of a box, so applying it sixty times a second
+## would spend the battle's rng on dust and fill the comm log with lines saying
+## nothing happened.
+func _apply_grind(ship: ShipState, dt: float) -> void:
+	var motion: Vector2 = ship.velocity()
+	ship.grind_credit += terrain.grind_at(ship.pos, motion.length()) * dt
+	if ship.grind_credit < 1.0:
+		return
+	var whole: float = floorf(ship.grind_credit)
+	ship.grind_credit -= whole
+	var ahead: Vector2 = motion if motion.length() > 0.001 else ship.heading_vector()
+	var result: Dictionary = ship.apply_damage(
+		Sectors.bearing_between(ship.pos, ship.pos + ahead), whole)
+	var lines: Array[String] = result["log"]
+	lines.insert(0, "Micrometeor wash, %d damage" % [int(whole)])
+	_events.append({
+		"type": "hazard", "hazard": Terrain.KIND_ASTEROID, "damage": whole,
+		"facing": int(result["facing"]), "target_player": ship == player(),
+		"at": ship.pos, "log": lines,
+	})
+
+
+## Touching a solid body costs a lump of damage and most of the ship's speed.
+## There is no bounce and no contact physics: a collision is an event with a
+## price (docs/13 section 3.2).
+func _apply_collision(ship: ShipState) -> void:
+	if ship.collision_grace > 0.0:
+		return
+	var hit: Dictionary = terrain.collision_at(ship.pos)
+	if hit.is_empty():
+		return
+	var terrain_tuning: Dictionary = Catalog.tuning()["terrain"]
+	ship.collision_grace = float(terrain_tuning["collision_cooldown"])
+	ship.speed *= float(terrain_tuning["collision_speed_frac"])
+	var amount: float = float(hit["damage"])
+	var result: Dictionary = ship.apply_damage(
+		Sectors.bearing_between(ship.pos, hit["pos"]), amount)
+	var lines: Array[String] = result["log"]
+	lines.insert(0, "COLLISION, %s, %d damage" % [String(hit["kind"]), int(amount)])
+	_events.append({
+		"type": "hazard", "hazard": String(hit["kind"]), "damage": amount,
+		"facing": int(result["facing"]), "target_player": ship == player(),
+		"at": ship.pos, "log": lines,
+	})
+
+
 func _drain() -> Array[Dictionary]:
 	var out: Array[Dictionary] = _events
 	_events = []
@@ -202,6 +399,10 @@ func apply_command(actor: int, kind: String, args: Array, record: bool = true) -
 		"shield_bias":
 			ship.shield_bias = int(args[0])
 			ok = true
+		"repair_queue":
+			ok = ship.queue_repair(int(args[0]), Catalog.tuning())
+		"repair_drop":
+			ok = ship.drop_repair(int(args[0]))
 		"transfer_shield":
 			ok = ship.transfer_shield(int(args[0]), int(args[1]), Catalog.tuning())
 		"power":
@@ -211,6 +412,19 @@ func apply_command(actor: int, kind: String, args: Array, record: bool = true) -
 			var index: int = int(args[0])
 			if index >= 0 and index < ships.size():
 				set_target(ship, ships[index])
+				ok = true
+		"tractor_latch":
+			var on: int = int(args[0])
+			if on >= 0 and on < ships.size():
+				ok = latch_tractor(ship, ships[on])
+		"tractor_release":
+			ok = release_tractor(ship)
+		"tractor_mode":
+			var beam: Tractor = tractor_on(ship)
+			# Only the holder chooses. The prisoner does not get to decide whether
+			# it is being reeled in.
+			if beam != null and beam.holder == ship and beam.mode != String(args[0]):
+				beam.mode = String(args[0])
 				ok = true
 	# Only what actually happened is written down. A fire order that found no
 	# weapon bearing, or a transfer the shields refused, changed nothing, and

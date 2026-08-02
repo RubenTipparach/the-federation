@@ -1,0 +1,61 @@
+[gd_scene load_steps=7 format=3]
+
+; A destroyed ship: one fireball and nine hull plates thrown clear of it.
+;
+; Nine because that is enough for a cruiser to read as coming apart and few
+; enough that two of them at once cost nothing. Three plate shapes, used three
+; times each and given different scales, rotations and directions in code, so
+; no two chunks look alike without three more committed meshes.
+
+[ext_resource type="Script" path="res://src/ui/wreck.gd" id="1"]
+[ext_resource type="ArrayMesh" path="res://assets/meshes/sphere.obj" id="2"]
+[ext_resource type="ArrayMesh" path="res://assets/meshes/debris_0.obj" id="3"]
+[ext_resource type="ArrayMesh" path="res://assets/meshes/debris_1.obj" id="4"]
+[ext_resource type="ArrayMesh" path="res://assets/meshes/debris_2.obj" id="5"]
+[ext_resource type="Material" path="res://assets/materials/mat_blast.tres" id="6"]
+
+[node name="Wreck" type="Node3D"]
+script = ExtResource("1")
+
+[node name="Blast" type="MeshInstance3D" parent="."]
+mesh = ExtResource("2")
+material_override = ExtResource("6")
+cast_shadow = 0
+
+[node name="Chunks" type="Node3D" parent="."]
+
+[node name="C0" type="MeshInstance3D" parent="Chunks"]
+mesh = ExtResource("3")
+cast_shadow = 0
+
+[node name="C1" type="MeshInstance3D" parent="Chunks"]
+mesh = ExtResource("4")
+cast_shadow = 0
+
+[node name="C2" type="MeshInstance3D" parent="Chunks"]
+mesh = ExtResource("5")
+cast_shadow = 0
+
+[node name="C3" type="MeshInstance3D" parent="Chunks"]
+mesh = ExtResource("3")
+cast_shadow = 0
+
+[node name="C4" type="MeshInstance3D" parent="Chunks"]
+mesh = ExtResource("4")
+cast_shadow = 0
+
+[node name="C5" type="MeshInstance3D" parent="Chunks"]
+mesh = ExtResource("5")
+cast_shadow = 0
+
+[node name="C6" type="MeshInstance3D" parent="Chunks"]
+mesh = ExtResource("3")
+cast_shadow = 0
+
+[node name="C7" type="MeshInstance3D" parent="Chunks"]
+mesh = ExtResource("4")
+cast_shadow = 0
+
+[node name="C8" type="MeshInstance3D" parent="Chunks"]
+mesh = ExtResource("5")
+cast_shadow = 0

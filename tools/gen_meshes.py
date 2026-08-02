@@ -117,6 +117,17 @@ def arc_glow():
     o.write("arc_glow.obj", "Unit shield impact flare, 88 degrees, wider than one facing")
 
 
+def turn_arc():
+    o = Obj()
+    # A FULL circle, because the turn it shows is any angle from nothing to a
+    # half turn and a mesh cannot change its angular span. The shader masks it
+    # down to the arc actually being swept (assets/shaders/turn_arc.gdshader),
+    # which keeps one committed mesh instead of a family of fixed wedges or
+    # geometry built at runtime.
+    flat_band(o, 0, 360, 0.90, 1.0, 120)
+    o.write("turn_arc.obj", "Unit band for the helm turn arc, masked by angle in the shader")
+
+
 def ring():
     o = Obj()
     flat_band(o, 0, 360, 0.982, 1.0, 96)
@@ -133,6 +144,79 @@ def quad():
     o.tri(a, c, b, n)
     o.tri(a, d, c, n)
     o.write("quad.obj", "Unit XZ quad, centered, used for the grid plane")
+
+
+def disc():
+    o = Obj()
+    flat_fan(o, 0, 360, 1.0, 96)
+    o.write("disc.obj", "Unit filled disc on the XZ plane, for terrain fields")
+
+
+def sphere(segs=32, rings=18):
+    # A unit sphere, used for every solid terrain body: a nebula's volume, an
+    # asteroid, a planet, and the fireball a ship leaves. One mesh scaled four
+    # ways rather than four meshes (CLAUDE.md 4.1); what tells them apart is the
+    # authored material on the scene that instances it.
+    #
+    # 32 by 18 rather than something coarser because the planet's atmosphere is
+    # a rim glow hugging the silhouette, and on a coarse sphere that silhouette
+    # is visibly a polygon. Every other user of this mesh is either a soft blob
+    # or a rock, and neither minds the extra triangles.
+    o = Obj()
+    # Rows of vertices from the north pole down. Normals equal positions on a
+    # unit sphere, so the winding check is just "does the triangle face out".
+    grid = []
+    for r in range(rings + 1):
+        phi = math.pi * r / rings
+        row = []
+        for s in range(segs):
+            theta = 2.0 * math.pi * s / segs
+            x = math.sin(phi) * math.sin(theta)
+            y = math.cos(phi)
+            z = math.sin(phi) * math.cos(theta)
+            row.append((o.vert(x, y, z), o.normal(x, y, z)))
+        grid.append(row)
+    for r in range(rings):
+        for s in range(segs):
+            s2 = (s + 1) % segs
+            a, na = grid[r][s]
+            b, nb = grid[r][s2]
+            c, nc = grid[r + 1][s2]
+            d, nd = grid[r + 1][s]
+            # Two triangles per quad, wound so the cross product points away
+            # from the centre, which is the convention the rest of this file
+            # and shiplib.slab share.
+            o.f.append(((a, na), (c, nc), (b, nb)))
+            o.f.append(((a, na), (d, nd), (c, nc)))
+    o.write("sphere.obj", "Unit sphere, for nebula volumes, asteroids and planets")
+
+
+def debris():
+    # Wreckage: three irregular plates, each an extruded polygon of a different
+    # shape and thickness. Plates rather than lumps because these ships are made
+    # of plates, so a hull that comes apart should come apart into panels and
+    # sections rather than into gravel.
+    #
+    # The jitter is a fixed table, not a random draw. A generator that rolled
+    # dice would write a different file every run and the committed .obj would
+    # churn in every diff for no reason (CLAUDE.md section 2: the file on disk
+    # is the deliverable).
+    shapes = [
+        # (sides, radii per corner, half thickness)
+        (5, [1.00, 0.62, 0.88, 0.45, 0.74], 0.16),
+        (6, [0.70, 1.00, 0.55, 0.82, 0.48, 0.93], 0.10),
+        (4, [0.95, 0.40, 0.78, 0.58], 0.24),
+    ]
+    for index, (sides, radii, half) in enumerate(shapes):
+        o = Obj()
+        outline = []
+        for i in range(sides):
+            a = 2.0 * math.pi * i / sides
+            r = radii[i]
+            outline.append((math.sin(a) * r, math.cos(a) * r))
+        extrude(o, outline, -half, half)
+        o.write("debris_%d.obj" % index,
+                "Wreck plate %d, extruded irregular polygon, scaled in code" % index)
 
 
 def beam():
@@ -223,36 +307,6 @@ def spindle(o, cx, cz, half_len, radius, y_center, segs=10, taper=0.45):
             o.tri(rings[k][i], rings[k][j], rings[k + 1][j], n)
 
 
-def hull_cruiser():
-    """Federation inspired: a broad saucer forward, a slim neck, an engineering
-    body aft, and two nacelles held out on pylons. Nose at +Z, deck at y=0.
-
-    This is our own design in that tradition, not a copy of any published ship
-    (CLAUDE.md section 10). Proportions are chosen so the six shield facings
-    read clearly from directly above, which is the camera this game uses."""
-    o = Obj()
-
-    # Saucer, forward. Slightly egg shaped so the bow reads at a glance.
-    extrude(o, ellipse_outline(0.0, 1.45, 1.55, 1.25, 24), 0.10, 0.46)
-    # Bridge dome, a smaller disc on top of the saucer.
-    extrude(o, ellipse_outline(0.0, 1.55, 0.42, 0.36, 12), 0.46, 0.62)
-    # Neck down to the engineering body.
-    extrude(o, box_outline(-0.34, -0.55, 0.34, 0.55), 0.06, 0.40)
-    # Engineering body, aft, tapering to a stern shutter.
-    extrude(o, [
-        (-0.62, 0.30), (0.62, 0.30), (0.78, -0.90),
-        (0.48, -2.05), (-0.48, -2.05), (-0.78, -0.90),
-    ], 0.0, 0.50)
-    # Pylons out to the nacelles.
-    extrude(o, [(-1.02, -0.75), (-0.55, -0.55), (-0.55, -1.25), (-1.02, -1.45)], 0.14, 0.34)
-    extrude(o, [(0.55, -0.55), (1.02, -0.75), (1.02, -1.45), (0.55, -1.25)], 0.14, 0.34)
-    # Nacelles, running fore and aft outboard of the body.
-    spindle(o, -1.32, -0.55, 1.35, 0.30, 0.30)
-    spindle(o, 1.32, -0.55, 1.35, 0.30, 0.30)
-
-    o.write("hull_cruiser.obj", "Federation inspired cruiser, saucer and two nacelles, nose at +Z")
-
-
 def hull():
     # A chevron capital ship silhouette pointing +Z, with thickness so it
     # shades as a body rather than a sticker. Grey placeholder per the M1
@@ -276,16 +330,21 @@ def hull():
 
 
 def main():
-    # The raider hull is no longer written here: it became a painted, atlas
-    # mapped ship in tools/gen_ship_raider.py, the same treatment the frigate
-    # gets in tools/gen_ship_frigate.py.
+    # The named ship hulls are no longer written here. Each became a painted,
+    # atlas mapped ship with its own generator: tools/gen_ship_cruiser.py,
+    # gen_ship_frigate.py, gen_ship_raider.py. A hull written in two places is
+    # a hull that will disagree with itself (CLAUDE.md 4.1), and this file
+    # writing a stale untextured cruiser over the painted one proved it.
     os.makedirs(OUT, exist_ok=True)
-    hull_cruiser()
     wedge30()
     arc_segment()
     arc_glow()
+    turn_arc()
     ring()
     quad()
+    disc()
+    sphere()
+    debris()
     beam()
     hull()
 

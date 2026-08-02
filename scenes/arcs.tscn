@@ -21,6 +21,7 @@ layout_mode = 2
 layout_mode = 2
 theme_override_font_sizes/font_size = 11
 text = "FIRING ARCS"
+theme_type_variation = &"HeaderLabel"
 
 [node name="Wheel" type="Control" parent="WheelPanel/V"]
 layout_mode = 2
@@ -51,6 +52,7 @@ theme_override_constants/separation = 6
 layout_mode = 2
 theme_override_font_sizes/font_size = 11
 text = "MOUNTS"
+theme_type_variation = &"HeaderLabel"
 
 [node name="Scroll" type="ScrollContainer" parent="Right/MountsPanel/V"]
 layout_mode = 2
@@ -77,6 +79,7 @@ theme_override_constants/separation = 4
 layout_mode = 2
 theme_override_font_sizes/font_size = 11
 text = "DERIVED"
+theme_type_variation = &"HeaderLabel"
 
 [node name="Body" type="Label" parent="Right/DerivedPanel/V"]
 layout_mode = 2
@@ -94,6 +97,7 @@ theme_override_constants/separation = 6
 layout_mode = 2
 theme_override_font_sizes/font_size = 11
 text = "OVERRIDE DEMO"
+theme_type_variation = &"HeaderLabel"
 
 [node name="Note" type="Label" parent="Right/OverridePanel/V"]
 layout_mode = 2

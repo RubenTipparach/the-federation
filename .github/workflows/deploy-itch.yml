@@ -84,6 +84,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
+    # Whether this run is allowed to publish. Defined once and referenced by
+    # every step that depends on it, because the same condition was written
+    # out twice already and a third copy is how they start to disagree.
+    env:
+      CAN_DEPLOY: ${{ github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch' }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -121,7 +127,14 @@ jobs:
       - name: Install Godot
         run: ./scripts/install-godot.sh
 
+      # Only on runs that can publish. butler is fetched from a third party
+      # CDN, so installing it on every pull request tied this job's health to
+      # itch.io's uptime for a tool those runs never invoke. An itch.io outage
+      # (504 then 500s from broth.itch.zone) failed a pull request that was
+      # never going to deploy. scripts/deploy-itch.sh already fails with a
+      # clear message if butler is somehow missing when it is genuinely needed.
       - name: Install butler
+        if: env.CAN_DEPLOY == 'true'
         run: ./scripts/install-butler.sh
 
       # The sim library must pass its headless suite before anything exports.
@@ -149,7 +162,7 @@ jobs:
 
       - name: Check for itch.io credentials
         id: creds
-        if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+        if: env.CAN_DEPLOY == 'true'
         env:
           BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
         run: |
@@ -162,9 +175,7 @@ jobs:
 
       # Gated on main so a pull request can never publish to itch.io.
       - name: Deploy to itch.io
-        if: |
-          steps.creds.outputs.present == 'true' &&
-          (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch')
+        if: env.CAN_DEPLOY == 'true' && steps.creds.outputs.present == 'true'
         env:
           BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
           DRY_RUN: ${{ github.event.inputs.dry_run == 'true' && '1' || '0' }}
@@ -181,5 +192,5 @@ jobs:
             echo "| Version | \`$(git describe --tags --dirty 2>/dev/null || echo "r$(git rev-list --count HEAD)-$(git rev-parse --short HEAD)")\` |"
             echo "| Targets | \`${{ github.event.inputs.targets || steps.config.outputs.targets }}\` |"
             echo "| Credentials | ${{ steps.creds.outputs.present == 'true' && 'present' || 'not checked or missing' }} |"
-            echo "| Deployed | ${{ (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch') && 'yes, if credentials present' || 'no, not main' }} |"
+            echo "| Deployed | ${{ env.CAN_DEPLOY == 'true' && 'yes, if credentials present' || 'no, not main' }} |"
           } >> "$GITHUB_STEP_SUMMARY"

@@ -4,14 +4,18 @@ extends HBoxContainer
 ## states come straight from ShipState.fire_check reasons so the UI can never
 ## disagree with the rule that gates the shot.
 
-const CHIP_COLORS: Dictionary = {
-	"bears": Palette.OK,
-	"charging": Palette.AMBER,
-	"range": Palette.DIM,
-	"no arc": Palette.CRIT,
-	"destroyed": Palette.CRIT,
-	"empty": Palette.LINE_HOT,
-}
+## Why a weapon is or is not ready, in the colour that says it. A function
+## rather than a const dictionary because Palette now reads its values from
+## data/palette.json at first use, so they are resolved at runtime and cannot
+## be baked into a constant.
+static func chip_color(reason: String) -> Color:
+	match reason:
+		"bears": return Palette.OK
+		"charging": return Palette.AMBER
+		"no arc", "destroyed": return Palette.CRIT
+		"no lock": return Palette.LINE_HOT
+		"empty": return Palette.LINE_HOT
+		_: return Palette.DIM
 
 
 func paint(display_name: String, reason: String, charge: float) -> void:
@@ -28,7 +32,7 @@ func paint(display_name: String, reason: String, charge: float) -> void:
 	if reason == "charging":
 		chip = "%d%%" % int(charge * 100.0)
 	$Chip.text = chip
-	var hue: Color = CHIP_COLORS.get(reason, Palette.DIM)
+	var hue: Color = chip_color(reason)
 	$Chip.add_theme_color_override("font_color", hue)
 	# The chip already carries the reason; the note only adds words when the
 	# chip is a percentage.

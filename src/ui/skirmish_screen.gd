@@ -9,6 +9,7 @@ signal design_selected(hull_id: String)
 signal replay_chosen(log: BattleLog)
 
 const SELECT_CARD := preload("res://scenes/ui/select_card.tscn")
+const MAP_CARD := preload("res://scenes/ui/map_card.tscn")
 
 var session: Session
 
@@ -24,7 +25,31 @@ func refresh() -> void:
 		return
 	_fill_yours()
 	_fill_foes()
+	_fill_maps()
 	_fill_replays()
+
+
+## The map picker: one card per recipe in data/maps.json, in file order. The
+## cards are built once and only repainted afterwards, because building one
+## means placing a whole arena and that does not need doing on every click.
+func _fill_maps() -> void:
+	var row: HBoxContainer = $Mid/Maps
+	if row.get_child_count() == 0:
+		for map_id in Catalog.map_ids():
+			var card: Button = MAP_CARD.instantiate()
+			row.add_child(card)
+			card.setup(String(map_id))
+			card.chosen.connect(_on_map_chosen)
+	for card in row.get_children():
+		card.paint_selected(card.map_id == session.map_id)
+	$Mid/MapBlurb.text = String(Catalog.map(session.map_id)["blurb"])
+	$Mid/MapBlurb.add_theme_color_override("font_color", Palette.DIM)
+	$Mid/Kind.text = "DUEL / %s" % String(Catalog.map(session.map_id)["name"]).to_upper()
+
+
+func _on_map_chosen(map_id: String) -> void:
+	session.map_id = map_id
+	_fill_maps()
 
 
 ## Every battle this machine has recorded, newest first. Watching one is the
@@ -37,7 +62,7 @@ func _fill_replays() -> void:
 	if paths.is_empty():
 		var empty: Label = Label.new()
 		empty.text = "No recordings yet. Every battle you fight is saved here."
-		empty.add_theme_font_size_override("font_size", 11)
+		empty.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		empty.add_theme_color_override("font_color", Palette.DIM)
 		list.add_child(empty)
 		return

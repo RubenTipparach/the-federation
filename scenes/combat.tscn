@@ -1,22 +1,27 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=11 format=3]
 
 [ext_resource type="Script" path="res://src/ui/combat_screen.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/combat_world.tscn" id="2"]
 [ext_resource type="PackedScene" path="res://scenes/ui/shield_bar.tscn" id="3"]
 [ext_resource type="PackedScene" path="res://scenes/ui/touch_controls.tscn" id="4"]
 [ext_resource type="Environment" path="res://assets/materials/env_plan_inset.tres" id="5"]
+[ext_resource type="PackedScene" path="res://scenes/ui/box_strip.tscn" id="6"]
+[ext_resource type="PackedScene" path="res://scenes/ui/target_bracket.tscn" id="7"]
+[ext_resource type="PackedScene" path="res://scenes/ui/ship_display.tscn" id="8"]
+[ext_resource type="PackedScene" path="res://scenes/ui/system_tabs.tscn" id="9"]
+[ext_resource type="PackedScene" path="res://scenes/ui/subsystem_panel.tscn" id="10"]
 
 [node name="Combat" type="HBoxContainer"]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-theme_override_constants/separation = 12
+theme_override_constants/separation = 6
 script = ExtResource("1")
 
 [node name="Left" type="VBoxContainer" parent="."]
 layout_mode = 2
 custom_minimum_size = Vector2(250, 0)
-theme_override_constants/separation = 10
+theme_override_constants/separation = 4
 
 [node name="ShipPanel" type="PanelContainer" parent="Left"]
 layout_mode = 2
@@ -29,6 +34,7 @@ theme_override_constants/separation = 3
 layout_mode = 2
 theme_override_font_sizes/font_size = 11
 text = "SHIP"
+theme_type_variation = &"HeaderLabel"
 
 [node name="Body" type="Label" parent="Left/ShipPanel/V"]
 layout_mode = 2
@@ -44,13 +50,15 @@ custom_minimum_size = Vector2(66, 0)
 theme_override_font_sizes/font_size = 10
 text = "THROTTLE"
 
-[node name="Slider" type="HSlider" parent="Left/ShipPanel/V/Throttle"]
+[node name="Boxes" parent="Left/ShipPanel/V/Throttle" instance=ExtResource("6")]
 layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 4
-max_value = 1.0
-step = 0.05
-value = 0.7
+
+[node name="Out" type="Label" parent="Left/ShipPanel/V/Throttle"]
+layout_mode = 2
+custom_minimum_size = Vector2(28, 0)
+theme_override_font_sizes/font_size = 11
+horizontal_alignment = 2
+text = "0"
 
 [node name="PowerPanel" type="PanelContainer" parent="Left"]
 layout_mode = 2
@@ -63,6 +71,7 @@ theme_override_constants/separation = 4
 layout_mode = 2
 theme_override_font_sizes/font_size = 11
 text = "POWER"
+theme_type_variation = &"HeaderLabel"
 
 [node name="Weapons" type="HBoxContainer" parent="Left/PowerPanel/V"]
 layout_mode = 2
@@ -73,11 +82,8 @@ custom_minimum_size = Vector2(66, 0)
 theme_override_font_sizes/font_size = 10
 text = "WEAPONS"
 
-[node name="Slider" type="HSlider" parent="Left/PowerPanel/V/Weapons"]
+[node name="Boxes" parent="Left/PowerPanel/V/Weapons" instance=ExtResource("6")]
 layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 4
-step = 0.5
 
 [node name="Out" type="Label" parent="Left/PowerPanel/V/Weapons"]
 layout_mode = 2
@@ -95,11 +101,8 @@ custom_minimum_size = Vector2(66, 0)
 theme_override_font_sizes/font_size = 10
 text = "SHIELDS"
 
-[node name="Slider" type="HSlider" parent="Left/PowerPanel/V/Shields"]
+[node name="Boxes" parent="Left/PowerPanel/V/Shields" instance=ExtResource("6")]
 layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 4
-step = 0.5
 
 [node name="Out" type="Label" parent="Left/PowerPanel/V/Shields"]
 layout_mode = 2
@@ -117,11 +120,8 @@ custom_minimum_size = Vector2(66, 0)
 theme_override_font_sizes/font_size = 10
 text = "ENGINES"
 
-[node name="Slider" type="HSlider" parent="Left/PowerPanel/V/Engines"]
+[node name="Boxes" parent="Left/PowerPanel/V/Engines" instance=ExtResource("6")]
 layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 4
-step = 0.5
 
 [node name="Out" type="Label" parent="Left/PowerPanel/V/Engines"]
 layout_mode = 2
@@ -139,11 +139,8 @@ custom_minimum_size = Vector2(66, 0)
 theme_override_font_sizes/font_size = 10
 text = "SYSTEMS"
 
-[node name="Slider" type="HSlider" parent="Left/PowerPanel/V/Systems"]
+[node name="Boxes" parent="Left/PowerPanel/V/Systems" instance=ExtResource("6")]
 layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 4
-step = 0.5
 
 [node name="Out" type="Label" parent="Left/PowerPanel/V/Systems"]
 layout_mode = 2
@@ -161,11 +158,8 @@ custom_minimum_size = Vector2(66, 0)
 theme_override_font_sizes/font_size = 10
 text = "RESERVE"
 
-[node name="Slider" type="HSlider" parent="Left/PowerPanel/V/Reserve"]
+[node name="Boxes" parent="Left/PowerPanel/V/Reserve" instance=ExtResource("6")]
 layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 4
-step = 0.5
 
 [node name="Out" type="Label" parent="Left/PowerPanel/V/Reserve"]
 layout_mode = 2
@@ -180,6 +174,12 @@ theme_override_font_sizes/font_size = 10
 autowrap_mode = 2
 text = "Reactor output is fixed. Adding here takes from somewhere else."
 
+[node name="KeepTabs" parent="Left" instance=ExtResource("9")]
+layout_mode = 2
+
+[node name="KeepPanel" parent="Left" instance=ExtResource("10")]
+layout_mode = 2
+
 [node name="DamagePanel" type="PanelContainer" parent="Left"]
 layout_mode = 2
 size_flags_vertical = 3
@@ -192,6 +192,7 @@ theme_override_constants/separation = 3
 layout_mode = 2
 theme_override_font_sizes/font_size = 11
 text = "DAMAGE REPORT"
+theme_type_variation = &"HeaderLabel"
 
 [node name="Body" type="Label" parent="Left/DamagePanel/V"]
 layout_mode = 2
@@ -203,6 +204,7 @@ text = "No damage."
 layout_mode = 2
 theme_override_font_sizes/font_size = 11
 text = "COMM LOG"
+theme_type_variation = &"HeaderLabel"
 
 [node name="CommLog" type="Label" parent="Left/DamagePanel/V"]
 layout_mode = 2
@@ -213,7 +215,7 @@ text = ""
 [node name="Mid" type="VBoxContainer" parent="."]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 8
+theme_override_constants/separation = 4
 
 [node name="ViewPanel" type="PanelContainer" parent="Mid"]
 layout_mode = 2
@@ -234,6 +236,12 @@ handle_input_locally = false
 size = Vector2i(800, 500)
 
 [node name="World" parent="Mid/ViewPanel/Stack/ViewContainer/View" instance=ExtResource("2")]
+
+[node name="Bracket0" parent="Mid/ViewPanel/Stack" instance=ExtResource("7")]
+visible = false
+
+[node name="Bracket1" parent="Mid/ViewPanel/Stack" instance=ExtResource("7")]
+visible = false
 
 [node name="PlayerLabel" type="Label" parent="Mid/ViewPanel/Stack"]
 layout_mode = 0
@@ -292,6 +300,7 @@ size = Vector2i(128, 128)
 [node name="PlanCamera" type="Camera3D" parent="Mid/ViewPanel/Stack/InsetFrame/InsetContainer/Inset"]
 projection = 1
 size = 70.0
+cull_mask = 1
 environment = ExtResource("5")
 
 [node name="EndOverlay" type="CenterContainer" parent="Mid/ViewPanel/Stack"]
@@ -323,52 +332,6 @@ text = ""
 [node name="Return" type="Button" parent="Mid/ViewPanel/Stack/EndOverlay/P/V"]
 layout_mode = 2
 text = "Return to skirmish setup"
-
-[node name="CamRow" type="HBoxContainer" parent="Mid"]
-layout_mode = 2
-theme_override_constants/separation = 6
-
-[node name="L" type="Label" parent="Mid/CamRow"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 10
-text = "CAMERA"
-
-[node name="Tactical" type="Button" parent="Mid/CamRow"]
-layout_mode = 2
-text = "Tactical"
-
-[node name="Cinematic" type="Button" parent="Mid/CamRow"]
-layout_mode = 2
-text = "Cinematic"
-
-[node name="Plan" type="Button" parent="Mid/CamRow"]
-layout_mode = 2
-text = "Plan"
-
-[node name="PitchLabel" type="Label" parent="Mid/CamRow"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 10
-text = "PITCH"
-
-[node name="Pitch" type="HSlider" parent="Mid/CamRow"]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 4
-min_value = 25.0
-max_value = 90.0
-value = 55.0
-
-[node name="PitchOut" type="Label" parent="Mid/CamRow"]
-layout_mode = 2
-custom_minimum_size = Vector2(56, 0)
-theme_override_font_sizes/font_size = 10
-text = "55 deg"
-
-[node name="FloorNote" type="Label" parent="Mid/CamRow"]
-visible = false
-layout_mode = 2
-theme_override_font_sizes/font_size = 10
-text = "PITCH FLOOR, LOOKING DOWN ONLY"
 
 [node name="ReplayBar" type="HBoxContainer" parent="Mid"]
 layout_mode = 2
@@ -447,7 +410,7 @@ text = "Disengage"
 [node name="Right" type="VBoxContainer" parent="."]
 layout_mode = 2
 custom_minimum_size = Vector2(260, 0)
-theme_override_constants/separation = 10
+theme_override_constants/separation = 4
 
 [node name="TargetPanel" type="PanelContainer" parent="Right"]
 layout_mode = 2
@@ -460,40 +423,61 @@ theme_override_constants/separation = 3
 layout_mode = 2
 theme_override_font_sizes/font_size = 11
 text = "TARGET"
+theme_type_variation = &"HeaderLabel"
 
 [node name="Body" type="Label" parent="Right/TargetPanel/V"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
 text = "status"
 
-[node name="TheirShields" type="PanelContainer" parent="Right"]
+[node name="Lock" type="Label" parent="Right/TargetPanel/V"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+visible = false
+text = "SENSOR LOCK LOST"
+
+[node name="OwnPanel" type="PanelContainer" parent="Right"]
 layout_mode = 2
 
-[node name="V" type="VBoxContainer" parent="Right/TheirShields"]
+[node name="V" type="VBoxContainer" parent="Right/OwnPanel"]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="Head" type="Label" parent="Right/TheirShields/V"]
+[node name="Head" type="Label" parent="Right/OwnPanel/V"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 11
-text = "THEIR SHIELDS"
+text = "OWN SHIP"
+theme_type_variation = &"HeaderLabel"
 
-[node name="S0" parent="Right/TheirShields/V" instance=ExtResource("3")]
+[node name="Display" parent="Right/OwnPanel/V" instance=ExtResource("8")]
 layout_mode = 2
 
-[node name="S1" parent="Right/TheirShields/V" instance=ExtResource("3")]
+[node name="Hint" type="Label" parent="Right/OwnPanel/V"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+autowrap_mode = 2
+text = "Click a damaged system to queue a repair. Right click for detail."
+
+[node name="TargetDisplayPanel" type="PanelContainer" parent="Right"]
 layout_mode = 2
 
-[node name="S2" parent="Right/TheirShields/V" instance=ExtResource("3")]
+[node name="V" type="VBoxContainer" parent="Right/TargetDisplayPanel"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Head" type="Label" parent="Right/TargetDisplayPanel/V"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "TARGET"
+theme_type_variation = &"HeaderLabel"
+
+[node name="Display" parent="Right/TargetDisplayPanel/V" instance=ExtResource("8")]
 layout_mode = 2
 
-[node name="S3" parent="Right/TheirShields/V" instance=ExtResource("3")]
+[node name="FightTabs" parent="Right" instance=ExtResource("9")]
 layout_mode = 2
 
-[node name="S4" parent="Right/TheirShields/V" instance=ExtResource("3")]
-layout_mode = 2
-
-[node name="S5" parent="Right/TheirShields/V" instance=ExtResource("3")]
+[node name="FightPanel" parent="Right" instance=ExtResource("10")]
 layout_mode = 2
 
 [node name="WeaponsPanel" type="PanelContainer" parent="Right"]
@@ -508,6 +492,7 @@ theme_override_constants/separation = 4
 layout_mode = 2
 theme_override_font_sizes/font_size = 11
 text = "WEAPONS"
+theme_type_variation = &"HeaderLabel"
 
 [node name="WeaponList" type="VBoxContainer" parent="Right/WeaponsPanel/V"]
 layout_mode = 2

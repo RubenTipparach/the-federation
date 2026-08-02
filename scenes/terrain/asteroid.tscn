@@ -1,0 +1,23 @@
+[gd_scene load_steps=6 format=3]
+
+; A rock and the dust it sheds. Body is the part that is a collision; Field is
+; the filled halo where micrometeors grind a shield, drawn as a disc on the
+; plane because that is exactly the shape the rule uses (docs/13 section 3).
+
+[ext_resource type="Script" path="res://src/ui/terrain_feature.gd" id="1"]
+[ext_resource type="ArrayMesh" path="res://assets/meshes/sphere.obj" id="2"]
+[ext_resource type="Material" path="res://assets/materials/mat_asteroid.tres" id="3"]
+[ext_resource type="ArrayMesh" path="res://assets/meshes/disc.obj" id="4"]
+[ext_resource type="Material" path="res://assets/materials/mat_dust_halo.tres" id="5"]
+
+[node name="Asteroid" type="Node3D"]
+script = ExtResource("1")
+
+[node name="Body" type="MeshInstance3D" parent="."]
+mesh = ExtResource("2")
+material_override = ExtResource("3")
+
+[node name="Field" type="MeshInstance3D" parent="."]
+mesh = ExtResource("4")
+material_override = ExtResource("5")
+cast_shadow = 0

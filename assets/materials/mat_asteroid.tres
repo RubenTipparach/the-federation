@@ -1,0 +1,11 @@
+[gd_resource type="StandardMaterial3D" format=3]
+
+; Rock. Lit rather than unshaded, because an asteroid is a solid you can hit
+; and it should read as one against the flat tactical overlays around it. The
+; colour is the palette's bark, the same brown the ship plates use for their
+; shadowed metal (data/palette.json).
+
+[resource]
+albedo_color = Color(0.275, 0.2, 0.173, 1.0)
+roughness = 0.95
+metallic = 0.0

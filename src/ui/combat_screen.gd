@@ -8,11 +8,53 @@ signal battle_ended
 
 const WEAPON_ROW := preload("res://scenes/ui/weapon_row.tscn")
 
+## Throttle is a fraction in the sim, so the notch count is the whole of the
+## discretisation and lives here rather than in the sim.
+const THROTTLE_NOTCHES := 8
+## Where the helm starts a battle: most of the way up, leaving room to push.
+const OPENING_THROTTLE_NOTCH := 6
+const TargetBracket := preload("res://src/ui/target_bracket.gd")
+## Markers authored in the scene, one per ship in a duel.
+const BRACKET_COUNT := 2
+## Hull radius in sim units per ton, so a bracket is sized by the ship it is
+## drawn around rather than by a single number for every hull. It lives in
+## data/tuning.json with the other sizes it has to move with (CLAUDE.md 5.4).
+const BRACKET_MIN_PX := 16.0
+const BRACKET_MAX_PX := 120.0
+## Extra pixels around a ship that still count as pointing at it.
+const BRACKET_PICK_SLACK := 10.0
+## How far the pointer may travel before a right button press stops being a
+## click and becomes a camera orbit. Small enough that a deliberate drag is
+## never read as a lock, large enough that a hand tremor is not a drag.
+const DRAG_SLOP := 6.0
+## Each sink gets its own hue so the five strips are told apart at a glance
+## rather than by counting rows. The subsystem family colours only supply four,
+## which left shields and reserve identical, so these are named directly.
+static func _sink_tint(sink: String) -> Color:
+	match sink:
+		"Weapons": return Palette.MAGENTA
+		"Shields": return Palette.CYAN
+		"Engines": return Palette.BLUE
+		"Systems": return Palette.AMBER
+		_: return Palette.SLATE
+
 var session: Session
 var battle: Battle
 var paused: bool = false
 var _weapon_rows: Array = []
-var _dragging: bool = false
+## Set while the right button is held. Right drag orbits the camera; right
+## click, meaning a press and release that never travelled, locks a target.
+## Left is the helm and nothing else, so an order can never be mistaken for a
+## camera move.
+var _orbiting: bool = false
+## The last range and bearing the sensors actually measured, and when. Held so
+## a lost lock can show a stale reading with its age instead of a blank panel.
+var _last_seen_range: float = 0.0
+var _last_seen_bearing: float = 0.0
+var _last_seen_at: float = 0.0
+## Live touch points, for pinch. Two fingers zoom; the camera stick orbits.
+var _touches: Dictionary = {}
+var _pinch_span: float = -1.0
 var _drag_moved: float = 0.0
 var _report_lines: Array[String] = []
 var _wired: bool = false
@@ -34,17 +76,7 @@ func bind_session(p_session: Session) -> void:
 	if _wired:
 		return
 	_wired = true
-	var world: Node3D = _world()
 	var cam: Dictionary = Catalog.tuning()["camera"]
-	$Mid/CamRow/Pitch.min_value = float(cam["pitch_floor_deg"])
-	$Mid/CamRow/Pitch.max_value = float(cam["pitch_ceil_deg"])
-	$Mid/CamRow/Pitch.value_changed.connect(func(v: float) -> void:
-		world.set_pitch(v)
-		_sync_pitch_ui())
-	var presets: Dictionary = cam["presets"]
-	$Mid/CamRow/Tactical.pressed.connect(_set_pitch_preset.bind(float(presets["tactical"])))
-	$Mid/CamRow/Cinematic.pressed.connect(_set_pitch_preset.bind(float(presets["cinematic"])))
-	$Mid/CamRow/Plan.pressed.connect(_set_pitch_preset.bind(float(presets["plan"])))
 
 	$Mid/Actions/FireBeams.pressed.connect(_fire_beams)
 	$Mid/Actions/FireHeavy.pressed.connect(_fire_heavy)
@@ -55,12 +87,41 @@ func bind_session(p_session: Session) -> void:
 	$Mid/ViewPanel/Stack/EndOverlay/P/V/Return.pressed.connect(
 		func() -> void: battle_ended.emit())
 
-	$Left/ShipPanel/V/Throttle/Slider.value_changed.connect(func(v: float) -> void:
-		if battle != null:
-			battle.apply_command(0, "order", [battle.player().ordered_heading, v]))
+	var throttle: Control = $Left/ShipPanel/V/Throttle/Boxes
+	# Both of these are controls, not readouts, so their empty boxes are drawn
+	# bright enough to click at.
+	throttle.setup(Palette.CYAN, true)
+	throttle.level_picked.connect(_on_throttle_picked)
 	for sink in ["Weapons", "Shields", "Engines", "Systems", "Reserve"]:
-		var slider: HSlider = $Left/PowerPanel/V.get_node(sink + "/Slider")
-		slider.value_changed.connect(_on_power_slider.bind(sink.to_lower()))
+		var strip: Control = $Left/PowerPanel/V.get_node(sink + "/Boxes")
+		strip.setup(_sink_tint(sink), true)
+		strip.level_picked.connect(_on_power_picked.bind(sink.to_lower()))
+
+	# Two strips of the same component, split by CLAUDE.md 6.2's own test:
+	# what a player reaches for under fire sits on the right beside the target,
+	# and the ship's business sits on the left beside the log, where the comm
+	# log had room to spare. Three columns on the right, two on the left, so
+	# neither needs a second row of tabs.
+	$Right/FightTabs.setup("fight", 3)
+	$Left/KeepTabs.setup("keep", 2)
+	$Right/FightTabs.tab_selected.connect(_on_station_selected.bind($Right/FightPanel))
+	$Left/KeepTabs.tab_selected.connect(_on_station_selected.bind($Left/KeepPanel))
+	$Right/FightTabs.repair_requested.connect(_on_repair_requested)
+	$Left/KeepTabs.repair_requested.connect(_on_repair_requested)
+	for panel in [$Right/FightPanel, $Left/KeepPanel]:
+		panel.repair_requested.connect(_on_repair_requested)
+		panel.repair_dropped.connect(_on_repair_dropped)
+		panel.regen_facing_picked.connect(_on_regen_facing_picked)
+		panel.tractor_latch_requested.connect(_on_tractor_latch)
+		panel.tractor_release_requested.connect(_on_tractor_release)
+		panel.tractor_mode_picked.connect(_on_tractor_mode)
+		panel.tractor_bid_picked.connect(_on_power_picked.bind(Tractor.SINK))
+
+	# The own ship display is where a repair is ordered. The target's is the
+	# same component with detail and editing off, which is what stops an
+	# enemy's internals being readable box by box before sensors exist.
+	$Right/OwnPanel/V/Display.system_picked.connect(_on_repair_requested)
+	$Right/OwnPanel/V/Display.system_detail.connect(_on_system_detail)
 
 	var container: SubViewportContainer = $Mid/ViewPanel/Stack/ViewContainer
 	container.gui_input.connect(_on_view_input)
@@ -73,9 +134,12 @@ func bind_session(p_session: Session) -> void:
 	# window's world, which happened to work). find_world_3d resolves the world
 	# actually in use, so the sharing is explicit instead of coincidental.
 	inset.world_3d = ($Mid/ViewPanel/Stack/ViewContainer/View as SubViewport).find_world_3d()
+	# cull_mask 1 on this camera, set in the scene, is what keeps the weapon arc
+	# wedges and range rings out of the inset. See assets/materials/
+	# env_plan_inset.tres for the layer convention.
 	var plan_cam: Camera3D = inset.get_node("PlanCamera")
 	plan_cam.size = float(cam["plan_inset_size"])
-	plan_cam.look_at_from_position(Vector3(0, 60, 0), Vector3.ZERO, Vector3(0, 0, 1))
+	_track_plan_camera()
 
 	# Touch play. The sticks and the target buttons drive the same paths the
 	# desktop controls do, so mobile is a second surface on one implementation
@@ -114,7 +178,7 @@ func start_replay(log: BattleLog) -> void:
 	$Mid/Actions/Pause.text = "Pause"
 	$Mid/ViewPanel/Stack/EndOverlay.visible = false
 	_build_weapon_rows()
-	_sync_pitch_ui()
+	_bind_displays()
 	_refresh_hud()
 	_sync_replay_bar()
 
@@ -123,22 +187,43 @@ func start_battle() -> void:
 	replay_log = null
 	$Mid/ReplayBar.visible = false
 	battle = Battle.create_duel(session.fit.duplicate_fit(), session.enemy_hull_id,
-		int(Time.get_ticks_usec()) % 1000000007)
+		int(Time.get_ticks_usec()) % 1000000007, session.map_id)
 	# Every battle is recorded. A log is small, it is written from the one
 	# command path, and it is the difference between "it did something odd"
 	# and a bug someone else can reproduce (docs/11).
 	battle.log = BattleLog.create(battle.player().fit, session.enemy_hull_id,
-		battle.seed_value, float(Catalog.tuning()["combat"]["replay_step"]))
+		battle.seed_value, float(Catalog.tuning()["combat"]["replay_step"]),
+		session.map_id)
+	# Open at the throttle notch the strip will show, so the opening order and
+	# the panel agree without the panel having to be read first.
 	battle.apply_command(0, "order", [battle.player().heading,
-		float($Left/ShipPanel/V/Throttle/Slider.value)])
+		float(OPENING_THROTTLE_NOTCH) / float(THROTTLE_NOTCHES)])
 	_world().bind_battle(battle)
 	paused = false
 	_report_lines = []
 	$Mid/Actions/Pause.text = "Pause"
 	$Mid/ViewPanel/Stack/EndOverlay.visible = false
 	_build_weapon_rows()
-	_sync_pitch_ui()
+	_bind_displays()
 	_refresh_hud()
+
+
+## Point the two ship displays at their ships. Own ship gets box by box detail
+## and takes clicks; the target gets neither, because reading an enemy's
+## internals is what a sensor lock will buy (CLAUDE.md 6.1: one component,
+## configured, never a second one).
+func _bind_displays() -> void:
+	if battle == null:
+		return
+	var me: ShipState = battle.player()
+	$Right/OwnPanel/V/Display.bind_ship(me, true, true)
+	$Right/TargetDisplayPanel/V/Display.bind_ship(battle.target_for(me), false, false)
+	# A tractor beam is a relationship between two ships, so the panel that draws
+	# it needs the battle. Everything else it draws comes from the one ship.
+	$Right/FightPanel.battle = battle
+	$Left/KeepPanel.battle = battle
+	$Right/FightPanel.show_station($Right/FightTabs.selected(), me)
+	$Left/KeepPanel.show_station($Left/KeepTabs.selected(), me)
 
 
 func _build_weapon_rows() -> void:
@@ -152,6 +237,37 @@ func _build_weapon_rows() -> void:
 		_weapon_rows.append(row)
 
 
+## Keep the plan inset looking straight down at the midpoint between the two
+## ships. It used to be nailed to the world origin, which meant that once the
+## pair drifted toward a corner of the arena they sat jammed against the edge
+## of a 128 pixel readout with most of it empty.
+##
+## The size is deliberately fixed rather than zoomed to fit: a display whose
+## scale changes under you is hard to read distance off, and at this size the
+## fixed frame already holds the two ships apart at almost any separation they
+## reach. So the inset pans and never zooms.
+func _track_plan_camera() -> void:
+	if battle == null:
+		return
+	var mid: Vector2 = (battle.player().pos + battle.enemy().pos) * 0.5
+	var cam: Camera3D = $Mid/ViewPanel/Stack/InsetFrame/InsetContainer/Inset/PlanCamera
+	cam.look_at_from_position(
+		Vector3(mid.x, 60, mid.y), Vector3(mid.x, 0, mid.y), Vector3(0, 0, 1))
+
+
+## Escape pauses, and it is the only key this screen claims. It is handled as
+## unhandled input so a control that genuinely wants the key can take it first,
+## and it is ignored while the screen is hidden so it cannot pause a battle the
+## player is not looking at (CLAUDE.md 6.2).
+func _unhandled_input(event: InputEvent) -> void:
+	if not visible or battle == null:
+		return
+	if event is InputEventKey and event.pressed and not event.echo \
+			and event.keycode == KEY_ESCAPE:
+		_toggle_pause()
+		get_viewport().set_input_as_handled()
+
+
 func _physics_process(delta: float) -> void:
 	if battle == null or not visible:
 		return
@@ -163,6 +279,7 @@ func _physics_process(delta: float) -> void:
 		events = battle.step(delta)
 	_world().update_visuals(delta, events)
 	_world().follow_pivot(delta)
+	_track_plan_camera()
 	for e in events:
 		# Every event that narrates itself gets narrated: shots, launches,
 		# interceptions, and drones running out of fuel.
@@ -180,15 +297,24 @@ func _physics_process(delta: float) -> void:
 ## Clicking to one side of the ship turns it that way. The ship is the anchor,
 ## so the gesture is "come left" or "come right" rather than "fly to this
 ## point", which is what a helm order actually is.
+## Steer toward the point clicked, not merely to one side of the ship.
+##
+## The click is projected onto the battle plane, and the ship is ordered onto
+## the bearing from its own position to that point. The previous version only
+## read which side of the ship the click landed on and nudged the heading by a
+## fixed step, so pointing at somewhere specific did not take the ship there.
 func _helm_click(at: Vector2) -> void:
 	var me: ShipState = battle.player()
-	var here: Vector2 = _world().screen_pos(me.pos)
-	var step: float = float(Catalog.tuning()["combat"]["helm_click_turn_deg"])
-	var side: float = 1.0 if at.x >= here.x else -1.0
-	var heading: float = me.ordered_heading + side * step
+	var point: Vector2 = _world().plane_point(at)
+	if is_nan(point.x) or is_nan(point.y):
+		return
+	var to_point: Vector2 = point - me.pos
+	# A click on the ship itself has no direction in it; hold the current order.
+	if to_point.length() < 0.001:
+		return
+	var heading: float = Sectors.bearing_between(me.pos, point)
 	if battle.apply_command(0, "order", [heading, me.ordered_throttle]):
-		_note("Helm: come %s to %03d" % [
-			"starboard" if side > 0.0 else "port", int(Sectors.wrap_deg(heading))])
+		_note("Helm: come to %03d" % int(Sectors.wrap_deg(heading)))
 
 
 # ---- replay ------------------------------------------------------------------
@@ -307,39 +433,176 @@ func _on_view_input(event: InputEvent) -> void:
 	if battle == null:
 		return
 	var world: Node3D = _world()
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+	# Godot emits a press AND a release for every wheel notch, so without the
+	# pressed guard each notch would zoom twice.
+	if event is InputEventMouseButton and event.pressed and (
+			event.button_index == MOUSE_BUTTON_WHEEL_UP
+			or event.button_index == MOUSE_BUTTON_WHEEL_DOWN):
+		var dir: float = -1.0 if event.button_index == MOUSE_BUTTON_WHEEL_UP else 1.0
+		world.zoom(dir * float(Catalog.tuning()["camera"]["zoom_step"]))
+		return
+	# Pinch. InputEventMagnifyGesture is not delivered by the web export, which
+	# is a shipping target, so the two finger distance is tracked by hand and
+	# the gesture event is treated as a bonus when a platform does send it.
+	if event is InputEventMagnifyGesture:
+		world.zoom((1.0 - event.factor) * float(
+			Catalog.tuning()["camera"]["zoom_pinch_scale"]))
+		return
+	if event is InputEventScreenTouch:
 		if event.pressed:
-			_dragging = true
+			_touches[event.index] = event.position
+		else:
+			_touches.erase(event.index)
+		_pinch_span = -1.0
+		return
+	if event is InputEventScreenDrag:
+		_touches[event.index] = event.position
+		if _touches.size() == 2:
+			var keys: Array = _touches.keys()
+			var span: float = (_touches[keys[0]] as Vector2).distance_to(
+				_touches[keys[1]])
+			if _pinch_span > 0.0:
+				world.zoom((_pinch_span - span) * float(
+					Catalog.tuning()["camera"]["zoom_touch_scale"]))
+			_pinch_span = span
+			return
+	# The right button does both camera and targeting, told apart by whether the
+	# pointer moved: hold and drag to look around, click to lock the contact
+	# under the cursor. The lock routes through the same target command the
+	# cycle buttons use, so there is one notion of what is targeted rather than
+	# a second one owned by the mouse.
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_RIGHT:
+		if event.pressed:
+			_orbiting = true
 			_drag_moved = 0.0
 		else:
-			if _dragging and _drag_moved < 6.0 and _can_command():
-				_helm_click(event.position)
-			_dragging = false
-	elif event is InputEventMouseMotion and _dragging:
+			if _orbiting and _drag_moved < DRAG_SLOP:
+				_lock_under_mouse()
+			_orbiting = false
+		return
+	if event is InputEventMouseMotion and _orbiting:
 		_drag_moved += event.relative.length()
-		if _drag_moved >= 6.0:
+		if _drag_moved >= DRAG_SLOP:
 			var cam: Dictionary = Catalog.tuning()["camera"]
 			var speed: float = float(cam["orbit_speed"])
 			world.orbit(-event.relative.x * speed, event.relative.y * speed)
-			_sync_pitch_ui()
+		return
+	# Left is the helm. It fires on press rather than release because the order
+	# is a single point and there is nothing to wait for; the camera no longer
+	# shares this button, so there is no drag to disambiguate from.
+	if event is InputEventMouseButton and event.pressed \
+			and event.button_index == MOUSE_BUTTON_LEFT:
+		# A pinch emits an emulated left click from the first finger, which
+		# would otherwise fling the helm at wherever that finger happened to
+		# land while the player was only zooming.
+		if _touches.size() >= 2:
+			return
+		if _can_command():
+			_helm_click(event.position)
 
 
-func _set_pitch_preset(deg: float) -> void:
-	_world().set_pitch(deg)
-	_sync_pitch_ui()
+## Lock whatever contact the cursor is over, if it is a contact and not us.
+func _lock_under_mouse() -> void:
+	if not _can_command():
+		return
+	var picked: int = _ship_under_mouse()
+	if picked < 0 or battle.ships[picked] == battle.player():
+		return
+	if battle.apply_command(0, "target", [picked]):
+		_note("Locked on %s" % String(
+			battle.ships[picked].fit.hull()["name"]).to_upper())
 
 
-func _sync_pitch_ui() -> void:
-	var world: Node3D = _world()
-	$Mid/CamRow/Pitch.set_value_no_signal(world.pitch())
-	$Mid/CamRow/PitchOut.text = "%d deg" % int(world.pitch())
-	$Mid/CamRow/FloorNote.visible = world.at_pitch_floor()
-	$Mid/CamRow/FloorNote.add_theme_color_override("font_color", Palette.AMBER)
-
-
-func _on_power_slider(value: float, sink: String) -> void:
+## A station was opened. The panel is told which ship it is drawing here rather
+## than holding one, so the same panel serves a live battle and a replay.
+func _on_station_selected(id: String, panel: Node) -> void:
 	if battle != null:
-		battle.apply_command(0, "power", [sink, value])
+		panel.show_station(id, battle.player())
+
+
+## Order a repair. Routed through apply_command like every other order, so a
+## recording sees it and a replay puts the ship back together the same way.
+func _on_repair_requested(index: int) -> void:
+	if battle == null or not _can_command():
+		return
+	if battle.apply_command(0, "repair_queue", [index]):
+		var sys: Dictionary = battle.player().systems[index]
+		_note("Repair: %s queued, %d parts" % [String(sys["code"]),
+			RepairModel.job_cost(sys, Catalog.tuning())])
+
+
+func _on_repair_dropped(index: int) -> void:
+	if battle == null or not _can_command():
+		return
+	if battle.apply_command(0, "repair_drop", [index]):
+		_note("Repair: %s cancelled" % String(battle.player().systems[index]["code"]))
+
+
+## Which shield the regeneration energy is buying for (Federation Commander
+## 3C7). Clicking the facing already picked releases it back to the weakest.
+func _on_regen_facing_picked(facing: int) -> void:
+	if battle == null or not _can_command():
+		return
+	var want: int = -1 if battle.player().shield_bias == facing else facing
+	if battle.apply_command(0, "shield_bias", [want]):
+		_note("Shields: hold #%d" % (facing + 1) if want >= 0 else "Shields: even")
+
+
+## Right click on a subsystem: what losing it costs. It goes to the comm log
+## rather than to a popover, because the log is already the place this screen
+## says things and a second one would be a second implementation.
+func _on_system_detail(index: int) -> void:
+	if battle == null:
+		return
+	var sys: Dictionary = battle.player().systems[index]
+	var tuning: Dictionary = Catalog.tuning()
+	var where: String = "core" if int(sys["sector"]) < 0 \
+		else "#%d" % (int(sys["sector"]) + 1)
+	if RepairModel.repairable(sys, tuning):
+		_note("%s %s: %d/%d, %d parts to fix" % [String(sys["code"]), where,
+			int(sys["boxes"]), int(sys["boxes_max"]),
+			RepairModel.job_cost(sys, tuning)])
+	else:
+		_note("%s %s: %d/%d, undamaged" % [String(sys["code"]), where,
+			int(sys["boxes"]), int(sys["boxes_max"])])
+
+
+## A box strip reports the level it was clicked to, which is already the whole
+## number of reactor points the sim wants. No rounding happens at the view.
+func _on_power_picked(level: int, sink: String) -> void:
+	if battle != null:
+		battle.apply_command(0, "power", [sink, float(level)])
+
+
+## The three tractor orders. Like every other order on this screen they go
+## through Battle.apply_command, so a recording sees them and a replay repeats
+## them (docs/11).
+func _on_tractor_latch() -> void:
+	if battle == null:
+		return
+	var target: ShipState = battle.target_for(battle.player())
+	var index: int = battle.ships.find(target)
+	if index >= 0:
+		battle.apply_command(0, "tractor_latch", [index])
+
+
+func _on_tractor_release() -> void:
+	if battle != null:
+		battle.apply_command(0, "tractor_release", [])
+
+
+func _on_tractor_mode(mode: String) -> void:
+	if battle != null:
+		battle.apply_command(0, "tractor_mode", [mode])
+
+
+## Throttle is stored as a 0 to 1 fraction, so the notch count is the only
+## place the discretisation lives.
+func _on_throttle_picked(level: int) -> void:
+	if battle == null:
+		return
+	var frac: float = float(level) / float(THROTTLE_NOTCHES)
+	battle.apply_command(0, "order", [battle.player().ordered_heading, frac])
 
 
 ## Sim mutating commands are gated on pause and battle end, matching the
@@ -482,6 +745,10 @@ func _refresh_hud() -> void:
 	var foe: ShipState = battle.enemy()
 
 	$Left/ShipPanel/V/Head.text = String(me.fit.hull()["name"]).to_upper()
+	$Left/ShipPanel/V/Throttle/Boxes.paint(
+		int(roundf(me.ordered_throttle * float(THROTTLE_NOTCHES))), THROTTLE_NOTCHES)
+	$Left/ShipPanel/V/Throttle/Out.text = "%d" % int(
+		roundf(me.ordered_throttle * float(THROTTLE_NOTCHES)))
 	$Left/ShipPanel/V/Body.text = "\n".join([
 		"BOXES  %d / %d" % [me.total_boxes(), me.total_boxes_max()],
 		"SPEED  %.1f / %.1f" % [me.speed, me.max_speed()],
@@ -491,12 +758,17 @@ func _refresh_hud() -> void:
 	var out: float = me.power_output()
 	$Left/PowerPanel/V/Head.text = "POWER  %d / %d" % [int(out),
 		int(me.fit.hull()["budgets"]["power"])]
+	# The strip is as long as the reactor's SURVIVING output, so losing power
+	# boxes visibly shortens every row instead of silently rescaling them.
+	# One box per point of the hull's reactor budget, and the boxes past what
+	# the reactor still puts out are drawn as shot away, so damage shortens the
+	# usable strip in front of the player instead of quietly rescaling it.
+	var budget: int = int(me.fit.hull()["budgets"]["power"])
+	var ceiling: int = int(floorf(out))
 	for sink in ["Weapons", "Shields", "Engines", "Systems", "Reserve"]:
 		var row: HBoxContainer = $Left/PowerPanel/V.get_node(sink)
-		var slider: HSlider = row.get_node("Slider")
 		var units: float = me.alloc_units(sink.to_lower())
-		slider.max_value = maxf(out, 0.001)
-		slider.set_value_no_signal(units)
+		row.get_node("Boxes").paint(int(roundf(units)), budget, ceiling)
 		row.get_node("Out").text = str(int(roundf(units)))
 
 	var dmg: Array[String] = []
@@ -507,16 +779,13 @@ func _refresh_hud() -> void:
 	$Left/DamagePanel/V/Body.text = "No damage." if dmg.is_empty() else "\n".join(dmg)
 	$Left/DamagePanel/V/CommLog.text = "\n".join(_report_lines.slice(-6))
 
-	var dist: float = me.pos.distance_to(foe.pos)
-	var bearing: float = Sectors.bearing_between(me.pos, foe.pos)
-	$Right/TargetPanel/V/Body.text = "\n".join([
-		"CONTACT  %s" % String(foe.fit.hull()["name"]),
-		"BOXES  %d / %d" % [foe.total_boxes(), foe.total_boxes_max()],
-		"RANGE  %.1f" % dist,
-		"BEARING  %03d" % int(bearing),
-	])
-	for f in range(6):
-		$Right/TheirShields/V.get_node("S%d" % f).paint(f, foe.shields[f], foe.shield_max)
+	_refresh_target_readout(me, foe)
+	$Right/OwnPanel/V/Display.refresh()
+	$Right/TargetDisplayPanel/V/Display.refresh()
+	$Right/FightTabs.refresh(me.systems, me.repair_queue)
+	$Left/KeepTabs.refresh(me.systems, me.repair_queue)
+	$Right/FightPanel.refresh()
+	$Left/KeepPanel.refresh()
 
 	for i in range(_weapon_rows.size()):
 		var w: Dictionary = me.weapons_rt[i]
@@ -531,6 +800,39 @@ func _refresh_hud() -> void:
 		Palette.OK if me.battery >= 1.0 else Palette.DIM)
 
 
+## The contact readout, and what it says when the sensors cannot hold a lock.
+##
+## A nebula does not delete the enemy, it stops you measuring them, so the panel
+## keeps the last reading rather than blanking. The numbers go dim and the age
+## of the reading is printed, which is the difference between "he is at 18.4"
+## and "he WAS at 18.4, three seconds ago". Hiding the readout instead would
+## read as a bug, and blanking the numbers would throw away the only
+## information a captain still has.
+##
+## Whether the lock holds is asked of the ship, which asks the terrain. The
+## firing check asks the same question through the same call, so a contact that
+## cannot be shot at is never shown as one that can (CLAUDE.md 4.1).
+func _refresh_target_readout(me: ShipState, foe: ShipState) -> void:
+	var seen: bool = me.can_see(foe.pos)
+	if seen:
+		_last_seen_range = me.pos.distance_to(foe.pos)
+		_last_seen_bearing = Sectors.bearing_between(me.pos, foe.pos)
+		_last_seen_at = battle.time
+	# Range and bearing share a line: a five mount hull needs five weapon rows
+	# below, and at the bitmap face's fixed size the column has no spare row.
+	var body: Label = $Right/TargetPanel/V/Body
+	body.text = "\n".join([
+		"CONTACT  %s" % String(foe.fit.hull()["name"]),
+		"BOXES  %d / %d" % [foe.total_boxes(), foe.total_boxes_max()],
+		"RANGE  %.1f   BRG  %03d" % [_last_seen_range, int(_last_seen_bearing)],
+	])
+	body.add_theme_color_override("font_color", Palette.FG if seen else Palette.DIM)
+	var lock: Label = $Right/TargetPanel/V/Lock
+	lock.visible = not seen
+	lock.text = "SENSOR LOCK LOST   %.1fs" % [battle.time - _last_seen_at]
+	lock.add_theme_color_override("font_color", Palette.CRIT)
+
+
 func _position_ship_labels() -> void:
 	if battle == null:
 		return
@@ -543,6 +845,9 @@ func _position_ship_labels() -> void:
 	stack.get_node("PlayerLabel").position = p + Vector2(-30, -46)
 	stack.get_node("PlayerLabel").text = String(me.fit.hull()["name"]).to_upper()
 	stack.get_node("PlayerLabel").add_theme_color_override("font_color", Palette.CYAN)
+	# Which shields are down is a sensor reading like any other, so it goes with
+	# the lock rather than surviving it.
+	var seen: bool = me.can_see(foe.pos)
 	var q: Vector2 = world.screen_pos(foe.pos)
 	stack.get_node("EnemyLabel").position = q + Vector2(-34, -58)
 	stack.get_node("EnemyLabel").text = String(foe.fit.hull()["name"]).to_upper()
@@ -553,8 +858,88 @@ func _position_ship_labels() -> void:
 		if foe.shields[f] <= 0.0:
 			downs.append("#%d" % (f + 1))
 	status.position = q + Vector2(-40, -42)
-	status.text = "" if downs.is_empty() else "SHIELD %s DOWN" % " ".join(downs)
+	status.text = "" if downs.is_empty() or not seen else "SHIELD %s DOWN" % " ".join(downs)
 	status.add_theme_color_override("font_color", Palette.AMBER)
+	_refresh_brackets(world, stack)
+
+
+## Draw a marker over each ship: faint corners under the cursor, a full
+## bracket with name and hull bar on the one that is actually targeted.
+##
+## The bracket is sized from the ship's own projected extent rather than a
+## fixed pixel box, so it hugs a frigate and opens out around a battlecruiser,
+## and it keeps doing so as the camera zooms.
+func _refresh_brackets(world: Node3D, stack: Control) -> void:
+	var picked: int = _ship_under_mouse()
+	var target: ShipState = battle.target_for(battle.player())
+	for i in range(battle.ships.size()):
+		if i >= BRACKET_COUNT:
+			break
+		var ship: ShipState = battle.ships[i]
+		var bracket: Control = stack.get_node("Bracket%d" % i)
+		# A contact the sensors cannot hold is not drawn. The bracket carries a
+		# name and a hull bar, which are exactly the readings a broken lock has
+		# taken away, so drawing it would claim knowledge the ship does not have.
+		var seen: bool = i == 0 or battle.player().can_see(ship.pos)
+		var state: int = TargetBracket.State.HIDDEN
+		if seen and ship.alive and target != null and ship == target:
+			state = TargetBracket.State.LOCKED
+		elif seen and ship.alive and i == picked:
+			state = TargetBracket.State.HOVER
+		# A locked bracket carries the ship's name itself, so the floating label
+		# for that ship stands down rather than printing the name twice on top
+		# of itself. An unseen contact loses the label too: the readout is where
+		# a stale position belongs, not floating over a hull nobody can find.
+		var label: String = "PlayerLabel" if i == 0 else "EnemyLabel"
+		stack.get_node(label).visible = seen and state != TargetBracket.State.LOCKED
+		if state == TargetBracket.State.HIDDEN:
+			bracket.visible = false
+			continue
+		var half: float = _ship_screen_radius(world, ship)
+		var centre: Vector2 = world.screen_pos(ship.pos)
+		bracket.size = Vector2(half * 2.0, half * 2.0)
+		bracket.position = centre - Vector2(half, half)
+		bracket.show_target(state, String(ship.fit.hull()["name"]).to_upper(),
+			float(ship.total_boxes()) / maxf(1.0, float(ship.total_boxes_max())),
+			Palette.CYAN if i == 0 else Palette.MAGENTA)
+
+
+## Half the ship's on screen size, measured by projecting a point one hull
+## radius to its side. Doing it from the projection rather than from a constant
+## means the bracket tracks zoom and perspective without a second scale factor
+## to keep in step with the camera.
+func _ship_screen_radius(world: Node3D, ship: ShipState) -> float:
+	var r: float = float(ship.fit.hull()["tonnage"]) \
+		* float(Catalog.tuning()["view"]["bracket_radius_per_ton"])
+	var centre: Vector2 = world.screen_pos(ship.pos)
+	var edge: Vector2 = world.screen_pos(ship.pos + Vector2(r, 0.0))
+	return clampf(centre.distance_to(edge), BRACKET_MIN_PX, BRACKET_MAX_PX)
+
+
+## Which ship the cursor is over, or -1. Picking is done in screen space
+## against the same projection the brackets are drawn from, so what lights up
+## is exactly what is under the pointer.
+func _ship_under_mouse() -> int:
+	var container: Control = $Mid/ViewPanel/Stack/ViewContainer
+	if not container.get_global_rect().has_point(container.get_global_mouse_position()):
+		return -1
+	var world: Node3D = _world()
+	var mouse: Vector2 = container.get_local_mouse_position()
+	var best: int = -1
+	var best_d: float = INF
+	for i in range(battle.ships.size()):
+		var ship: ShipState = battle.ships[i]
+		if not ship.alive:
+			continue
+		# A contact you cannot hold a lock on cannot be picked either. Otherwise
+		# a player could right click a hull the guns will then refuse to fire on.
+		if i != 0 and not battle.player().can_see(ship.pos):
+			continue
+		var d: float = mouse.distance_to(world.screen_pos(ship.pos))
+		if d < _ship_screen_radius(world, ship) + BRACKET_PICK_SLACK and d < best_d:
+			best_d = d
+			best = i
+	return best
 
 
 func _note(line: String) -> void:

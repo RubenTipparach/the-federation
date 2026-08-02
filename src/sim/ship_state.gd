@@ -39,10 +39,59 @@ var battery: float = 0.0
 
 var alive: bool = true
 
-## The facing the shield engineer is favouring. Its regeneration is weighted,
-## which is the cheap version of Federation Commander's shield reinforcement
-## decision made continuously rather than once per impulse.
+## The world this ship is flying in. Every terrain question a ship asks goes
+## through here, so firing, the AI, and the target bracket cannot disagree about
+## whether a contact is visible (CLAUDE.md 4.1). A bare ShipState outside a
+## battle flies in an empty arena, which is why this is never null.
+var terrain: Terrain = Terrain.new()
+
+## Velocity a gravity well is giving the ship. Added to the heading vector
+## during integration, so the ship keeps pointing where it was told and slides
+## (docs/13 section 4.1).
+var drift: Vector2 = Vector2.ZERO
+
+## Velocity a tractor beam is imposing, and what it is easing toward. The target
+## is cleared every step and rewritten by whatever beam is on this hull, so a
+## beam that snaps stops towing without anything having to remember that it
+## existed (Battle._step_tractors).
+var tow: Vector2 = Vector2.ZERO
+var tow_target: Vector2 = Vector2.ZERO
+
+## Seconds before this hull can be hurt by running into something again, so
+## resting against a rock is not damage every tick.
+var collision_grace: float = 0.0
+
+## Micrometeor damage banked but not yet worth a whole point. See
+## Battle._apply_grind for why dust is not applied every tick.
+var grind_credit: float = 0.0
+
+## The facing the shield engineer is buying boxes for. Federation Commander
+## 3C7 makes regeneration a purchase aimed at one shield at a time, so this is
+## the choice of which shield, not a weighting.
 var shield_bias: int = -1
+
+## Energy the shields sink has accrued toward the next shield box. A box
+## arrives when this reaches the price; nothing arrives if the sink is empty,
+## because under 3C7 nothing comes back unbought.
+var shield_credit: float = 0.0
+
+## Spare parts still aboard, and the stock the hull sailed with. Repair spends
+## this and nothing refills it in flight: restocking happens at a base.
+var parts: int = 0
+var parts_max: int = 0
+
+## How many boxes the damage control parties can work in parallel, expressed
+## as a rate multiplier. Federation Commander 5G1 says the rating is not
+## reduced by damage, so neither is this.
+var damage_control: int = 1
+
+## Indices into `systems`, in the order they will be worked. Only the head is
+## under way: 5G4 requires a box to be finished before work moves elsewhere.
+var repair_queue: Array[int] = []
+
+## Seconds of work banked toward the head job's current box. Reset when a box
+## completes, so a job that is dropped and requeued does not carry credit.
+var repair_progress: float = 0.0
 
 
 static func _make_system(entry: Array, sector: int) -> Dictionary:
@@ -79,6 +128,9 @@ static func create(p_fit: ShipFit, p_rng: RandomNumberGenerator, ai_ship: bool =
 			"charge": 0.0,
 		})
 	s.split = PowerModel.default_split(ai_ship)
+	s.parts_max = int(h.get("spare_parts", 0))
+	s.parts = s.parts_max
+	s.damage_control = int(h.get("damage_control", 1))
 	return s
 
 
@@ -141,6 +193,17 @@ func boxes_in(sector: int) -> int:
 	return n
 
 
+## Boxes still standing in the named system, summed over every sector that
+## carries one. Zero means the system is out, which is how the tractor knows its
+## emitter is dead and how any other system check should ask.
+func system_boxes(code: String) -> int:
+	var n: int = 0
+	for sys in systems:
+		if String(sys["code"]) == code:
+			n += int(sys["boxes"])
+	return n
+
+
 func mount_disabled(index: int) -> bool:
 	var mount_id: String = String(weapons_rt[index]["mount"]["id"])
 	for sys in systems:
@@ -168,9 +231,11 @@ func set_order(p_heading: float, p_throttle: float) -> void:
 
 
 func step(dt: float, tuning: Dictionary) -> void:
+	collision_grace = maxf(0.0, collision_grace - dt)
 	if not alive:
 		speed = maxf(0.0, speed - float(tuning["combat"]["dead_ship_decel"]) * dt)
-		pos += Vector2(sin(deg_to_rad(heading)), cos(deg_to_rad(heading))) * speed * dt
+		_step_drift(dt, tuning)
+		pos += velocity() * dt
 		return
 	var combat: Dictionary = tuning["combat"]
 
@@ -188,7 +253,8 @@ func step(dt: float, tuning: Dictionary) -> void:
 	var accel: float = float(fit.hull()["accel"]) * maxf(
 		eng_share, float(combat["min_accel_factor"]))
 	speed = move_toward(speed, target_speed, accel * dt)
-	pos += Vector2(sin(deg_to_rad(heading)), cos(deg_to_rad(heading))) * speed * dt
+	_step_drift(dt, tuning)
+	pos += velocity() * dt
 
 	# Weapon capacitors charge at a rate scaled by the weapons power share.
 	var draw: float = maxf(fit.total_weapon_draw(), 0.001)
@@ -200,25 +266,156 @@ func step(dt: float, tuning: Dictionary) -> void:
 		var reload: float = float(w["weapon"]["reload"])
 		w["charge"] = minf(1.0, float(w["charge"]) + dt / reload * wpn_factor)
 
-	# Shield regeneration split evenly across facings, scaled by shields power.
-	var shd_share: float = clampf(
-		alloc_units("shields") / float(combat["shield_power_demand"]), 0.0,
-		float(combat["overdrive_cap"]))
-	# Regeneration is shared out across the six facings, weighted toward the
-	# biased one if the engineer has picked a side to hold.
-	var regen: float = float(combat["shield_regen_per_sec"]) * shd_share * dt
-	var bias_weight: float = float(combat["shield_bias_weight"])
-	var weights: float = float(shields.size())
-	if shield_bias >= 0 and shield_bias < shields.size():
-		weights += bias_weight - 1.0
-	for i in range(shields.size()):
-		var share: float = bias_weight if i == shield_bias else 1.0
-		shields[i] = minf(shield_max, shields[i] + regen * float(shields.size())
-			* share / weights)
+	_step_shield_regen(dt, combat)
+	_step_repair(dt, tuning)
 
 	# Reserve power charges the battery that pays for shield reinforcement.
 	battery = minf(1.0, battery + dt * alloc_units("reserve")
 		* float(combat["battery_charge_per_reserve_unit"]))
+
+
+func heading_vector() -> Vector2:
+	return Vector2(sin(deg_to_rad(heading)), cos(deg_to_rad(heading)))
+
+
+## What the ship would be doing under its own power in the world it is in: the
+## motion a tractor has to argue with. Kept separate from velocity() so the tow
+## a beam computes does not feed back into the tow it computed last frame.
+func engine_velocity() -> Vector2:
+	return heading_vector() * speed + drift
+
+
+## Where the hull is actually going: what the engines are doing plus everything
+## dragging it. One answer, used by integration, by the dust that grinds the
+## leading facing, and by anything that needs to draw a velocity.
+func velocity() -> Vector2:
+	return engine_velocity() + tow
+
+
+## Ease the carried velocities toward what the world and any tractor are asking
+## for, and toward nothing when nothing is asking. Easing rather than
+## integrating a force keeps this stable at any timestep, which a replay depends
+## on (docs/13 sections 4.1 and 6.3).
+func _step_drift(dt: float, tuning: Dictionary) -> void:
+	if not (terrain.features.is_empty() and drift == Vector2.ZERO):
+		var want: Vector2 = terrain.pull_at(pos)
+		var rate: float = float(tuning["terrain"]["drift_accel"]) * dt
+		drift = Vector2(
+			move_toward(drift.x, want.x, rate),
+			move_toward(drift.y, want.y, rate))
+	if tow == Vector2.ZERO and tow_target == Vector2.ZERO:
+		return
+	var blend: float = float(tuning["tractor"]["blend_rate"]) * dt
+	tow = Vector2(
+		move_toward(tow.x, tow_target.x, blend),
+		move_toward(tow.y, tow_target.y, blend))
+
+
+## The range the gunnery computer believes it is shooting at: the true distance
+## plus whatever cloud is in the way. Every range decision a ship makes reads
+## this rather than pos.distance_to, so nebulae degrade gunnery through the one
+## falloff rule WeaponModel already owns.
+func apparent_range_to(target_pos: Vector2) -> float:
+	return terrain.apparent_range(pos, target_pos, pos.distance_to(target_pos))
+
+
+## Whether a lock can be held on a point at all. The firing check and the target
+## bracket both call this, so a contact that cannot be shot at cannot be drawn.
+func can_see(target_pos: Vector2) -> bool:
+	return not terrain.lock_broken(pos, target_pos)
+
+
+## Shield boxes are bought, not handed back. Federation Commander 3C7: "you can
+## pay two Energy Tokens to regenerate (remove the disabled mark from) any one
+## shield box on any one shield." Energy from the shields sink accrues here and
+## buys whole boxes at a fixed price, one facing at a time, so a player who
+## spends nothing on shields gets nothing back. The old version handed out a
+## free trickle, which the rule does not allow.
+func _step_shield_regen(dt: float, combat: Dictionary) -> void:
+	shield_credit += alloc_units("shields") * dt
+	var price: float = maxf(0.001, float(combat["shield_energy_per_box"])
+		* float(combat["shield_power_demand"]))
+	while shield_credit >= price:
+		var facing: int = _regen_facing()
+		if facing < 0:
+			# Nothing to buy. Credit is capped at one box so a long lull with
+			# full shields cannot bank a free instant repair later.
+			shield_credit = minf(shield_credit, price)
+			return
+		shields[facing] = minf(shield_max, shields[facing] + 1.0)
+		shield_credit -= price
+
+
+## Which shield the next box goes to: the one the engineer picked if it still
+## needs boxes, otherwise the weakest that does. 3C7 is a choice of shield, and
+## defaulting to the weakest is the choice a player would make anyway.
+func _regen_facing() -> int:
+	if shield_bias >= 0 and shield_bias < shields.size() \
+			and shields[shield_bias] < shield_max:
+		return shield_bias
+	var worst: int = -1
+	for i in range(shields.size()):
+		if shields[i] >= shield_max:
+			continue
+		if worst < 0 or shields[i] < shields[worst]:
+			worst = i
+	return worst
+
+
+## Work the head of the repair queue. One box at a time, priced per box, paid
+## for out of the parts aboard (5G3, 5G4). A job whose parts are not aboard
+## stalls in place rather than being dropped, because an earlier job finishing
+## does not free parts but a restock would.
+func _step_repair(dt: float, tuning: Dictionary) -> void:
+	while not repair_queue.is_empty():
+		var index: int = repair_queue[0]
+		if index < 0 or index >= systems.size():
+			repair_queue.pop_front()
+			repair_progress = 0.0
+			continue
+		var sys: Dictionary = systems[index]
+		if not RepairModel.repairable(sys, tuning):
+			repair_queue.pop_front()
+			repair_progress = 0.0
+			continue
+		var family: String = String(sys["family"])
+		var price: int = RepairModel.parts_per_box(family, tuning)
+		if parts < price:
+			return
+		repair_progress += dt * float(damage_control)
+		var needed: float = RepairModel.seconds_per_box(family, tuning)
+		if repair_progress < needed:
+			return
+		repair_progress -= needed
+		parts -= price
+		sys["boxes"] = mini(int(sys["boxes"]) + 1, int(sys["boxes_max"]))
+		# The loop goes round so a queue can finish a job and start the next in
+		# the same frame, which matters at large dt when a replay is scrubbed.
+
+
+## Put a system in the repair queue. Refuses anything undamaged, anything
+## already queued, and anything whose family repair does not cover.
+func queue_repair(index: int, tuning: Dictionary) -> bool:
+	if index < 0 or index >= systems.size():
+		return false
+	if repair_queue.has(index):
+		return false
+	if not RepairModel.repairable(systems[index], tuning):
+		return false
+	repair_queue.append(index)
+	return true
+
+
+## Take a system out of the queue. Dropping the head abandons the box being
+## worked on, and the parts already spent on finished boxes stay spent.
+func drop_repair(index: int) -> bool:
+	var at: int = repair_queue.find(index)
+	if at < 0:
+		return false
+	repair_queue.remove_at(at)
+	if at == 0:
+		repair_progress = 0.0
+	return true
 
 
 # ---- firing ------------------------------------------------------------------
@@ -232,7 +429,9 @@ func fire_check(index: int, target_pos: Vector2) -> Dictionary:
 		return { "ok": false, "reason": "destroyed" }
 	if float(w["charge"]) < 1.0:
 		return { "ok": false, "reason": "charging" }
-	if pos.distance_to(target_pos) > WeaponModel.max_range(w["weapon"]):
+	if not can_see(target_pos):
+		return { "ok": false, "reason": "no lock" }
+	if apparent_range_to(target_pos) > WeaponModel.max_range(w["weapon"]):
 		return { "ok": false, "reason": "range" }
 	var rel: float = Sectors.relative_bearing(Sectors.bearing_between(pos, target_pos), heading)
 	if not fit.effective_field(w["mount"]).has(Sectors.sector_of_bearing(rel)):
@@ -247,8 +446,10 @@ func fire_at(index: int, target: ShipState) -> Dictionary:
 	var distance: float = pos.distance_to(target.pos)
 	# Range decides both whether the shot connects and what it scores, so a
 	# weapon fired at its extreme edge is worth less than the same weapon
-	# fired point blank (WeaponModel).
-	var damage: int = WeaponModel.roll_damage(w["weapon"], distance, rng)
+	# fired point blank (WeaponModel). Cloud between the two hulls counts as
+	# extra range, which is the whole of the nebula's effect on gunnery.
+	var damage: int = WeaponModel.roll_damage(
+		w["weapon"], apparent_range_to(target.pos), rng)
 	var arrive_bearing: float = Sectors.bearing_between(target.pos, pos)
 	var log_lines: Array[String] = []
 	# -1 means nothing was struck, so a miss cannot light a shield up.

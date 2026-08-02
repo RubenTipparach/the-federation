@@ -1,16 +1,19 @@
 {
   "_comment": "Hull catalog. Mounts own the arc: field is the sector list the mount can fire into (12 sectors of 30 degrees, 0 dead ahead, clockwise), families is what may be fitted, size caps the weapon size. base_load is what the bare hull consumes from each budget before weapons. mesh names the committed .obj the tactical view instances for this hull.",
+  "_repairs": "damage_control is how fast the ship fixes itself and spare_parts is how much fixing it can pay for before it has to restock at a base. Federation Commander 5G1 gives a ship repair points every turn forever, because a scenario ends; ours is a ship that flies out and comes home, so the income becomes a stock that empties. Costs and durations per box live in data/tuning.json under repair. See docs/09-reference-federation-commander.md section 5.",
   "_internals": "Internals are grouped the way the ship systems display shows them and the way damage resolves. sectors is six lists, one per shield facing, numbered 1 to 6 from the bow clockwise, and each entry is [code, boxes, family] with an optional mount id linking a weapon to its mount so destroying the boxes disables it. core is the shared hull volume behind every facing: it has no shield of its own and only takes damage once the struck sector has nothing left, which is Federation Commander's hull rule generalised to six sections. See docs/09-reference-federation-commander.md.",
   "hulls": {
     "wayfarer": {
       "name": "Wayfarer Mk III", "cls": "Heavy Cruiser", "tonnage": 120, "playable": true,
       "note": "Broadside beams, recursive shields. 5 mounts.",
       "mesh": "res://assets/meshes/hull_cruiser.obj",
+      "material": "res://assets/materials/mat_hull_cruiser.tres",
       "cargo_space": 30,
+      "damage_control": 2, "spare_parts": 20,
       "budgets": { "space": 140, "power": 42, "mass": 140, "crew": 145 },
       "base_load": { "space": 85, "mass": 104, "crew": 110, "power_draw": 21 },
       "shield_per_facing": 24,
-      "max_speed": 5.0, "accel": 1.6, "turn_rate_deg": 26.0,
+      "max_speed": 20, "accel": 6.4, "turn_rate_deg": 26.0,
       "mounts": [
         { "id": "M1", "pos": "Fore spinal", "size": "Heavy", "families": ["torpedo", "lance"], "field": [11, 0], "default": "photon" },
         { "id": "M2", "pos": "Fore starboard", "size": "Medium", "families": ["beam", "disruptor"], "field": [0, 1, 2], "default": "ph1" },
@@ -36,10 +39,11 @@
       "mesh": "res://assets/meshes/hull_frigate.obj",
       "material": "res://assets/materials/mat_hull_frigate.tres",
       "cargo_space": 16,
+      "damage_control": 1, "spare_parts": 10,
       "budgets": { "space": 72, "power": 24, "mass": 70, "crew": 68 },
       "base_load": { "space": 44, "mass": 44, "crew": 52, "power_draw": 12 },
       "shield_per_facing": 14,
-      "max_speed": 7.0, "accel": 2.4, "turn_rate_deg": 40.0,
+      "max_speed": 28, "accel": 9.6, "turn_rate_deg": 40.0,
       "mounts": [
         { "id": "M1", "pos": "Fore port", "size": "Medium", "families": ["beam", "disruptor"], "field": [10, 11, 0], "default": "disruptor" },
         { "id": "M2", "pos": "Fore starboard", "size": "Medium", "families": ["beam", "disruptor"], "field": [0, 1, 2], "default": "disruptor" },
@@ -61,11 +65,13 @@
       "name": "Ironhold", "cls": "Battlecruiser", "tonnage": 200, "playable": true,
       "note": "Lance platform. Slow, armored, murderous ahead.",
       "mesh": "res://assets/meshes/hull_cruiser.obj",
+      "material": "res://assets/materials/mat_hull_ironhold.tres",
       "cargo_space": 44,
+      "damage_control": 3, "spare_parts": 33,
       "budgets": { "space": 200, "power": 60, "mass": 205, "crew": 240 },
       "base_load": { "space": 120, "mass": 148, "crew": 168, "power_draw": 28 },
       "shield_per_facing": 34,
-      "max_speed": 3.6, "accel": 1.0, "turn_rate_deg": 16.0,
+      "max_speed": 14.4, "accel": 4, "turn_rate_deg": 16.0,
       "mounts": [
         { "id": "M1", "pos": "Port spinal", "size": "Heavy", "families": ["lance", "torpedo"], "field": [11, 0], "default": "lance" },
         { "id": "M2", "pos": "Stbd spinal", "size": "Heavy", "families": ["lance", "torpedo"], "field": [0, 1], "default": "photon" },
@@ -91,10 +97,11 @@
       "mesh": "res://assets/meshes/hull_raider.obj",
       "material": "res://assets/materials/mat_hull_raider.tres",
       "cargo_space": 30,
+      "damage_control": 2, "spare_parts": 22,
       "budgets": { "space": 150, "power": 44, "mass": 150, "crew": 150 },
       "base_load": { "space": 92, "mass": 110, "crew": 112, "power_draw": 22 },
       "shield_per_facing": 24,
-      "max_speed": 4.6, "accel": 1.4, "turn_rate_deg": 20.0,
+      "max_speed": 18.4, "accel": 5.6, "turn_rate_deg": 20.0,
       "mounts": [
         { "id": "M1", "pos": "Fore port", "size": "Medium", "families": ["disruptor"], "field": [10, 11, 0], "default": "disruptor" },
         { "id": "M2", "pos": "Fore starboard", "size": "Medium", "families": ["disruptor"], "field": [0, 1, 2], "default": "disruptor" },
@@ -107,7 +114,7 @@
           [["DISR", 4, "weapon", "M2"]],
           [["WARP", 5, "power"]],
           [["PH-3", 2, "weapon", "M4"], ["IMP", 3, "power"]],
-          [["BTTY", 2, "power"], ["TRAN", 2, "control"]],
+          [["BTTY", 2, "power"], ["TRAN", 2, "control"], ["TRAC", 2, "control"]],
           [["DISR", 4, "weapon", "M1"]]
         ],
         "core": [["HULL", 5, "hull"], ["ARMR", 2, "hull"]]
@@ -117,12 +124,13 @@
       "name": "Kthaari Talon", "cls": "Frigate", "tonnage": 40, "playable": false, "ai": true,
       "note": "Escort screen. Quick, thin skinned, single disruptor.",
       "mesh": "res://assets/meshes/hull_raider.obj",
-      "material": "res://assets/materials/mat_hull_raider.tres",
+      "material": "res://assets/materials/mat_hull_talon.tres",
       "cargo_space": 12,
+      "damage_control": 1, "spare_parts": 7,
       "budgets": { "space": 50, "power": 18, "mass": 48, "crew": 46 },
       "base_load": { "space": 30, "mass": 30, "crew": 34, "power_draw": 9 },
       "shield_per_facing": 10,
-      "max_speed": 8.0, "accel": 3.0, "turn_rate_deg": 50.0,
+      "max_speed": 32, "accel": 12, "turn_rate_deg": 50.0,
       "mounts": [
         { "id": "M1", "pos": "Fore", "size": "Medium", "families": ["disruptor", "beam"], "field": [11, 0, 1], "default": "disruptor" },
         { "id": "M2", "pos": "Aft", "size": "Light", "families": ["beam"], "field": [5, 6, 7], "default": "ph3" }

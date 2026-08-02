@@ -1,0 +1,18 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3]
+
+; The fireball. Colours are the palette's cream for the core and alert for the
+; edge (data/palette.json), which is the same orange the critical readouts and
+; the collision chips wear, so the explosion belongs to the same world as the
+; panel telling you what just happened.
+;
+; The wreck duplicates this at runtime before driving it. A shared resource
+; would mean two ships dying at once sharing one progress value, which is the
+; bug the shield glow already documents.
+
+[ext_resource type="Shader" path="res://assets/shaders/blast.gdshader" id="1"]
+
+[resource]
+shader = ExtResource("1")
+shader_parameter/core = Color(0.851, 0.722, 0.4, 1.0)
+shader_parameter/edge = Color(0.812, 0.416, 0.325, 1.0)
+shader_parameter/progress = 0.0

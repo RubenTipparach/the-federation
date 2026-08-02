@@ -7,6 +7,8 @@ extends RefCounted
 const SHIPS_PATH: String = "res://data/ships.json"
 const WEAPONS_PATH: String = "res://data/weapons.json"
 const TUNING_PATH: String = "res://data/tuning.json"
+const STATIONS_PATH: String = "res://data/stations.json"
+const MAPS_PATH: String = "res://data/maps.json"
 
 static var _cache: Dictionary = {}
 
@@ -46,6 +48,56 @@ static func weapon(id: String) -> Dictionary:
 
 static func tuning() -> Dictionary:
 	return _load_json(TUNING_PATH)
+
+
+## The tactical view's subsystem stations: what each tab is called, which
+## committed icon it wears, which box it speaks for, and which strip it sits
+## in. Configuration rather than tuning, but it lives in a data file for the
+## same reason (CLAUDE.md 5.4): a station list scattered across inspector
+## fields is neither diffable nor reviewable.
+static func stations() -> Dictionary:
+	return _load_json(STATIONS_PATH)["stations"]
+
+
+static func station(id: String) -> Dictionary:
+	var all: Dictionary = stations()
+	assert(all.has(id), "unknown station: " + id)
+	return all[id]
+
+
+## Station ids in display order, filtered to one strip. The order lives in the
+## data file so reordering the tabs is a data change, not a scene edit.
+static func station_ids(side: String = "") -> PackedStringArray:
+	var out: PackedStringArray = PackedStringArray()
+	var all: Dictionary = stations()
+	for id in _load_json(STATIONS_PATH)["order"]:
+		var key: String = String(id)
+		if all.has(key) and (side.is_empty() or String(all[key]["side"]) == side):
+			out.append(key)
+	return out
+
+
+## The skirmish map recipes (docs/13 section 5). A recipe says how many of each
+## kind of feature to place and in what size band; where they land is drawn
+## from the battle seed, in Terrain.
+static func maps() -> Dictionary:
+	return _load_json(MAPS_PATH)["maps"]
+
+
+static func map(id: String) -> Dictionary:
+	var all: Dictionary = maps()
+	assert(all.has(id), "unknown map: " + id)
+	return all[id]
+
+
+## Map ids in display order, so reordering the picker is a data change.
+static func map_ids() -> PackedStringArray:
+	var out: PackedStringArray = PackedStringArray()
+	var all: Dictionary = maps()
+	for id in _load_json(MAPS_PATH)["order"]:
+		if all.has(String(id)):
+			out.append(String(id))
+	return out
 
 
 ## JSON arrays of numbers arrive as floats. Sector fields must be ints.

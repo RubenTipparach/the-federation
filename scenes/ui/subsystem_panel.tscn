@@ -1,0 +1,238 @@
+[gd_scene load_steps=4 format=3]
+
+; The body of whichever subsystem station is open. One authored panel serves
+; all ten: the rows are authored here and each station shows and configures
+; the ones it needs, which is the same pattern as the tab strip and keeps
+; CLAUDE.md 5.1 intact.
+;
+; Repair sits at the bottom rather than inside each station, because the
+; answer to "this console is dark" is the same everywhere: fix the box.
+
+[ext_resource type="Script" path="res://src/ui/subsystem_panel.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/ui/stat_row.tscn" id="2"]
+[ext_resource type="Script" path="res://src/ui/tug_bar.gd" id="3"]
+
+[node name="SubsystemPanel" type="PanelContainer"]
+clip_contents = true
+script = ExtResource("1")
+
+[node name="V" type="VBoxContainer" parent="."]
+theme_override_constants/separation = 6
+
+[node name="Head" type="HBoxContainer" parent="V"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="V/Head"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 11
+text = "STATION"
+
+[node name="Badge" type="Label" parent="V/Head"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+text = "LIVE"
+
+[node name="Rows" type="VBoxContainer" parent="V"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="R0" parent="V/Rows" instance=ExtResource("2")]
+layout_mode = 2
+
+[node name="R1" parent="V/Rows" instance=ExtResource("2")]
+layout_mode = 2
+
+[node name="R2" parent="V/Rows" instance=ExtResource("2")]
+layout_mode = 2
+
+[node name="R3" parent="V/Rows" instance=ExtResource("2")]
+layout_mode = 2
+
+[node name="R4" parent="V/Rows" instance=ExtResource("2")]
+layout_mode = 2
+
+[node name="R5" parent="V/Rows" instance=ExtResource("2")]
+layout_mode = 2
+
+[node name="R6" parent="V/Rows" instance=ExtResource("2")]
+layout_mode = 2
+
+[node name="R7" parent="V/Rows" instance=ExtResource("2")]
+layout_mode = 2
+
+[node name="Tug" type="VBoxContainer" parent="V"]
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="Labels" type="HBoxContainer" parent="V/Tug"]
+layout_mode = 2
+
+[node name="L" type="Label" parent="V/Tug/Labels"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 9
+text = "GRIP"
+
+[node name="R" type="Label" parent="V/Tug/Labels"]
+layout_mode = 2
+size_flags_horizontal = 3
+horizontal_alignment = 2
+theme_override_font_sizes/font_size = 9
+text = "SHOVE"
+
+[node name="Bar" type="Control" parent="V/Tug"]
+custom_minimum_size = Vector2(0, 16)
+layout_mode = 2
+mouse_filter = 2
+script = ExtResource("3")
+
+[node name="Reading" type="HBoxContainer" parent="V/Tug"]
+layout_mode = 2
+
+[node name="L" type="Label" parent="V/Tug/Reading"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 10
+text = ""
+
+[node name="R" type="Label" parent="V/Tug/Reading"]
+layout_mode = 2
+size_flags_horizontal = 3
+horizontal_alignment = 2
+theme_override_font_sizes/font_size = 10
+text = ""
+
+[node name="Strain" type="ColorRect" parent="V/Tug"]
+custom_minimum_size = Vector2(0, 4)
+layout_mode = 2
+
+[node name="Fill" type="ColorRect" parent="V/Tug/Strain"]
+layout_mode = 1
+anchors_preset = 9
+anchor_bottom = 1.0
+anchor_right = 0.0
+grow_vertical = 2
+
+[node name="Note" type="HBoxContainer" parent="V/Tug"]
+layout_mode = 2
+
+[node name="L" type="Label" parent="V/Tug/Note"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 9
+text = ""
+
+[node name="R" type="Label" parent="V/Tug/Note"]
+layout_mode = 2
+size_flags_horizontal = 3
+horizontal_alignment = 2
+theme_override_font_sizes/font_size = 9
+text = ""
+
+[node name="Cmds" type="HBoxContainer" parent="V"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Latch" type="Button" parent="V/Cmds"]
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+theme_override_font_sizes/font_size = 10
+text = "LATCH"
+
+[node name="Hold" type="Button" parent="V/Cmds"]
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+focus_mode = 0
+theme_override_font_sizes/font_size = 10
+text = "HOLD"
+
+[node name="Reel" type="Button" parent="V/Cmds"]
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+focus_mode = 0
+theme_override_font_sizes/font_size = 10
+text = "REEL"
+
+[node name="Picker" type="HBoxContainer" parent="V"]
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="PickLabel" type="Label" parent="V/Picker"]
+custom_minimum_size = Vector2(52, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+text = "REGEN"
+
+[node name="P0" type="Button" parent="V/Picker"]
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+focus_mode = 0
+theme_override_font_sizes/font_size = 10
+text = "#1"
+
+[node name="P1" type="Button" parent="V/Picker"]
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+focus_mode = 0
+theme_override_font_sizes/font_size = 10
+text = "#2"
+
+[node name="P2" type="Button" parent="V/Picker"]
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+focus_mode = 0
+theme_override_font_sizes/font_size = 10
+text = "#3"
+
+[node name="P3" type="Button" parent="V/Picker"]
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+focus_mode = 0
+theme_override_font_sizes/font_size = 10
+text = "#4"
+
+[node name="P4" type="Button" parent="V/Picker"]
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+focus_mode = 0
+theme_override_font_sizes/font_size = 10
+text = "#5"
+
+[node name="P5" type="Button" parent="V/Picker"]
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+focus_mode = 0
+theme_override_font_sizes/font_size = 10
+text = "#6"
+
+[node name="Queue" type="VBoxContainer" parent="V"]
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="Total" type="Label" parent="V"]
+layout_mode = 2
+autowrap_mode = 2
+theme_override_font_sizes/font_size = 10
+text = ""
+
+[node name="Blurb" type="Label" parent="V"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+autowrap_mode = 2
+text = ""
+
+[node name="Fix" type="Button" parent="V"]
+layout_mode = 2
+focus_mode = 0
+theme_override_font_sizes/font_size = 10
+text = "QUEUE REPAIR"

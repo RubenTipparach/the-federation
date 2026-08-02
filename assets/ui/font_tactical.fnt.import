@@ -1,0 +1,17 @@
+[remap]
+
+importer="font_data_bmfont"
+type="FontFile"
+uid="uid://bqqq2ivlpcxjo"
+path="res://.godot/imported/font_tactical.fnt-1f8b638030034c6c5b22386b4f478e16.fontdata"
+
+[deps]
+
+source_file="res://assets/ui/font_tactical.fnt"
+dest_files=["res://.godot/imported/font_tactical.fnt-1f8b638030034c6c5b22386b4f478e16.fontdata"]
+
+[params]
+
+fallbacks=[]
+compress=true
+scaling_mode=2

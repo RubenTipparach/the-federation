@@ -28,6 +28,7 @@ theme_override_constants/separation = 6
 layout_mode = 2
 theme_override_font_sizes/font_size = 11
 text = "HULL"
+theme_type_variation = &"HeaderLabel"
 
 [node name="HullList" type="VBoxContainer" parent="Left/HullPanel/V"]
 layout_mode = 2
@@ -43,6 +44,7 @@ layout_mode = 2
 layout_mode = 2
 theme_override_font_sizes/font_size = 11
 text = "CREW"
+theme_type_variation = &"HeaderLabel"
 
 [node name="Body" type="Label" parent="Left/CrewPanel/V"]
 layout_mode = 2
@@ -64,6 +66,7 @@ theme_override_constants/separation = 8
 layout_mode = 2
 theme_override_font_sizes/font_size = 11
 text = "SHIP SYSTEM DISPLAY"
+theme_type_variation = &"HeaderLabel"
 
 [node name="Ring" type="Control" parent="Center/V"]
 layout_mode = 2
@@ -95,12 +98,6 @@ text = "Fire (32)"
 layout_mode = 2
 text = "Reset"
 
-[node name="Log" type="RichTextLabel" parent="Center/V"]
-layout_mode = 2
-custom_minimum_size = Vector2(0, 110)
-theme_override_font_sizes/normal_font_size = 11
-scroll_following = true
-
 [node name="Right" type="VBoxContainer" parent="."]
 layout_mode = 2
 custom_minimum_size = Vector2(300, 0)
@@ -117,6 +114,7 @@ theme_override_constants/separation = 8
 layout_mode = 2
 theme_override_font_sizes/font_size = 11
 text = "FITTING BUDGETS"
+theme_type_variation = &"HeaderLabel"
 
 [node name="Space" parent="Right/BudgetsPanel/V" instance=ExtResource("3")]
 layout_mode = 2
@@ -147,6 +145,7 @@ theme_override_constants/separation = 6
 layout_mode = 2
 theme_override_font_sizes/font_size = 11
 text = "MOUNTS"
+theme_type_variation = &"HeaderLabel"
 
 [node name="Scroll" type="ScrollContainer" parent="Right/MountsPanel/V"]
 layout_mode = 2

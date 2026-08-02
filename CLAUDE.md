@@ -209,6 +209,40 @@ one component.
 This is section 4.1 applied to the interface. Two ship displays would eventually disagree
 about what is fitted, which is the one thing a player must always be able to trust.
 
+### 6.2 The tactical combat view
+
+**The tactical view is for fighting. Nothing else belongs in it.**
+
+- **No sliders. None.** Not for power, not for throttle, not for the camera. A slider asks
+  for a slow, precise drag at the exact moment the player has neither time nor attention to
+  give one, and it hides the fact that most of these values are whole numbers. Allocation is
+  made of **discrete boxes**: one box is one point, clicking sets the level, and the count is
+  readable at a glance without reading a number.
+- **No navigation out of the battle.** No tabs to the fitting screen, the shipyard, or the
+  skirmish setup. A battle is left by ending it, not by wandering off mid engagement.
+- **No camera mode buttons and no camera sliders.** The camera is driven by direct
+  manipulation: drag to look, scroll or pinch to zoom.
+- **Escape, or the menu button, pauses.** Pausing is always available and always the same
+  gesture.
+
+The test to apply to anything proposed for this screen: *would a player reach for this
+while under fire?* If not, it belongs on a different screen.
+
+The replay bar is the one exception, and it proves the rule rather than bending it. Its
+scrub is a continuous seek through a recording, and nobody watching a replay is under
+fire. Sliders are banned from *fighting*, not from reviewing a fight.
+
+### 6.3 Logging is a combat instrument
+
+**Only the tactical combat view narrates.** The comm log and damage report exist so a player
+can reconstruct what just happened to their ship in a fight. Outside a battle there is no
+stream of events to follow, so a log there is noise pretending to be information.
+
+- Non combat screens do not accumulate log lines for the player to read.
+- This is about **player facing narration**. The deterministic battle log that
+  `src/sim/battle_log.gd` writes for replays is a different thing and must keep recording
+  exactly as it does, because replay reproduction depends on it (docs/07).
+
 ---
 
 ## 7. Documented Exceptions
@@ -217,17 +251,42 @@ Exceptions to the rules above live here, with the reason. Nothing may be treated
 exception until it is listed in this section and agreed.
 
 - **Data driven 2D chart controls may paint via `Control._draw()`.** The SSD shield
-  ring and the 12 sector arc wheel are live data visualizations; their content cannot be
-  statically authored because it IS the data. The nodes are authored in their scenes, the
-  scripts only paint sim state and report clicks, and no node trees or meshes are
-  constructed. Agreed via the approved mockups and the instruction to build them
-  (2026-07-30).
+  ring, the 12 sector arc wheel, the tactical view's allocation box strips, the tractor
+  station's tug of war bar, and the skirmish map picker's arena plans are live data
+  visualizations; their content cannot be statically authored because it IS the
+  data. The box strip's length is the reactor's surviving output, which falls as the
+  reactor is damaged, so no static node tree could describe it. The tug bar is two of
+  those strips meeting at a seam, painting a contest that changes every tick. An arena
+  plan is between zero and eighteen circles at positions drawn from a battle seed, so
+  neither a node tree nor a committed mesh could describe it either. The nodes are
+  authored in their scenes, the scripts only paint sim state and report clicks, and no
+  node trees or meshes are constructed. Agreed via the approved mockups and the
+  instruction to build them (2026-07-30, extended to the box strips 2026-08-01, and to
+  the tug bar and the arena plans with the approved terrain and tractor mockup on the
+  same day).
 - **Tactical overlays compose committed unit meshes, placed by code.** The 3D combat
   view's arc wedges, shield segments, range rings, and beams are instances of committed
   `.obj` files (written by `tools/gen_meshes.py` per section 2), statically authored as
   scene children, with code doing rotation in 30 degree steps, scaling, and authored
   material selection only. This is the placement pattern section 7 anticipated and it
   keeps section 5.1 intact rather than excepting it.
+- **Terrain is committed meshes in committed scenes, placed by code.** The three
+  feature scenes under `scenes/terrain/` are authored `.tscn` files instancing
+  `sphere.obj`, `disc.obj`, and `ring.obj` from `tools/gen_meshes.py`, with authored
+  materials. `src/ui/terrain_field.gd` instantiates one of those scenes per feature and
+  sets its position and scale, which is exactly what section 5.1 permits: prebuilt
+  scenes instantiated and configured, never node trees assembled in code. It is listed
+  here anyway because the NUMBER of instances comes from a battle seed, and that is the
+  part a reader would otherwise have to check. Agreed with the approved terrain and
+  tractor mockup (2026-08-01).
+
+- **The target bracket paints itself.** `src/ui/target_bracket.gd` draws its four corner
+  arms and hull bar in `Control._draw()` for the same reason the SSD ring does: its size
+  is the target's projected extent on screen, which changes every frame as the ship moves
+  and the camera orbits, so no static node tree can describe it. Its own comment already
+  claimed this exception before the list granted it; that is corrected here rather than
+  left standing, because section 7 says nothing may be treated as an exception until it
+  is listed. Agreed with the tactical reskin (2026-08-01).
 
 **One candidate is pending a decision.** Rendering roughly 3,000 hexes with smooth zoom and
 several frequently changing per hex overlays is hard to do with statically authored nodes
@@ -303,6 +362,18 @@ how the ships of that era are built: three kinds of volume recombined, empire re
 from proportion rather than detail, class read from part count, and silhouette
 designed for a top down camera. It names the models it was drawn from and states
 plainly that none of them are in this repository.
+
+**Worlds are drawn by someone else's shaders, under licence.** The planets in the
+tactical view use Deep-Fold's PixelPlanets, MIT licensed, vendored under
+`assets/vendor/pixel_planets/` with its LICENSE beside it.
+`docs/14-reference-pixel-planets.md` records what was taken, the three mechanical
+changes made to it, and why shaders that never blend between their colours are the
+one kind that can satisfy section 3.1.
+
+This is a different relationship from the one above. Federation Commander is a design
+we read and reimplement; PixelPlanets is code we run. Vendored code keeps its licence
+file, keeps its upstream API, and is not quietly rewritten, so the diff against the
+original stays readable and it can be updated.
 
 Reference material for other systems belongs in the same place: a numbered document
 under `docs/`, with the source named and linked, and a line in this section pointing

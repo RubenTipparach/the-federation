@@ -1,0 +1,13 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3]
+
+; The dust halo around a rock: the ring where micrometeors grind a shield. Gold
+; because the palette already spends gold on "this will cost you something",
+; which is what the repair chips and the strain bar use it for. Very low alpha:
+; the halo has to be visible without hiding what is inside it.
+
+[ext_resource type="Shader" path="res://assets/shaders/tint.gdshader" id="1"]
+
+[resource]
+render_priority = -1
+shader = ExtResource("1")
+shader_parameter/tint = Color(0.851, 0.722, 0.4, 0.12)

@@ -1,0 +1,123 @@
+[gd_scene load_steps=4 format=3]
+
+; The ship systems display: the six facing shield ring, the hull integrity in
+; the middle of it, and the subsystem slots beside it. One component, used for
+; the player's own ship and for the target, and it will be used again in the
+; fleet roster and the post battle report (CLAUDE.md 6.1). What varies between
+; those is parameters, never a second scene: whether the slots take clicks,
+; and whether box by box detail is shown at all.
+;
+; The ring is a Control._draw data visualisation, which section 7 already
+; excepts: its content IS the shield array and no static node tree can
+; describe a ring whose box count is the ship's own shield strength.
+
+[ext_resource type="Script" path="res://src/ui/ship_display.gd" id="1"]
+[ext_resource type="Script" path="res://src/ui/ssd_control.gd" id="2"]
+[ext_resource type="PackedScene" path="res://scenes/ui/sys_line.tscn" id="3"]
+
+[node name="ShipDisplay" type="HBoxContainer"]
+theme_override_constants/separation = 6
+script = ExtResource("1")
+
+[node name="Ring" type="Control" parent="."]
+custom_minimum_size = Vector2(124, 124)
+layout_mode = 2
+script = ExtResource("2")
+
+[node name="Hull" type="Label" parent="Ring"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+horizontal_alignment = 1
+vertical_alignment = 1
+theme_override_font_sizes/font_size = 16
+text = "100%"
+
+[node name="Side" type="VBoxContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 3
+
+[node name="Slots" type="GridContainer" parent="Side"]
+layout_mode = 2
+columns = 4
+theme_override_constants/h_separation = 3
+theme_override_constants/v_separation = 3
+
+[node name="S0" parent="Side/Slots" instance=ExtResource("3")]
+layout_mode = 2
+
+[node name="S1" parent="Side/Slots" instance=ExtResource("3")]
+layout_mode = 2
+
+[node name="S2" parent="Side/Slots" instance=ExtResource("3")]
+layout_mode = 2
+
+[node name="S3" parent="Side/Slots" instance=ExtResource("3")]
+layout_mode = 2
+
+[node name="S4" parent="Side/Slots" instance=ExtResource("3")]
+layout_mode = 2
+
+[node name="S5" parent="Side/Slots" instance=ExtResource("3")]
+layout_mode = 2
+
+[node name="S6" parent="Side/Slots" instance=ExtResource("3")]
+layout_mode = 2
+
+[node name="S7" parent="Side/Slots" instance=ExtResource("3")]
+layout_mode = 2
+
+[node name="S8" parent="Side/Slots" instance=ExtResource("3")]
+layout_mode = 2
+
+[node name="S9" parent="Side/Slots" instance=ExtResource("3")]
+layout_mode = 2
+
+[node name="S10" parent="Side/Slots" instance=ExtResource("3")]
+layout_mode = 2
+
+[node name="S11" parent="Side/Slots" instance=ExtResource("3")]
+layout_mode = 2
+
+[node name="S12" parent="Side/Slots" instance=ExtResource("3")]
+layout_mode = 2
+
+[node name="S13" parent="Side/Slots" instance=ExtResource("3")]
+layout_mode = 2
+
+[node name="S14" parent="Side/Slots" instance=ExtResource("3")]
+layout_mode = 2
+
+[node name="S15" parent="Side/Slots" instance=ExtResource("3")]
+layout_mode = 2
+
+[node name="Families" type="VBoxContainer" parent="Side"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="F0" type="Label" parent="Side/Families"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+text = "WEAPON"
+
+[node name="F1" type="Label" parent="Side/Families"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+text = "POWER"
+
+[node name="F2" type="Label" parent="Side/Families"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+text = "CONTROL"
+
+[node name="F3" type="Label" parent="Side/Families"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+text = "HULL"

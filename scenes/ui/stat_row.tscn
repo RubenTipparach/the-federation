@@ -1,0 +1,28 @@
+[gd_scene load_steps=2 format=3]
+
+; One readout line in a subsystem panel: a name, a strip of discrete boxes,
+; and the number. Boxes rather than a bar because every quantity on this
+; screen is a whole number and CLAUDE.md 6.2 bans sliders from the tactical
+; view; the strip is the same box_strip the energy split uses.
+
+[ext_resource type="PackedScene" path="res://scenes/ui/box_strip.tscn" id="1"]
+
+[node name="StatRow" type="HBoxContainer"]
+theme_override_constants/separation = 6
+
+[node name="L" type="Label" parent="."]
+custom_minimum_size = Vector2(64, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+text = "LABEL"
+
+[node name="Boxes" parent="." instance=ExtResource("1")]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Out" type="Label" parent="."]
+custom_minimum_size = Vector2(78, 0)
+layout_mode = 2
+horizontal_alignment = 2
+theme_override_font_sizes/font_size = 10
+text = "0/0"

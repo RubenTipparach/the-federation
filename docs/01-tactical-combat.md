@@ -18,6 +18,36 @@ The battle layer. This is the part that must be fun before anything else is buil
 - **Sides:** up to 6 capital ships per player squadron; instance target cap 24 capital
   hulls plus fighters/drones/platforms.
 
+### The arena is 600 units across, and that number is designed
+
+The battlefield is a 600 by 600 square on the plane, with the two sides starting 170
+apart. A heavy cruiser's longest weapon reaches about 80, so the arena is roughly seven
+weapon ranges wide.
+
+That ratio is the point of the number. It was three for a while, and at three there was
+nowhere to go: no approach worth the name, no room to break contact, and terrain
+features that filled a quarter of the map each. At seven there is a real closing phase,
+somewhere to run to, and terrain you travel between rather than sit on top of.
+
+Everything that measures a distance, a speed or an acceleration is pinned to that
+ratio, and `data/tuning.json` says so in its `_scale` note. Anything measuring damage,
+energy, degrees or seconds is not: turn rates in degrees per second did not move when
+the map grew, which is exactly what keeps a battlecruiser feeling like a
+battlecruiser.
+
+### A destroyed ship comes apart
+
+A hull that runs out of boxes is not deleted. Its rig stands down and a wreck takes its
+place: a fireball that flashes and dies over about three seconds, and nine hull plates
+thrown clear of it, tumbling and coasting outward. Sizes are multiples of the dead
+ship's own radius, so a battlecruiser leaves a bigger wreck than a frigate without a
+second table of numbers.
+
+It is presentation only. The simulation has already stopped stepping the ship, and the
+tumble is drawn from a generator seeded off the battle's own tick rather than from
+`randf()`, so a replay shows the same wreck as the battle it recorded and drawing it
+cannot disturb what the simulation rolls next.
+
 ### 3D presentation, 2D simulation
 
 **Combat renders in 3D. This is a hard requirement.** Ships are 3D models, the camera

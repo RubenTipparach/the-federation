@@ -25,6 +25,10 @@ var player_hull: String = ""
 var player_slots: Dictionary = {}
 var enemy_hull: String = ""
 
+## Which map recipe the battle was fought on. Terrain is placed from the seed,
+## so the recipe name is all a replay needs to rebuild the same arena.
+var map_id: String = "open"
+
 ## Commands as [tick, actor, kind, args], the smallest thing that replays.
 var commands: Array = []
 
@@ -38,13 +42,14 @@ var result: Dictionary = {}
 
 
 static func create(fit: ShipFit, enemy_hull_id: String, seed_v: int,
-		step_dt: float) -> BattleLog:
+		step_dt: float, p_map_id: String = "open") -> BattleLog:
 	var log: BattleLog = BattleLog.new()
 	log.seed_value = seed_v
 	log.dt = step_dt
 	log.player_hull = fit.hull_id
 	log.player_slots = fit.slots.duplicate()
 	log.enemy_hull = enemy_hull_id
+	log.map_id = p_map_id
 	return log
 
 
@@ -77,6 +82,7 @@ func to_dict() -> Dictionary:
 		"player_hull": player_hull,
 		"player_slots": player_slots,
 		"enemy_hull": enemy_hull,
+		"map": map_id,
 		"commands": commands,
 		"end_tick": end_tick,
 		"result": result,
@@ -90,6 +96,7 @@ static func from_dict(d: Dictionary) -> BattleLog:
 	log.player_hull = String(d.get("player_hull", ""))
 	log.player_slots = d.get("player_slots", {})
 	log.enemy_hull = String(d.get("enemy_hull", ""))
+	log.map_id = String(d.get("map", "open"))
 	log.commands = d.get("commands", [])
 	log.end_tick = int(d.get("end_tick", -1))
 	log.result = d.get("result", {})
@@ -137,7 +144,7 @@ func replay_setup() -> Battle:
 	var fit: ShipFit = ShipFit.create_default(player_hull)
 	for mount_id in player_slots.keys():
 		fit.slots[String(mount_id)] = String(player_slots[mount_id])
-	return Battle.create_duel(fit, enemy_hull, seed_value)
+	return Battle.create_duel(fit, enemy_hull, seed_value, map_id)
 
 
 func replay(extra_ticks: int = 0) -> Battle:

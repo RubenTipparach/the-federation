@@ -19,6 +19,9 @@ const WeaponLib = preload("res://src/sim/weapon_model.gd")
 const YardLib = preload("res://src/sim/shipyard.gd")
 const SeekerLib = preload("res://src/sim/seeker.gd")
 const LogLib = preload("res://src/sim/battle_log.gd")
+const RepairLib = preload("res://src/sim/repair_model.gd")
+const TerrainLib = preload("res://src/sim/terrain.gd")
+const TractorLib = preload("res://src/sim/tractor.gd")
 
 var checks: int = 0
 var failures: int = 0
@@ -53,7 +56,10 @@ func _initialize() -> void:
 	test_battle_and_ai()
 	test_seekers()
 	test_shields()
+	test_repairs()
 	test_shipyard()
+	test_terrain()
+	test_tractors()
 	test_replay()
 	print("")
 	if failures == 0:
@@ -139,21 +145,39 @@ func test_shields() -> void:
 	var tuning: Dictionary = CatalogLib.tuning()
 	var ship = _fresh_ship()
 
-	# Bias: the favoured facing regenerates faster than the rest, and the
-	# total handed out does not change.
+	# Federation Commander 3C7: a shield box is bought for energy, and nothing
+	# comes back unbought. A ship spending nothing on shields recovers nothing,
+	# however long it waits.
+	var broke = _fresh_ship()
+	broke.shields[0] = 0.0
+	broke.set_alloc_units("shields", 0.0)
+	for i in range(300):
+		broke.step(1.0 / 15.0, tuning)
+	near(broke.shields[0], 0.0, "with no power to the shields nothing regenerates")
+
+	# Bias is which shield is bought for, not a weighting: the picked facing
+	# takes every box until it is full.
 	ship.shields[0] = 0.0
 	ship.shields[1] = 0.0
 	ship.shield_bias = 0
 	for i in range(60):
 		ship.step(1.0 / 15.0, tuning)
-	ok(ship.shields[0] > ship.shields[1], "the biased facing recovers faster")
+	ok(ship.shields[0] > 0.0, "the picked facing is bought back")
+	near(ship.shields[1], 0.0, "and the others get nothing while it is short")
+
+	# Boxes are whole. A shield never sits on a fraction of one.
+	near(ship.shields[0] - floorf(ship.shields[0]), 0.0, "regeneration arrives in whole boxes")
+
+	# With no facing picked, the weakest is the one bought for, so two equally
+	# hurt facings come back together rather than one being starved.
 	var unbiased = _fresh_ship()
 	unbiased.shields[0] = 0.0
 	unbiased.shields[1] = 0.0
 	for i in range(60):
 		unbiased.step(1.0 / 15.0, tuning)
-	near(unbiased.shields[0], unbiased.shields[1],
-		"with no bias the facings recover together", 0.001)
+	ok(absf(unbiased.shields[0] - unbiased.shields[1]) <= 1.0,
+		"with no pick the weakest facing is bought for, so the two stay level")
+	ok(unbiased.shields[0] + unbiased.shields[1] > 0.0, "and they do recover")
 
 	# Transfer, Federation Commander 3C3: adjacent only, never above full.
 	var mover = _fresh_ship()
@@ -174,6 +198,108 @@ func test_shields() -> void:
 	ok(partial.transfer_shield(0, 1, tuning), "a nearly full facing takes what it can")
 	near(partial.shields[1], partial.shield_max, "and stops at full")
 	near(partial.shields[0], partial.shield_max - 2.0, "the donor gives only that much")
+
+
+func test_repairs() -> void:
+	print("\n== repairs ==")
+	var tuning: Dictionary = CatalogLib.tuning()
+	var ship = _fresh_ship()
+
+	ok(ship.parts > 0, "a ship sails with spare parts aboard")
+	eq(ship.parts, ship.parts_max, "and starts with a full hold")
+
+	# Find a weapon system and shoot two boxes off it.
+	var index: int = -1
+	for i in range(ship.systems.size()):
+		if String(ship.systems[i]["family"]) == "weapon" and int(ship.systems[i]["boxes_max"]) >= 3:
+			index = i
+			break
+	ok(index >= 0, "the hull carries a weapon system to break")
+	var sys: Dictionary = ship.systems[index]
+	var full: int = int(sys["boxes_max"])
+	sys["boxes"] = full - 2
+
+	# Pricing is per box, not per system (5G4).
+	var per_box: int = RepairLib.parts_per_box("weapon", tuning)
+	eq(RepairLib.job_cost(sys, tuning), per_box * 2, "a job costs per box, not per system")
+	ok(RepairLib.parts_per_box("weapon", tuning) > RepairLib.parts_per_box("hull", tuning),
+		"a weapon box costs more than a hull box, as 5G3 orders them")
+
+	# Queueing rules.
+	ok(ship.queue_repair(index, tuning), "a damaged system can be queued")
+	ok(not ship.queue_repair(index, tuning), "and cannot be queued twice")
+	eq(ship.repair_queue.size(), 1, "the queue holds it once")
+	var whole: int = -1
+	for i in range(ship.systems.size()):
+		if int(ship.systems[i]["boxes"]) >= int(ship.systems[i]["boxes_max"]):
+			whole = i
+			break
+	ok(whole >= 0, "the ship has an undamaged system")
+	ok(not ship.queue_repair(whole, tuning), "an undamaged system is refused")
+
+	# Work it. One box at a time, paid for out of the hold.
+	var before: int = ship.parts
+	var need: float = RepairLib.seconds_per_box("weapon", tuning)
+	var per_step: float = 1.0 / 15.0
+	var steps: int = int(need / float(ship.damage_control) / per_step) + 2
+	for i in range(steps):
+		ship.step(per_step, tuning)
+	eq(int(sys["boxes"]), full - 1, "one box comes back at a time")
+	eq(ship.parts, before - per_box, "and is paid for out of the hold")
+
+	# Finishing the job clears it from the queue.
+	for i in range(steps):
+		ship.step(per_step, tuning)
+	eq(int(sys["boxes"]), full, "the job runs to full")
+	eq(ship.repair_queue.size(), 0, "and leaves the queue when it is done")
+
+	# A queue the hold cannot pay for stalls rather than working for free.
+	var poor = _fresh_ship()
+	var pi: int = -1
+	for i in range(poor.systems.size()):
+		if String(poor.systems[i]["family"]) == "weapon":
+			pi = i
+			break
+	poor.systems[pi]["boxes"] = 0
+	poor.parts = 0
+	ok(poor.queue_repair(pi, tuning), "a job can be ordered with an empty hold")
+	for i in range(steps * 2):
+		poor.step(per_step, tuning)
+	eq(int(poor.systems[pi]["boxes"]), 0, "but nothing is repaired without parts")
+	eq(poor.repair_queue.size(), 1, "and the job waits rather than being dropped")
+
+	# Shields are not repaired this way at all (5G3).
+	var shielded = _fresh_ship()
+	shielded.shields[0] = 0.0
+	for entry in shielded.systems:
+		ok(String(entry["family"]) != "shield", "no system claims the shield family")
+		break
+
+	# Dropping a job takes it out and lets the next one start.
+	var two = _fresh_ship()
+	var a: int = -1
+	var b: int = -1
+	for i in range(two.systems.size()):
+		if int(two.systems[i]["boxes_max"]) >= 2:
+			two.systems[i]["boxes"] = int(two.systems[i]["boxes_max"]) - 1
+			if a < 0:
+				a = i
+			elif b < 0:
+				b = i
+			else:
+				break
+	two.queue_repair(a, tuning)
+	two.queue_repair(b, tuning)
+	eq(two.repair_queue.size(), 2, "two jobs queue in order")
+	eq(two.repair_queue[0], a, "the first ordered is the first worked")
+	ok(two.drop_repair(a), "a job can be dropped")
+	eq(two.repair_queue[0], b, "and the next takes its place")
+	ok(not two.drop_repair(a), "dropping it again does nothing")
+
+	# The whole queue's price is what the panel warns against.
+	eq(RepairLib.queue_cost(two.systems, two.repair_queue, tuning),
+		RepairLib.job_cost(two.systems[b], tuning),
+		"the queue costs the sum of its jobs")
 
 
 func test_shipyard() -> void:
@@ -268,6 +394,428 @@ func _scripted_battle(record: bool) -> Variant:
 	if battle.log != null and battle.log.end_tick < 0:
 		battle.log.close(battle)
 	return battle
+
+
+## Terrain: what is in the arena besides the ships (docs/13 sections 1 to 5).
+##
+## The geometry tests build a Terrain by hand rather than by recipe, because a
+## recipe places bodies randomly and a test of "does a gravity well pull" should
+## not also be a test of where the planet landed.
+func test_terrain() -> void:
+	print("\n== terrain ==")
+
+	# The empty arena must be genuinely free. If placing "open" drew even one
+	# number from the battle rng, every battle recorded before terrain existed
+	# would replay differently, so this is checked directly.
+	var untouched = RandomNumberGenerator.new()
+	untouched.seed = 77
+	TerrainLib.create("open", untouched, [])
+	var fresh = RandomNumberGenerator.new()
+	fresh.seed = 77
+	near(untouched.randf(), fresh.randf(), "the open map draws nothing from the battle rng")
+
+	var before = BattleLib.create_duel(FitLib.create_default("wayfarer"), "bloodletter", 31)
+	var after = BattleLib.create_duel(FitLib.create_default("wayfarer"), "bloodletter", 31, "open")
+	for _i in range(120):
+		before.step(1.0 / 30.0)
+		after.step(1.0 / 30.0)
+	eq(str(LogLib.fingerprint(before)), str(LogLib.fingerprint(after)),
+		"an open battle matches one created without a map at all")
+
+	# Same seed, same map, same arena. This is what lets a replay rebuild the
+	# terrain from the recipe name instead of storing every circle.
+	var twin_a = BattleLib.create_duel(FitLib.create_default("wayfarer"), "talon", 4242, "belt")
+	var twin_b = BattleLib.create_duel(FitLib.create_default("wayfarer"), "talon", 4242, "belt")
+	eq(str(twin_a.terrain.features), str(twin_b.terrain.features),
+		"the same seed places the same terrain")
+	ok(twin_a.terrain.features.size() >= 8, "the debris belt places a field of rocks")
+
+	# Every recipe must land inside the arena and leave the starting positions
+	# survivable, on any seed.
+	var half: float = float(CatalogLib.tuning()["combat"]["arena_half_extent"])
+	var clearance: float = float(CatalogLib.tuning()["terrain"]["spawn_clearance"])
+	var contained: bool = true
+	var clear_of_spawns: bool = true
+	var bodies_apart: bool = true
+	var opens_with_lock: bool = true
+	for map_id in CatalogLib.map_ids():
+		for seed_value in [1, 2, 3, 17, 900]:
+			var b = BattleLib.create_duel(FitLib.create_default("kestrel"),
+				"talon", seed_value, String(map_id))
+			var starts: Array = [b.player().pos, b.enemy().pos]
+			if b.terrain.lock_broken(starts[0], starts[1]):
+				opens_with_lock = false
+			for f in b.terrain.features:
+				var at: Vector2 = f["pos"]
+				var body: float = float(f["body"])
+				var field: float = float(f["field"])
+				if absf(at.x) > half - field + 0.001 or absf(at.y) > half - field + 0.001:
+					contained = false
+				for start in starts:
+					if String(f["kind"]) == TerrainLib.KIND_NEBULA:
+						if at.distance_to(start) <= field:
+							clear_of_spawns = false
+					elif at.distance_to(start) <= clearance + body:
+						clear_of_spawns = false
+				for g in b.terrain.features:
+					if g == f or body <= 0.0 or float(g["body"]) <= 0.0:
+						continue
+					if at.distance_to(g["pos"]) <= body + float(g["body"]):
+						bodies_apart = false
+	ok(contained, "every feature lands inside the arena, field and all")
+	ok(clear_of_spawns, "nothing is placed on top of a starting position")
+	ok(bodies_apart, "solid bodies never overlap each other")
+	ok(opens_with_lock, "no map begins with the two sides unable to see each other")
+
+	# Every feature a recipe can produce must have a scene that draws it. A
+	# variant named in data/maps.json with no matching scene would place a world
+	# the arena simply does not render, and nothing else would say so.
+	var FieldLib = preload("res://src/ui/terrain_field.gd")
+	var all_drawable: bool = true
+	var variants_seen: Dictionary = {}
+	for map_id in CatalogLib.map_ids():
+		for seed_value in range(1, 60):
+			var b = BattleLib.create_duel(FitLib.create_default("wayfarer"),
+				"talon", seed_value, String(map_id))
+			for f in b.terrain.features:
+				variants_seen[String(f["kind"]) + "/" + String(f.get("variant", ""))] = true
+				if FieldLib.scene_for(f) == null:
+					all_drawable = false
+	ok(all_drawable, "every feature a recipe can place has a scene that draws it")
+	var every_world: bool = true
+	for want in ["terran", "ice", "barren", "gas"]:
+		if not variants_seen.has("planet/" + want):
+			every_world = false
+	ok(every_world, "and every kind of world turns up")
+
+	# ---- nebulae: obscuration is a path length, not a flag ----
+	var cloudy = TerrainLib.new()
+	cloudy.features.append({ "kind": TerrainLib.KIND_NEBULA,
+		"pos": Vector2.ZERO, "body": 0.0, "field": 100.0 })
+	var opacity: float = float(CatalogLib.tuning()["terrain"]["nebula_opacity_length"])
+	near(cloudy.obscuration(Vector2(-200, 0), Vector2(200, 0)), 200.0 / opacity,
+		"a line straight through a cloud counts its whole chord")
+	near(cloudy.obscuration(Vector2(200, 0), Vector2(-200, 0)), 200.0 / opacity,
+		"obscuration is the same in both directions")
+	eq(cloudy.obscuration(Vector2(-200, 200), Vector2(200, 200)), 0.0,
+		"a line that misses the cloud is not obscured")
+	# Sitting just inside the edge hides almost nothing, which is the point of
+	# measuring the path rather than testing a flag.
+	ok(cloudy.obscuration(Vector2(-95.0, 0), Vector2(-200, 0)) < 0.1,
+		"one step inside the edge hides almost nothing")
+
+	var penalty: float = float(CatalogLib.tuning()["terrain"]["nebula_range_penalty"])
+	near(cloudy.apparent_range(Vector2(-120, 0), Vector2(120, 0), 240.0),
+		240.0 + 200.0 / opacity * penalty, "cloud is added to the range the guns see")
+	ok(cloudy.lock_broken(Vector2(-120, 0), Vector2(120, 0)),
+		"a full crossing breaks the lock")
+	ok(not cloudy.lock_broken(Vector2(-300, 0), Vector2(-250, 0)),
+		"a clear line holds the lock")
+
+	# Blinded means it cannot be shot at, through the same call the bracket uses.
+	var blind = BattleLib.create_duel(FitLib.create_default("wayfarer"), "talon", 11)
+	blind.terrain = cloudy
+	for s in blind.ships:
+		s.terrain = cloudy
+	blind.player().pos = Vector2(-120, 0)
+	blind.enemy().pos = Vector2(120, 0)
+	for w in blind.player().weapons_rt:
+		w["charge"] = 1.0
+	ok(not blind.player().can_see(blind.enemy().pos), "a blinded ship cannot see")
+	eq(String(blind.player().fire_check(0, blind.enemy().pos)["reason"]), "no lock",
+		"the firing check refuses without a lock")
+	eq(blind.try_fire(blind.player(), 0), false, "and no shot leaves the tube")
+
+	# ---- planets: the well pulls, the surface hurts ----
+	var world = TerrainLib.new()
+	world.features.append({ "kind": TerrainLib.KIND_PLANET,
+		"pos": Vector2(0, 120), "body": 40.0, "field": 180.0 })
+	var tuning: Dictionary = CatalogLib.tuning()
+	var drifter = ShipLib.create(FitLib.create_default("wayfarer"),
+		RandomNumberGenerator.new())
+	drifter.terrain = world
+	drifter.pos = Vector2.ZERO
+	drifter.heading = 180.0
+	drifter.set_order(180.0, 0.0)
+	for _i in range(60):
+		drifter.step(1.0 / 10.0, tuning)
+	ok(drifter.drift.y > 0.0, "a gravity well gives a ship drift toward the planet")
+	ok(drifter.pos.y > 5.0, "and the ship slides toward it with its engines idle")
+	near(drifter.heading, 180.0, "without turning the ship away from where it points", 0.5)
+	eq(world.pull_at(Vector2(0, -200)), Vector2.ZERO, "outside the well there is no pull")
+
+	# Leaving the well sheds the drift rather than keeping it forever.
+	drifter.terrain = TerrainLib.new()
+	for _i in range(200):
+		drifter.step(1.0 / 10.0, tuning)
+	near(drifter.drift.length(), 0.0, "drift decays once the well is behind you", 0.001)
+
+	# ---- asteroids: the halo grinds, the rock collides ----
+	var rocks = TerrainLib.new()
+	rocks.features.append({ "kind": TerrainLib.KIND_ASTEROID,
+		"pos": Vector2.ZERO, "body": 10.0, "field": 40.0 })
+	var terrain_tuning: Dictionary = tuning["terrain"]
+	var floor_factor: float = float(terrain_tuning["asteroid_grind_speed_floor"])
+	var dps: float = float(terrain_tuning["asteroid_grind_dps"])
+	eq(rocks.grind_at(Vector2(0, 50), 16.0), 0.0, "outside the halo there is no dust")
+	near(rocks.grind_at(Vector2(0, 25.0), 0.0), dps * 0.5 * floor_factor,
+		"the halo grinds harder the deeper you are in it")
+	ok(rocks.grind_at(Vector2(0, 25.0), 24.0) > rocks.grind_at(Vector2(0, 25.0), 0.0),
+		"and harder the faster you cross it")
+
+	var grinding = BattleLib.create_duel(FitLib.create_default("wayfarer"), "talon", 21)
+	grinding.terrain = rocks
+	for s in grinding.ships:
+		s.terrain = rocks
+	var victim = grinding.player()
+	victim.pos = Vector2(0, 25.0)
+	victim.heading = 0.0
+	victim.speed = 0.0
+	for _i in range(300):
+		victim.pos = Vector2(0, 25.0)
+		grinding._step_terrain(1.0 / 10.0)
+	ok(victim.shields[0] < victim.shield_max,
+		"dust wears the facing the ship is pointing along")
+	near(victim.shields[3], victim.shield_max, "and leaves the trailing facing alone")
+
+	var crashing = BattleLib.create_duel(FitLib.create_default("wayfarer"), "talon", 22)
+	crashing.terrain = rocks
+	for s in crashing.ships:
+		s.terrain = rocks
+	var wreck = crashing.player()
+	wreck.pos = Vector2(2.0, 0.0)
+	wreck.speed = 16.0
+	var before_shields: float = 0.0
+	for v in wreck.shields:
+		before_shields += v
+	crashing._step_terrain(1.0 / 10.0)
+	var after_shields: float = 0.0
+	for v in wreck.shields:
+		after_shields += v
+	near(before_shields - after_shields,
+		float(terrain_tuning["asteroid_collision_damage"]),
+		"running into a rock costs a lump of shield")
+	ok(wreck.speed < 4.0, "and most of the ship's way")
+	crashing._step_terrain(1.0 / 10.0)
+	var again: float = 0.0
+	for v in wreck.shields:
+		again += v
+	near(again, after_shields, "the cooldown stops a rock hitting every tick")
+
+	# A collision narrates itself, so the comm log can explain what happened.
+	var narrated: bool = false
+	wreck.collision_grace = 0.0
+	for e in crashing._drain():
+		pass
+	crashing._step_terrain(1.0 / 10.0)
+	for e in crashing._drain():
+		if String(e["type"]) == "hazard":
+			narrated = true
+	ok(narrated, "a hazard emits an event the comm log can print")
+
+
+## Tractor beams: the auction, and what a beam does to the two ships
+## (docs/13 section 6). The contest is ours, not a citation; docs/09 section 6
+## records that the free rulebook leaves tractors out on purpose.
+##
+## Ships are stepped directly rather than through Battle.step so the AI is not
+## steering the prisoner in the middle of a test about towing.
+func test_tractors() -> void:
+	print("\n== tractor beams ==")
+	var tuning: Dictionary = CatalogLib.tuning()
+	var t: Dictionary = tuning["tractor"]
+
+	var duel = BattleLib.create_duel(FitLib.create_default("wayfarer"), "bloodletter", 12)
+	var me = duel.player()
+	var foe = duel.enemy()
+	me.pos = Vector2.ZERO
+	foe.pos = Vector2(0, 24.0)
+
+	# ---- what stops a latch ----
+	eq(String(TractorLib.latch_check(me, foe, tuning)["reason"]), "no power",
+		"a tractor with nothing in its sink cannot latch")
+	me.set_alloc_units("tractor", 6.0)
+	eq(String(TractorLib.latch_check(me, foe, tuning)["reason"]), "ready",
+		"with power in the sink it can")
+	foe.pos = Vector2(0, float(t["range"]) + 8.0)
+	eq(String(TractorLib.latch_check(me, foe, tuning)["reason"]), "range",
+		"a tractor is short ranged and says so")
+	foe.pos = Vector2(0, 24.0)
+	for sys in me.systems:
+		if String(sys["code"]) == TractorLib.BOX:
+			sys["boxes"] = 0
+	eq(String(TractorLib.latch_check(me, foe, tuning)["reason"]), "destroyed",
+		"a shot out emitter cannot latch (Federation Commander 5A2c)")
+	for sys in me.systems:
+		if String(sys["code"]) == TractorLib.BOX:
+			sys["boxes"] = int(sys["boxes_max"])
+
+	# ---- latching goes through the one command path, so it is recorded ----
+	duel.log = LogLib.create(me.fit, "bloodletter", duel.seed_value, 1.0 / 30.0)
+	ok(duel.apply_command(0, "tractor_latch", [1]), "the latch order is accepted")
+	eq(duel.log.commands.size(), 1, "and written down like any other order")
+	ok(not duel.apply_command(0, "tractor_latch", [1]), "one emitter holds one ship")
+	eq(duel.log.commands.size(), 1, "and a refused latch is not recorded")
+	ok(duel.tractor_on(foe) != null, "the prisoner knows it is held")
+
+	# ---- the auction ----
+	var beam = duel.tractor_on(me)
+	foe.set_alloc_units("tractor", 6.0)
+	var ratio: float = TractorLib.tonnage(foe) / TractorLib.tonnage(me)
+	near(beam.break_bid(), foe.alloc_units("tractor") * ratio,
+		"the prisoner's shove is weighted by the tonnage ratio")
+	ok(beam.break_bid() > beam.hold_bid(),
+		"the heavier ship out-shoves an equal bid")
+
+	# Losing the auction does not snap the beam at once: the holder has
+	# break_seconds to raise the bid, and raising it resets the struggle.
+	for _i in range(10):
+		duel._step_tractors(1.0 / 10.0, tuning)
+	ok(duel.tractors.size() == 1, "the beam survives a second of losing the auction")
+	ok(beam.strain > 0.9, "but the strain is showing")
+	me.set_alloc_units("tractor", 12.0)
+	duel._step_tractors(1.0 / 10.0, tuning)
+	near(beam.strain, 0.0, "outbidding the prisoner resets the struggle")
+
+	# Sustained, the prisoner wins and the pair cannot be regrabbed at once.
+	me.set_alloc_units("tractor", 3.0)
+	var freed: bool = false
+	for _i in range(int(float(t["break_seconds"]) * 10.0) + 3):
+		duel._step_tractors(1.0 / 10.0, tuning)
+		if duel.tractors.is_empty():
+			freed = true
+			break
+	ok(freed, "sustained, the prisoner breaks free")
+	me.set_alloc_units("tractor", 12.0)
+	ok(not duel.apply_command(0, "tractor_latch", [1]),
+		"and cannot be grabbed again while the emitter recovers")
+	for _i in range(int(float(t["relatch_cooldown"]) * 10.0) + 2):
+		duel._step_tractors(1.0 / 10.0, tuning)
+	ok(duel.apply_command(0, "tractor_latch", [1]), "once the cooldown lapses it can")
+
+	# ---- range and damage snap it ----
+	foe.pos = Vector2(0, float(t["range"]) + 20.0)
+	duel._step_tractors(1.0 / 10.0, tuning)
+	ok(duel.tractors.is_empty(), "opening the range past the beam snaps it")
+	foe.pos = Vector2(0, 24.0)
+	for _i in range(int(float(t["relatch_cooldown"]) * 10.0) + 2):
+		duel._step_tractors(1.0 / 10.0, tuning)
+	ok(duel.apply_command(0, "tractor_latch", [1]), "and it can be re-established")
+	for sys in me.systems:
+		if String(sys["code"]) == TractorLib.BOX:
+			sys["boxes"] = 0
+	duel._step_tractors(1.0 / 10.0, tuning)
+	ok(duel.tractors.is_empty(), "shooting the emitter out drops the beam")
+
+	# ---- what a beam does to the two ships ----
+	var tow_duel = BattleLib.create_duel(FitLib.create_default("wayfarer"), "bloodletter", 13)
+	var tug = tow_duel.player()
+	var prize = tow_duel.enemy()
+	tug.pos = Vector2.ZERO
+	prize.pos = Vector2(0, 24.0)
+	tug.heading = 0.0
+	tug.speed = 20.0
+	prize.heading = 0.0
+	prize.speed = 0.0
+	tug.set_alloc_units("tractor", 10.0)
+	ok(tow_duel.apply_command(0, "tractor_latch", [1]), "a tow can be set up")
+	var m_tug: float = TractorLib.tonnage(tug)
+	var m_prize: float = TractorLib.tonnage(prize)
+	var common: Vector2 = Vector2(0, 20.0) * m_tug / (m_tug + m_prize)
+	tow_duel._step_tractors(1.0 / 10.0, tuning)
+	near(prize.tow_target.y, common.y,
+		"a held ship is asked for the pair's common momentum")
+	near(tug.tow_target.y, common.y - 20.0, "and so is the holder, from the other side")
+
+	for _i in range(200):
+		for s in tow_duel.ships:
+			s.tow_target = Vector2.ZERO
+		tow_duel._step_tractors(1.0 / 20.0, tuning)
+		prize.set_order(prize.heading, 0.0)
+		for s in tow_duel.ships:
+			s.step(1.0 / 20.0, tuning)
+	ok(prize.pos.y > 26.0, "and it is dragged along behind the ship holding it")
+	# Attitude is deliberately untouched: taking a ship's arcs away takes the
+	# game away, and 5D says the beam holds position, not heading.
+	prize.set_order(90.0, 0.0)
+	for _i in range(200):
+		for s in tow_duel.ships:
+			s.tow_target = Vector2.ZERO
+		tow_duel._step_tractors(1.0 / 20.0, tuning)
+		for s in tow_duel.ships:
+			s.step(1.0 / 20.0, tuning)
+	near(prize.heading, 90.0, "a held ship can still come about and shoot back", 1.0)
+	ok(tow_duel.tractors.size() == 1, "and the beam is still on it while it turns")
+
+	# Letting go stops the tow rather than leaving it stuck on.
+	ok(tow_duel.apply_command(0, "tractor_release", []), "a holder may let go")
+	for _i in range(200):
+		for s in tow_duel.ships:
+			s.tow_target = Vector2.ZERO
+		tow_duel._step_tractors(1.0 / 20.0, tuning)
+		for s in tow_duel.ships:
+			s.step(1.0 / 20.0, tuning)
+	near(prize.tow.length(), 0.0, "and the tow bleeds away once the beam is gone", 0.001)
+
+	# ---- reeling in ----
+	var reel_duel = BattleLib.create_duel(FitLib.create_default("ironhold"), "talon", 14)
+	var winch = reel_duel.player()
+	var catch = reel_duel.enemy()
+	winch.pos = Vector2.ZERO
+	catch.pos = Vector2(0, 32.0)
+	winch.speed = 0.0
+	catch.speed = 0.0
+	winch.set_alloc_units("tractor", 10.0)
+	ok(reel_duel.apply_command(0, "tractor_latch", [1]), "the winch takes hold")
+	ok(reel_duel.apply_command(0, "tractor_mode", [TractorLib.MODE_REEL]),
+		"and can be told to pull the catch closer (5D)")
+	var gap_before: float = winch.pos.distance_to(catch.pos)
+	var winch_start: Vector2 = winch.pos
+	var catch_start: Vector2 = catch.pos
+	for _i in range(120):
+		for s in reel_duel.ships:
+			s.tow_target = Vector2.ZERO
+		reel_duel._step_tractors(1.0 / 20.0, tuning)
+		winch.set_order(winch.heading, 0.0)
+		catch.set_order(catch.heading, 0.0)
+		for s in reel_duel.ships:
+			s.step(1.0 / 20.0, tuning)
+	ok(winch.pos.distance_to(catch.pos) < gap_before - 4.0, "reeling closes the range")
+	ok(catch_start.distance_to(catch.pos) > winch_start.distance_to(winch.pos) * 2.0,
+		"and the light ship is the one that actually travels")
+
+	# ---- holding needs an emitter, breaking does not ----
+	ok(not TractorLib.emitter_ready(catch), "the Talon carries no tractor")
+	eq(String(TractorLib.latch_check(catch, winch, tuning)["reason"]), "destroyed",
+		"so it cannot latch anything")
+	catch.set_alloc_units("tractor", 4.0)
+	var caught = reel_duel.tractor_on(catch)
+	ok(caught.break_bid() > 0.0,
+		"but it can still shove against a beam already on it")
+
+	# ---- the opponent fights back ----
+	# Without this the auction would be a button: the player would win every
+	# contest unopposed. The ships are held still so the only thing that can
+	# snap the beam is the contest itself, not the range opening.
+	var AiLib = preload("res://src/sim/ai.gd")
+	var contested = BattleLib.create_duel(FitLib.create_default("wayfarer"), "bloodletter", 15)
+	var grip = contested.player()
+	var prisoner = contested.enemy()
+	grip.pos = Vector2.ZERO
+	prisoner.pos = Vector2(0, 24.0)
+	grip.set_alloc_units("tractor", 8.0)
+	eq(prisoner.alloc_units("tractor"), 0.0, "an untouched ai spends nothing on tractors")
+	ok(contested.apply_command(0, "tractor_latch", [1]), "the ai can be caught")
+	var broke: bool = false
+	for _i in range(200):
+		AiLib.act(prisoner, grip, contested)
+		contested._step_tractors(1.0 / 20.0, tuning)
+		if contested.tractors.is_empty():
+			broke = true
+			break
+	ok(broke, "and shoves its way out rather than being towed forever")
+	AiLib.act(prisoner, grip, contested)
+	near(prisoner.alloc_units("tractor"), 0.0, "then stops paying once it is loose", 0.01)
 
 
 func test_replay() -> void:
@@ -610,28 +1158,46 @@ func test_falloff() -> void:
 	var photon: Dictionary = CatalogLib.weapon("photon")
 	var disr: Dictionary = CatalogLib.weapon("disruptor")
 
-	near(WeaponLib.max_range(ph1), 10.0, "reach is the outer edge of the last band")
-	eq(WeaponLib.max_damage(ph1), 8, "point blank damage is the first band")
+	# Every distance below is read out of the catalog rather than written down.
+	# When the arena grew ten times and weapon reach four, a suite full of
+	# literal ranges failed in a dozen places and said nothing about whether the
+	# falloff RULE still held, which is the only thing this test is about.
+	var ph1_reach: float = WeaponLib.max_range(ph1)
+	var ph1_band: float = float(ph1["falloff"][0]["to"])
+	near(ph1_reach, float(ph1["falloff"][-1]["to"]),
+		"reach is the outer edge of the last band")
+	eq(WeaponLib.max_damage(ph1), int(ph1["falloff"][0]["damage"]),
+		"point blank damage is the first band")
 
-	# A band edge belongs to its own band: at exactly 2.0 the shot is still
+	# A band edge belongs to its own band: at exactly the edge the shot is still
 	# point blank, at a hair beyond it is not. Off by one here would silently
 	# change every weapon's profile.
-	eq(WeaponLib.damage_at(ph1, 2.0), 8, "the band edge is inside the band")
-	eq(WeaponLib.damage_at(ph1, 2.001), 7, "just past the edge is the next band")
-	eq(WeaponLib.damage_at(ph1, 0.0), 8, "muzzle contact is point blank")
-	eq(WeaponLib.damage_at(ph1, 10.0), 2, "the last band reaches the stated range")
-	eq(WeaponLib.damage_at(ph1, 10.5), 0, "beyond reach scores nothing")
-	near(WeaponLib.hit_chance_at(ph1, 10.5), 0.0, "beyond reach cannot connect")
+	eq(WeaponLib.damage_at(ph1, ph1_band), int(ph1["falloff"][0]["damage"]),
+		"the band edge is inside the band")
+	eq(WeaponLib.damage_at(ph1, ph1_band + 0.001), int(ph1["falloff"][1]["damage"]),
+		"just past the edge is the next band")
+	eq(WeaponLib.damage_at(ph1, 0.0), int(ph1["falloff"][0]["damage"]),
+		"muzzle contact is point blank")
+	eq(WeaponLib.damage_at(ph1, ph1_reach), int(ph1["falloff"][-1]["damage"]),
+		"the last band reaches the stated range")
+	eq(WeaponLib.damage_at(ph1, ph1_reach * 1.05), 0, "beyond reach scores nothing")
+	near(WeaponLib.hit_chance_at(ph1, ph1_reach * 1.05), 0.0,
+		"beyond reach cannot connect")
 
 	# The three shapes from docs/09: beams lose damage and keep accuracy,
 	# torpedoes keep damage and lose accuracy, disruptors lose both.
-	near(WeaponLib.hit_chance_at(ph1, 9.0), 1.0, "a beam still connects at its edge")
-	ok(WeaponLib.damage_at(ph1, 9.0) < WeaponLib.max_damage(ph1), "a beam weakens with range")
-	eq(WeaponLib.damage_at(photon, 19.0), WeaponLib.max_damage(photon),
+	near(WeaponLib.hit_chance_at(ph1, ph1_reach * 0.9), 1.0,
+		"a beam still connects at its edge")
+	ok(WeaponLib.damage_at(ph1, ph1_reach * 0.9) < WeaponLib.max_damage(ph1),
+		"a beam weakens with range")
+	var photon_edge: float = WeaponLib.max_range(photon) * 0.95
+	eq(WeaponLib.damage_at(photon, photon_edge), WeaponLib.max_damage(photon),
 		"a torpedo hits as hard at the edge as at the muzzle")
-	ok(WeaponLib.hit_chance_at(photon, 19.0) < 1.0, "a torpedo loses accuracy instead")
-	ok(WeaponLib.damage_at(disr, 11.0) < WeaponLib.max_damage(disr)
-		and WeaponLib.hit_chance_at(disr, 11.0) < 1.0, "a disruptor loses both")
+	ok(WeaponLib.hit_chance_at(photon, photon_edge) < 1.0,
+		"a torpedo loses accuracy instead")
+	var disr_edge: float = WeaponLib.max_range(disr) * 0.9
+	ok(WeaponLib.damage_at(disr, disr_edge) < WeaponLib.max_damage(disr)
+		and WeaponLib.hit_chance_at(disr, disr_edge) < 1.0, "a disruptor loses both")
 
 	# Expected damage must never rise with range, for every weapon in the
 	# catalog. A band typo that made a weapon better far away would pass every
@@ -657,25 +1223,29 @@ func test_falloff() -> void:
 	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 	rng.seed = 99
 	var beam_rolls_low: bool = false
+	var mid_band: float = ph1_reach * 0.5
+	var mid_damage: int = WeaponLib.damage_at(ph1, mid_band)
 	for i in range(200):
-		if WeaponLib.roll_damage(ph1, 5.0, rng) != 5:
+		if WeaponLib.roll_damage(ph1, mid_band, rng) != mid_damage:
 			beam_rolls_low = true
 	ok(not beam_rolls_low, "a certain beam always scores its band damage")
 
 	var misses: int = 0
 	var partials: int = 0
+	var long_shot: float = WeaponLib.max_range(photon) * 0.9
 	for i in range(400):
-		var scored: int = WeaponLib.roll_damage(photon, 18.0, rng)
+		var scored: int = WeaponLib.roll_damage(photon, long_shot, rng)
 		if scored == 0:
 			misses += 1
 		elif scored != WeaponLib.max_damage(photon):
 			partials += 1
 	ok(misses > 0, "a long torpedo shot can miss")
 	eq(partials, 0, "a torpedo that connects scores in full")
-	near(float(misses) / 400.0, 1.0 - WeaponLib.hit_chance_at(photon, 18.0),
+	near(float(misses) / 400.0, 1.0 - WeaponLib.hit_chance_at(photon, long_shot),
 		"miss rate tracks the band's hit chance", 0.08)
 
-	near(WeaponLib.longest_range(), 22.0, "the arc chart scale comes from the catalog")
+	near(WeaponLib.longest_range(), WeaponLib.max_range(CatalogLib.weapon("lance")),
+		"the arc chart scale comes from the catalog")
 
 	# A shot resolved through a ship carries the same numbers.
 	var shooter = _fresh_ship()
@@ -714,7 +1284,8 @@ func test_movement_and_weapons() -> void:
 		if bool(still.fire_check(i, blind_pos)["ok"]):
 			none_bear = false
 	ok(none_bear, "nothing fires into the blind bearing")
-	eq(String(still.fire_check(0, still.pos + Vector2(0, 25))["reason"]), "range",
+	var past_reach: float = WeaponLib.longest_range() * 1.5
+	eq(String(still.fire_check(0, still.pos + Vector2(0, past_reach))["reason"]), "range",
 		"out of range is reported as range")
 
 	# Engine damage slows the ship through one shared integrity path.

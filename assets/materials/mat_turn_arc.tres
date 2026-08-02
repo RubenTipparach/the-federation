@@ -1,0 +1,19 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3]
+
+; The helm turn arc. src/ui/ship_rig.gd duplicates this per rig so each ship
+; carries its own sweep, the same reason the shield flare does.
+;
+; render_priority 1 puts it above the grid, which sits at -1, so the arc is
+; not lost against the ruled plane it is drawn on.
+
+[ext_resource type="Shader" path="res://assets/shaders/turn_arc.gdshader" id="1"]
+
+[resource]
+render_priority = 1
+shader = ExtResource("1")
+shader_parameter/arc_color = Color(0.37, 0.83, 0.91, 1)
+shader_parameter/sweep_deg = 0.0
+shader_parameter/dead_zone_deg = 1.5
+shader_parameter/alpha_near = 0.1
+shader_parameter/alpha_far = 0.85
+shader_parameter/tick_deg = 4.0

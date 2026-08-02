@@ -1,0 +1,106 @@
+extends Control
+
+## A discrete allocation strip: N boxes across, M of them filled. Click a box
+## to set the level to it, click the box that is already the level to drop one.
+##
+## This is the control CLAUDE.md 6.2 requires instead of a slider in the
+## tactical view. A slider asks for a slow precise drag exactly when the player
+## has none to give, and it hides the fact that the value is a whole number of
+## reactor points. Here the count is the value, readable without reading a
+## number.
+##
+## It paints in _draw() rather than instancing N button nodes, which is the
+## data driven 2D control exception in CLAUDE.md section 7: the box count is
+## the reactor's surviving output and changes as the reactor is damaged, so
+## there is no static node tree that could describe it. No node trees or
+## meshes are built here; it is one authored node that paints and reports
+## clicks, exactly like the SSD shield ring.
+
+## Emitted with the level the player picked, from 0 to capacity.
+signal level_picked(level: int)
+
+const GAP := 2.0
+const MIN_BOX := 3.0
+
+var capacity: int = 24
+var level: int = 0
+var accent: Color = Palette.CYAN
+## What an unfilled box is drawn in. A readout strip sits at the panel line
+## colour and all but disappears when nothing is lit, which is right for a
+## readout and wrong for a control: a strip a player is meant to CLICK has to
+## show where the boxes are before any of them are filled.
+var empty: Color = Palette.LINE
+## Boxes past this are drawn as unavailable rather than merely empty, so a
+## reactor that has lost output shows the loss instead of silently shrinking.
+var ceiling: int = -1
+
+
+func setup(p_accent: Color, clickable: bool = false) -> void:
+	accent = p_accent
+	empty = Palette.LINE_HOT if clickable else Palette.LINE
+	queue_redraw()
+
+
+## Capacity is passed on every paint rather than fixed once, because it is the
+## ship's own reactor budget and the ship can change between battles. ceiling
+## is how much of that budget still survives; boxes past it are drawn as shot
+## away rather than merely empty.
+func paint(p_level: int, p_capacity: int, p_ceiling: int = -1) -> void:
+	capacity = maxi(1, p_capacity)
+	level = clampi(p_level, 0, capacity)
+	ceiling = p_ceiling
+	queue_redraw()
+
+
+## How wide one box is drawn. The MIN_BOX floor keeps a small strip legible,
+## but it must not push the strip past its own edge: the Ironhold carries 33
+## spare parts and the floored strip painted straight over the number beside
+## it. When the floor does not fit, the gap goes first and then the boxes get
+## thinner, because a cramped strip still reads as a count and an overflowing
+## one reads as a glitch.
+func _box_width() -> float:
+	var n: float = float(capacity)
+	var wide: float = (size.x - GAP * (n - 1.0)) / n
+	if wide >= MIN_BOX:
+		return wide
+	return maxf(1.0, minf(MIN_BOX, size.x / n))
+
+
+## The gap is dropped before the boxes are, so a long strip loses its combing
+## rather than its legibility.
+func _gap() -> float:
+	var n: float = float(capacity)
+	return GAP if (size.x - GAP * (n - 1.0)) / n >= MIN_BOX else 0.0
+
+
+func _draw() -> void:
+	var w: float = _box_width()
+	var gap: float = _gap()
+	var top: float = 0.0
+	var h: float = size.y
+	var limit: int = capacity if ceiling < 0 else clampi(ceiling, 0, capacity)
+	for i in range(capacity):
+		var x: float = float(i) * (w + gap)
+		var col: Color = empty
+		if i >= limit:
+			# Output this box used to represent has been shot away.
+			col = Palette.PANEL_2
+		elif i < level:
+			col = accent
+		draw_rect(Rect2(x, top, w, h), col)
+
+
+func _gui_input(event: InputEvent) -> void:
+	if not (event is InputEventMouseButton):
+		return
+	if event.button_index != MOUSE_BUTTON_LEFT or not event.pressed:
+		return
+	var w: float = _box_width()
+	var picked: int = int(floor(event.position.x / (w + _gap()))) + 1
+	picked = clampi(picked, 0, capacity)
+	# Clicking the box that is already the top of the bar means "one less",
+	# so a strip can be walked down without a separate control.
+	if picked == level:
+		picked -= 1
+	level_picked.emit(picked)
+	accept_event()
