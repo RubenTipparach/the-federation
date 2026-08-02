@@ -9,30 +9,30 @@
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-theme_override_constants/separation = 14
+theme_override_constants/separation = 17
 script = ExtResource("1")
 
 [node name="Left" type="VBoxContainer" parent="."]
 layout_mode = 2
-custom_minimum_size = Vector2(240, 0)
-theme_override_constants/separation = 12
+custom_minimum_size = Vector2(288, 0)
+theme_override_constants/separation = 14
 
 [node name="HullPanel" type="PanelContainer" parent="Left"]
 layout_mode = 2
 
 [node name="V" type="VBoxContainer" parent="Left/HullPanel"]
 layout_mode = 2
-theme_override_constants/separation = 6
+theme_override_constants/separation = 7
 
 [node name="Head" type="Label" parent="Left/HullPanel/V"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 13
 text = "HULL"
 theme_type_variation = &"HeaderLabel"
 
 [node name="HullList" type="VBoxContainer" parent="Left/HullPanel/V"]
 layout_mode = 2
-theme_override_constants/separation = 6
+theme_override_constants/separation = 7
 
 [node name="CrewPanel" type="PanelContainer" parent="Left"]
 layout_mode = 2
@@ -42,13 +42,13 @@ layout_mode = 2
 
 [node name="Head" type="Label" parent="Left/CrewPanel/V"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 13
 text = "CREW"
 theme_type_variation = &"HeaderLabel"
 
 [node name="Body" type="Label" parent="Left/CrewPanel/V"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/font_size = 14
 text = "HELM 62   GUN 71
 ENG 58   TAC 44
 QUALITY VETERAN
@@ -60,18 +60,18 @@ size_flags_horizontal = 3
 
 [node name="V" type="VBoxContainer" parent="Center"]
 layout_mode = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 10
 
 [node name="Head" type="Label" parent="Center/V"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 13
 text = "SHIP SYSTEM DISPLAY"
 theme_type_variation = &"HeaderLabel"
 
 [node name="Ring" type="Control" parent="Center/V"]
 layout_mode = 2
 size_flags_vertical = 3
-custom_minimum_size = Vector2(0, 660)
+custom_minimum_size = Vector2(0, 792)
 script = ExtResource("2")
 
 [node name="HullView" parent="Center/V/Ring" instance=ExtResource("4")]
@@ -80,7 +80,7 @@ anchors_preset = 0
 
 [node name="Controls" type="HBoxContainer" parent="Center/V"]
 layout_mode = 2
-theme_override_constants/separation = 6
+theme_override_constants/separation = 7
 
 [node name="Fire0" type="Button" parent="Center/V/Controls"]
 layout_mode = 2
@@ -100,19 +100,19 @@ text = "Reset"
 
 [node name="Right" type="VBoxContainer" parent="."]
 layout_mode = 2
-custom_minimum_size = Vector2(300, 0)
-theme_override_constants/separation = 12
+custom_minimum_size = Vector2(360, 0)
+theme_override_constants/separation = 14
 
 [node name="BudgetsPanel" type="PanelContainer" parent="Right"]
 layout_mode = 2
 
 [node name="V" type="VBoxContainer" parent="Right/BudgetsPanel"]
 layout_mode = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 10
 
 [node name="Head" type="Label" parent="Right/BudgetsPanel/V"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 13
 text = "FITTING BUDGETS"
 theme_type_variation = &"HeaderLabel"
 
@@ -130,7 +130,7 @@ layout_mode = 2
 
 [node name="ArcSummary" type="Label" parent="Right/BudgetsPanel/V"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 13
 text = "arcs"
 
 [node name="MountsPanel" type="PanelContainer" parent="Right"]
@@ -139,11 +139,11 @@ size_flags_vertical = 3
 
 [node name="V" type="VBoxContainer" parent="Right/MountsPanel"]
 layout_mode = 2
-theme_override_constants/separation = 6
+theme_override_constants/separation = 7
 
 [node name="Head" type="Label" parent="Right/MountsPanel/V"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 13
 text = "MOUNTS"
 theme_type_variation = &"HeaderLabel"
 
@@ -155,4 +155,4 @@ horizontal_scroll_mode = 0
 [node name="MountList" type="VBoxContainer" parent="Right/MountsPanel/V/Scroll"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 6
+theme_override_constants/separation = 7

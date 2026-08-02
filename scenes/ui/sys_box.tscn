@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://src/ui/sys_box.gd" id="1"]
 
 [node name="SysBox" type="Panel"]
-custom_minimum_size = Vector2(52, 34)
+custom_minimum_size = Vector2(62, 41)
 script = ExtResource("1")
 
 [node name="Bg" type="ColorRect" parent="."]
@@ -11,10 +11,10 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 1.0
-offset_top = 1.0
-offset_right = -1.0
-offset_bottom = -1.0
+offset_left = 1
+offset_top = 1
+offset_right = -1
+offset_bottom = -1
 mouse_filter = 2
 
 [node name="Body" type="VBoxContainer" parent="."]
@@ -27,12 +27,12 @@ alignment = 1
 
 [node name="Code" type="Label" parent="Body"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 9
+theme_override_font_sizes/font_size = 11
 horizontal_alignment = 1
 text = "SYS"
 
 [node name="Hp" type="Label" parent="Body"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 13
 horizontal_alignment = 1
 text = "0/0"

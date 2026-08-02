@@ -22,8 +22,14 @@ var _shield_max: float = 1.0
 
 
 func show_state(shields: Array[float], shield_max: float) -> void:
+	# Compared before the copy, because duplicating a six element array every
+	# tick to hand it to a repaint that will draw exactly what is already on
+	# screen is two wastes rather than one.
+	var top: float = maxf(shield_max, 0.001)
+	if _shield_max == top and _shields == shields:
+		return
 	_shields = shields.duplicate()
-	_shield_max = maxf(shield_max, 0.001)
+	_shield_max = top
 	queue_redraw()
 
 

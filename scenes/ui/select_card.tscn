@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://src/ui/select_card.gd" id="1"]
 
 [node name="SelectCard" type="Button"]
-custom_minimum_size = Vector2(0, 64)
+custom_minimum_size = Vector2(0, 77)
 size_flags_horizontal = 3
 toggle_mode = true
 clip_text = true
@@ -14,10 +14,10 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 12.0
-offset_top = 8.0
-offset_right = -12.0
-offset_bottom = -8.0
+offset_left = 14
+offset_top = 10
+offset_right = -14
+offset_bottom = -10
 mouse_filter = 2
 
 [node name="Title" type="Label" parent="Body"]
@@ -26,6 +26,6 @@ text = "Title"
 
 [node name="Meta" type="Label" parent="Body"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 13
 text = "meta"
 autowrap_mode = 2

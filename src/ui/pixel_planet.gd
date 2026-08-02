@@ -59,6 +59,11 @@ func place(feature: Dictionary) -> void:
 	# radius the simulation says it is, whatever else the viewport holds.
 	sprite.pixel_size = float(feature["body"]) * 2.0 / PLANET_PX
 
+	# The viewport renders ONCE rather than every frame, so placing a world has
+	# to ask for that one frame explicitly. Everything above changed what the
+	# shaders will draw, and this is the moment they draw it.
+	($Render as SubViewport).render_target_update_mode = SubViewport.UPDATE_ONCE
+
 	var reach: Node3D = get_node_or_null("Field")
 	if reach != null:
 		var field: float = float(feature["field"])

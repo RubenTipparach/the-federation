@@ -28,24 +28,24 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 16.0
-offset_top = 12.0
-offset_right = -16.0
-offset_bottom = -12.0
-theme_override_constants/separation = 10
+offset_left = 19
+offset_top = 14
+offset_right = -19
+offset_bottom = -14
+theme_override_constants/separation = 12
 
 [node name="TopBar" type="HBoxContainer" parent="Root"]
 layout_mode = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 10
 
 [node name="Title" type="Label" parent="Root/TopBar"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 18
+theme_override_font_sizes/font_size = 22
 text = "THE FEDERATION"
 
 [node name="Spacer" type="Control" parent="Root/TopBar"]
 layout_mode = 2
-custom_minimum_size = Vector2(24, 0)
+custom_minimum_size = Vector2(29, 0)
 
 [node name="TabFitting" type="Button" parent="Root/TopBar"]
 layout_mode = 2
@@ -69,7 +69,7 @@ size_flags_horizontal = 3
 [node name="Version" type="Label" parent="Root/TopBar"]
 layout_mode = 2
 mouse_filter = 0
-theme_override_font_sizes/font_size = 10
+theme_override_font_sizes/font_size = 12
 text = "prototype"
 tooltip_text = "Tap three times for the debug overlay."
 

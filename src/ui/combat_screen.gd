@@ -19,10 +19,10 @@ const BRACKET_COUNT := 2
 ## Hull radius in sim units per ton, so a bracket is sized by the ship it is
 ## drawn around rather than by a single number for every hull. It lives in
 ## data/tuning.json with the other sizes it has to move with (CLAUDE.md 5.4).
-const BRACKET_MIN_PX := 16.0
-const BRACKET_MAX_PX := 120.0
+const BRACKET_MIN_PX := 19.0
+const BRACKET_MAX_PX := 144.0
 ## Extra pixels around a ship that still count as pointing at it.
-const BRACKET_PICK_SLACK := 10.0
+const BRACKET_PICK_SLACK := 12.0
 ## Off screen by more than any real pointer position, so "no pointer" needs no
 ## second boolean that could disagree with the position beside it.
 const NO_POINTER := Vector2(-1e9, -1e9)
@@ -977,14 +977,14 @@ func _position_ship_labels_body() -> void:
 	var foe: ShipState = battle.enemy()
 	# Screen space offsets: world space label lifts collapse at plan pitch.
 	var p: Vector2 = world.screen_pos(me.pos)
-	stack.get_node("PlayerLabel").position = p + Vector2(-30, -46)
+	stack.get_node("PlayerLabel").position = p + Vector2(-36, -55)
 	stack.get_node("PlayerLabel").text = String(me.fit.hull()["name"]).to_upper()
 	Paint.tint(stack.get_node("PlayerLabel"), "font_color", Palette.CYAN)
 	# Which shields are down is a sensor reading like any other, so it goes with
 	# the lock rather than surviving it.
 	var seen: bool = me.can_see(foe.pos)
 	var q: Vector2 = world.screen_pos(foe.pos)
-	stack.get_node("EnemyLabel").position = q + Vector2(-34, -58)
+	stack.get_node("EnemyLabel").position = q + Vector2(-41, -70)
 	stack.get_node("EnemyLabel").text = String(foe.fit.hull()["name"]).to_upper()
 	Paint.tint(stack.get_node("EnemyLabel"), "font_color", Palette.MAGENTA)
 	var status: Label = stack.get_node("EnemyStatus")
@@ -992,7 +992,7 @@ func _position_ship_labels_body() -> void:
 	for f in range(6):
 		if foe.shields[f] <= 0.0:
 			downs.append("#%d" % (f + 1))
-	status.position = q + Vector2(-40, -42)
+	status.position = q + Vector2(-48, -50)
 	status.text = "" if downs.is_empty() or not seen else "SHIELD %s DOWN" % " ".join(downs)
 	Paint.tint(status, "font_color", Palette.AMBER)
 	_refresh_brackets(world, stack)

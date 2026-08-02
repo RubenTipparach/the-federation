@@ -90,8 +90,8 @@ func _initialize() -> void:
 
 	# The columns are pinned by a maximum, so this is what the rule actually
 	# says: authored width, whatever is inside them.
-	_ok("the left column is its authored width", int(left.size.x), 300)
-	_ok("the right column is its authored width", int(right.size.x), 300)
+	_ok("the left column is its authored width", int(left.size.x), 360)
+	_ok("the right column is its authored width", int(right.size.x), 360)
 
 	print("")
 	if _failed == 0:

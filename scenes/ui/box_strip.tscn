@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://src/ui/box_strip.gd" id="1"]
 
 [node name="BoxStrip" type="Control"]
-custom_minimum_size = Vector2(0, 14)
+custom_minimum_size = Vector2(0, 17)
 layout_mode = 3
 anchors_preset = 0
 size_flags_horizontal = 3

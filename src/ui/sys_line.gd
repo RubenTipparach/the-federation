@@ -67,7 +67,11 @@ func paint(cur: int, boxes_max: int) -> void:
 	$Health.color = Palette.with_alpha(Palette.OK if _queued else Palette.LINE, 0.9)
 	var fill: ColorRect = $Health/Fill
 	fill.color = Palette.with_alpha(hue, 0.35 if dead else 1.0)
-	fill.anchor_right = 1.0 if dead else clampf(frac, 0.06, 1.0)
+	# Control.set_anchor has no early out and runs a full size change on every
+	# call, so writing the value it already holds is a relayout for nothing.
+	var want_anchor: float = 1.0 if dead else clampf(frac, 0.06, 1.0)
+	if not is_equal_approx(fill.anchor_right, want_anchor):
+		fill.anchor_right = want_anchor
 	_write_tooltip(cur, boxes_max)
 
 

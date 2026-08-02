@@ -34,3 +34,6 @@ func show_hull(hull: Dictionary) -> void:
 	# plan inset uses, so the plate and the tactical view agree on which way
 	# the ship is pointing.
 	cam.look_at_from_position(Vector3(0, 20, 0), Vector3.ZERO, Vector3(0, 0, 1))
+	# The viewport renders once rather than continuously, so the hull that was
+	# just set up has to ask for its frame. Nothing else in here ever moves.
+	($View as SubViewport).render_target_update_mode = SubViewport.UPDATE_ONCE

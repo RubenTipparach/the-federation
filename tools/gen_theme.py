@@ -32,9 +32,14 @@ FONT = "res://assets/ui/font_tactical.fnt"
 # Content margins in device pixels: how far inside a plate its contents sit.
 # The plate's frame is 4 blocks, so anything under 9 would put text on bronze
 # rather than on the glass well the frame surrounds.
-PLATE_CONTENT = (10, 5, 10, 5)
-HEADER_CONTENT = (14, 2, 14, 2)
-BUTTON_CONTENT = (8, 4, 8, 4)
+# Content margins, in the 1920x1080 design space. These are LAYOUT and scale
+# with the reference resolution. The nine patch texture margins beside them do
+# not: those describe art baked at B = 2 blocks, and 1.2 times 2 is not a whole
+# number of pixels, so scaling them would resample pixel art at 1.25 and soften
+# every border the skin has. Content margin is layout, texture margin is art.
+PLATE_CONTENT = (12, 6, 12, 6)
+HEADER_CONTENT = (17, 2, 17, 2)
+BUTTON_CONTENT = (10, 5, 10, 5)
 
 
 def rgb_of(name, colors, ui_colors):
@@ -119,7 +124,7 @@ def main():
     body = [
         "[resource]",
         "default_font = ExtResource(\"font\")",
-        "default_font_size = 14",
+        "default_font_size = 17",
         "Button/colors/font_color = %s" % chassis_of("label"),
         "Button/colors/font_hover_color = %s" % lit_of("fg"),
         "Button/colors/font_pressed_color = %s" % lit_of("ok"),

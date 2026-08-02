@@ -109,15 +109,40 @@ def clear(p, x, y, w, h):
     blocks(p, x, y, w, h, (0, 0, 0), 0)
 
 
-def grit(p, x, y, w, h, base, specks, density):
+def grit(p, x, y, w, h, base, specks, density, avoid=None):
     """A flecked face: the oxidised metal of the reference plates. Density is
-    one speck per that many blocks."""
+    one speck per that many blocks.
+
+    `avoid` is a (x, y, w, h) box in blocks that gets the base colour and no
+    flecks. It exists for a bug that took a while to see and is obvious once
+    stated: a nine patch STRETCHES its centre, so a single one block fleck
+    landing in there is not a fleck any more, it is a bar across the whole
+    control. Every button carried one dark red speck near the middle and it
+    drew on screen as a smeared red blob, which is what a rivet becomes when
+    it is scaled by twenty.
+
+    So detail may not live in a stretched centre. The plate is exempt and does
+    not pass this, because its centre TILES rather than stretches and its
+    scanlines depend on that."""
     blocks(p, x, y, w, h, base)
     for j in range(h):
         for i in range(w):
-            n = hashed(x + i, y + j)
+            bx, by = x + i, y + j
+            if avoid is not None:
+                ax, ay, aw, ah = avoid
+                if ax <= bx < ax + aw and ay <= by < ay + ah:
+                    continue
+            n = hashed(bx, by)
             if n % density == 0:
-                blocks(p, x + i, y + j, 1, 1, specks[n % len(specks)])
+                blocks(p, bx, by, 1, 1, specks[n % len(specks)])
+
+
+def stretch_box(name, w, h):
+    """The block box a nine patch will stretch, from its margins. Anything
+    painted inside it is smeared rather than repeated, so this is what `grit`
+    is told to leave alone."""
+    left, top, right, bottom = MARGINS[name]
+    return (left, top, max(w - left - right, 0), max(h - top - bottom, 0))
 
 
 # ---- the textures ------------------------------------------------------------
@@ -184,12 +209,17 @@ def header(R):
             blocks(p, i, j, 1, 1,
                    R["bevel_hi"] if (top and j <= 2) else
                    (R["bevel_lo"] if low else R["face"]))
-    for i in range(4, w - 4):
-        if hashed(i, 5) % 9 == 0:
-            blocks(p, i, 5, 1, 1, R["fleck_a"])
-    # A rivet at each end of the bar, clear of where the label runs.
+    # The flecks and the rivets used to sit on row 5, which is inside the
+    # vertical stretch band, so both were drawn as vertical bars down the
+    # whole header rather than as specks. They move to row 1, inside the top
+    # margin, where a nine patch repeats them instead of smearing them.
+    for i in range(6, w - 6):
+        if hashed(i, 1) % 9 == 0:
+            blocks(p, i, 1, 1, 1, R["fleck_a"])
+    # A rivet at each end of the bar, clear of where the label runs and clear
+    # of the stretched middle.
     for rx in (2, w - 3):
-        blocks(p, rx, 5, 1, 1, R["rivet"])
+        blocks(p, rx, 1, 1, 1, R["rivet"])
     return p, "header, margin 5/3"
 
 
@@ -212,7 +242,8 @@ def button(R, state):
     if state == "disabled":
         blocks(p, 1, 1, 10, 8, face)
     else:
-        grit(p, 1, 1, 10, 8, face, [R["fleck_a"], R["fleck_b"]], 31)
+        grit(p, 1, 1, 10, 8, face, [R["fleck_a"], R["fleck_b"]], 31,
+             avoid=stretch_box("button_" + state, 12, 10))
     blocks(p, 1, 1, 10, 1, hi)
     blocks(p, 1, 8, 10, 1, lo)
     return p, "button %s, margin 3" % state

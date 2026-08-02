@@ -230,7 +230,9 @@ func _render_repair() -> void:
 				String(sys["family"]), tuning)
 			frac = clampf(_ship.repair_progress / maxf(0.001, needed), 0.0, 1.0)
 		fill.color = Palette.with_alpha(Palette.CYAN, 1.0 if i == 0 else 0.0)
-		fill.anchor_right = maxf(frac, 0.001)
+		var want_fill: float = maxf(frac, 0.001)
+		if not is_equal_approx(fill.anchor_right, want_fill):
+			fill.anchor_right = want_fill
 		Paint.tint(node.get_node("Line/Code"), "font_color",
 			Palette.CYAN if i == 0 else Palette.FG)
 
@@ -357,7 +359,9 @@ func _render_tractor_contest(beam: Tractor, tuning: Dictionary) -> void:
 	var fill: ColorRect = $V/Tug/Strain/Fill
 	track.color = Palette.LINE
 	fill.color = Palette.CRIT if frac > 0.6 else Palette.AMBER
-	fill.anchor_right = maxf(frac, 0.001)
+	var want_fill: float = maxf(frac, 0.001)
+	if not is_equal_approx(fill.anchor_right, want_fill):
+		fill.anchor_right = want_fill
 	var seconds_left: float = maxf(0.0,
 		float(tuning["tractor"]["break_seconds"]) - beam.strain)
 	if frac <= 0.0:

@@ -10,16 +10,16 @@
 theme_override_constants/separation = 2
 
 [node name="Line" type="HBoxContainer" parent="."]
-theme_override_constants/separation = 5
+theme_override_constants/separation = 6
 
 [node name="Ord" type="Label" parent="Line"]
-custom_minimum_size = Vector2(12, 0)
+custom_minimum_size = Vector2(14, 0)
 layout_mode = 2
-theme_override_font_sizes/font_size = 10
+theme_override_font_sizes/font_size = 12
 text = "1"
 
 [node name="Icon" type="TextureRect" parent="Line"]
-custom_minimum_size = Vector2(16, 16)
+custom_minimum_size = Vector2(19, 19)
 layout_mode = 2
 size_flags_vertical = 4
 expand_mode = 1
@@ -28,33 +28,33 @@ stretch_mode = 5
 [node name="Code" type="Label" parent="Line"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 10
+theme_override_font_sizes/font_size = 12
 text = "CODE"
 
 [node name="Where" type="Label" parent="Line"]
-custom_minimum_size = Vector2(24, 0)
+custom_minimum_size = Vector2(29, 0)
 layout_mode = 2
 horizontal_alignment = 2
-theme_override_font_sizes/font_size = 10
+theme_override_font_sizes/font_size = 12
 text = "#1"
 
 [node name="Cost" type="Label" parent="Line"]
-custom_minimum_size = Vector2(38, 0)
+custom_minimum_size = Vector2(46, 0)
 layout_mode = 2
 horizontal_alignment = 2
-theme_override_font_sizes/font_size = 10
+theme_override_font_sizes/font_size = 12
 text = "0 p"
 
 [node name="Drop" type="Button" parent="Line"]
-custom_minimum_size = Vector2(18, 0)
+custom_minimum_size = Vector2(22, 0)
 layout_mode = 2
 focus_mode = 0
 flat = true
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 13
 text = "x"
 
 [node name="Track" type="ColorRect" parent="."]
-custom_minimum_size = Vector2(0, 3)
+custom_minimum_size = Vector2(0, 4)
 layout_mode = 2
 
 [node name="Fill" type="ColorRect" parent="Track"]

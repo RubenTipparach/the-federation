@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://src/ui/mount_arc_item.gd" id="1"]
 
 [node name="MountArcItem" type="Button"]
-custom_minimum_size = Vector2(0, 96)
+custom_minimum_size = Vector2(0, 115)
 size_flags_horizontal = 3
 toggle_mode = true
 script = ExtResource("1")
@@ -13,20 +13,20 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 10.0
-offset_top = 6.0
-offset_right = -10.0
-offset_bottom = -6.0
+offset_left = 12
+offset_top = 7
+offset_right = -12
+offset_bottom = -7
 mouse_filter = 2
 theme_override_constants/separation = 2
 
 [node name="Title" type="Label" parent="Body"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/font_size = 14
 text = "M1"
 
 [node name="Meta" type="Label" parent="Body"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 10
+theme_override_font_sizes/font_size = 12
 text = "meta"
 autowrap_mode = 2
