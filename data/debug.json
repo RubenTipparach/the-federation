@@ -1,106 +1,127 @@
 {
-  "_comment": "The debug overlay's switches. Every one is VIEW ONLY: a switch here may hide something, stop something repainting, or lower a render scale, and may never touch the simulation. That is the property that makes the overlay safe to leave in a build, because a battle plays out identically whatever is switched off (CLAUDE.md 5.2). Adding a switch is an entry here plus one read at the place that decides the thing, which is why the panel itself knows nothing about what any of these mean.",
-  "_kinds": "bool is on or off. cycle steps through values, and the first value is the default. cost is what measuring said the thing was worth, in milliseconds per frame at 800x500 under a CPU rasteriser: meaningless absolutely, useful for ordering the list worst first.",
+  "_comment": "The debug overlay's switches. Every one is VIEW ONLY: a switch here may hide something or stop something repainting, and may never touch the simulation. That is the property that makes the overlay safe to leave in a build, because a battle plays out identically whatever is switched off (CLAUDE.md 5.2).",
+  "_kinds": "bool is on or off. cycle steps through values, and the first is the default. nodes are combat screen paths hidden when a bool flag is off; a flag with no nodes only gates work. part names the timing bucket the flag owns, which src/ui/hud_profile.gd accumulates and the panel prints beside the caption, so the list reads worst first without anybody having to toggle anything.",
+  "_history": "This list used to switch off the 3D scene: starfield, nebulae, deck grid, weapon arcs, impact flares, terrain, world art, plan inset, render scale. They are gone, retired by one reading on the phone the overlay exists for: 45.8 ms a frame, of which 38.4 was script and 7.4 was everything the renderer does. Eighty four percent of the frame was our own GDScript, so which pixels the 3D scene draws was not the question, and nine switches for it were nine ways to ask the wrong one. The list is the interface now, one flag per panel, because that is where the time goes.",
   "order": [
     "hud",
-    "sky",
-    "clouds",
-    "grid",
-    "arcs",
-    "flares",
-    "terrain",
-    "worlds",
-    "inset",
-    "render_scale",
+    "ship", "power", "damage", "keep",
+    "target", "own_ssd", "target_ssd", "fight", "weapons",
+    "overlays",
     "hud_hz"
   ],
   "flags": {
     "hud": {
-      "label": "Game UI",
+      "label": "ALL UI",
       "kind": "bool",
       "default": true,
+      "part": "",
+      "nodes": [],
       "cost": "the whole 2D interface, drawn and updated",
-      "note": "Hides every panel and every screen space label, and stops the HUD refresh running at all. The battle and the 3D view carry on, and this overlay is on its own layer so it stays. Turn it off to find out how much of the frame is the interface, before spending time on which part of it."
+      "note": "Every panel below at once, plus the screen space labels. The battle and the 3D view carry on and this overlay stays, so what it removes is the interface and nothing else. Ask this one first: it says how much of the frame is worth chasing before you spend time on which part of it."
     },
-    "sky": {
-      "label": "Starfield",
+    "ship": {
+      "label": "Ship",
       "kind": "bool",
       "default": true,
-      "cost": "25.0",
-      "note": "Voronoi stars over an fbm nebula, evaluated per pixel of sky every frame."
+      "part": "ship",
+      "nodes": ["Left/ShipPanel"],
+      "cost": "4 labels and the throttle strip",
+      "note": "Hull name, boxes, speed, heading and the ordered throttle."
     },
-    "clouds": {
-      "label": "Nebulae",
+    "power": {
+      "label": "Power",
       "kind": "bool",
       "default": true,
-      "cost": "fill",
-      "note": "Additive, double sided, no depth write. One cloud can cover the screen."
+      "part": "power",
+      "nodes": ["Left/PowerPanel"],
+      "cost": "5 box strips and 6 labels",
+      "note": "The reactor budget and its five sinks. Each row repaints a strip of discrete boxes as long as the reactor's surviving output."
     },
-    "grid": {
-      "label": "Deck grid",
+    "damage": {
+      "label": "Damage log",
       "kind": "bool",
       "default": true,
-      "cost": "3.4",
-      "note": "A full screen transparent quad drawn before everything else."
+      "part": "damage",
+      "nodes": ["Left/DamagePanel"],
+      "cost": "2 autowrapped labels, one line per damaged system",
+      "note": "The damage report walks every system every tick to build its list, and the comm log rejoins its last six lines."
     },
-    "arcs": {
-      "label": "Arcs + rings",
+    "keep": {
+      "label": "Keep station",
       "kind": "bool",
       "default": true,
-      "cost": "fill",
-      "note": "Twelve wedges, six shield bands and a range ring per ship, all blended."
+      "part": "keep",
+      "nodes": ["Left/KeepTabs", "Left/KeepPanel"],
+      "cost": "4 tabs and whichever station is open",
+      "note": "The left tab strip and its panel: repair, life, cargo, lab."
     },
-    "flares": {
-      "label": "Impact flares",
+    "target": {
+      "label": "Target",
       "kind": "bool",
       "default": true,
-      "cost": "fill",
-      "note": "The shield glow behind a struck facing."
+      "part": "target",
+      "nodes": ["Right/TargetPanel"],
+      "cost": "2 labels and a sensor lock test",
+      "note": "Contact, boxes, range and bearing. The lock test asks the terrain whether the contact can be seen, which is a segment solve per feature."
     },
-    "terrain": {
-      "label": "Terrain",
+    "own_ssd": {
+      "label": "Own ship display",
       "kind": "bool",
       "default": true,
-      "cost": "geometry",
-      "note": "Every rock, cloud and world at once, for a floor on what the map costs."
+      "part": "own_ssd",
+      "nodes": ["Right/OwnPanel"],
+      "cost": "a painted shield ring and 32 subsystem slots",
+      "note": "The largest single widget in the interface by node count. Its ring paints in _draw and each slot is a texture and two rects."
     },
-    "worlds": {
-      "label": "World art",
+    "target_ssd": {
+      "label": "Target display",
       "kind": "bool",
       "default": true,
-      "cost": "target",
-      "note": "Stops the planet's own viewport redrawing. The planet freezes rather than vanishing."
+      "part": "target_ssd",
+      "nodes": ["Right/TargetDisplayPanel"],
+      "cost": "a second painted shield ring",
+      "note": "The same component as the own ship display, drawn smaller and read only."
     },
-    "inset": {
-      "label": "Plan inset",
+    "fight": {
+      "label": "Fight station",
       "kind": "bool",
       "default": true,
-      "cost": "target",
-      "note": "A second camera on the same world: small, but it repeats every draw call."
+      "part": "fight",
+      "nodes": ["Right/FightTabs", "Right/FightPanel"],
+      "cost": "6 tabs and whichever station is open",
+      "note": "The right tab strip and its panel: shields, reactor, sensors, tractor, marines, shuttle."
     },
-    "render_scale": {
-      "label": "Render scale",
-      "kind": "cycle",
-      "values": [
-        1.0,
-        0.75,
-        0.5,
-        0.35
+    "weapons": {
+      "label": "Weapons",
+      "kind": "bool",
+      "default": true,
+      "part": "weapons",
+      "nodes": ["Right/WeaponsPanel"],
+      "cost": "one row per mount, each running a firing check",
+      "note": "Every row asks the ship whether that mount could fire, and each of those runs an arc test, a lock test and a range test against the terrain. It is the most simulation work the interface causes."
+    },
+    "overlays": {
+      "label": "Overlays",
+      "kind": "bool",
+      "default": true,
+      "part": "overlays",
+      "nodes": [
+        "Mid/ViewPanel/Stack/Bracket0", "Mid/ViewPanel/Stack/Bracket1",
+        "Mid/ViewPanel/Stack/PlayerLabel", "Mid/ViewPanel/Stack/EnemyLabel",
+        "Mid/ViewPanel/Stack/EnemyStatus", "Mid/ViewPanel/Stack/InsetCaption",
+        "Mid/ViewPanel/Stack/TouchControls", "Mid/ViewPanel/Stack/InsetFrame"
       ],
-      "cost": "pixels",
-      "note": "How many 3D pixels are drawn before the view is stretched to fit. The bluntest instrument here and usually the most effective."
+      "cost": "brackets, ship labels, sticks and the plan inset",
+      "note": "Everything drawn over the battle rather than beside it. The only part that updates every frame rather than at the HUD rate, because the camera moves and the labels have to follow it."
     },
     "hud_hz": {
-      "label": "HUD repaint",
+      "label": "UI repaint",
       "kind": "cycle",
-      "values": [
-        60,
-        30,
-        15,
-        5
-      ],
-      "cost": "cpu",
-      "note": "How often the panels repaint. The simulation keeps stepping at full rate either way, so this isolates interface cost from everything else."
+      "values": [60.0, 30.0, 15.0, 5.0, 1.0],
+      "part": "",
+      "nodes": [],
+      "cost": "how often the panels above are updated",
+      "note": "Update rate only. It does not reduce what is DRAWN, because Godot has no partial 2D redraw and every visible item is recorded every frame regardless. So this moving very little while the interface is still most of the frame is the expected result rather than a broken switch."
     }
   }
 }

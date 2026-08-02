@@ -769,71 +769,106 @@ func _sync_fire_buttons() -> void:
 			Palette.OK if lit else Palette.DIM)
 
 
+## Repaint the panels. One block per part, each gated by its own switch and
+## timed by the one profiler, so the overlay can say what each is worth without
+## anybody having to toggle eleven things twice on a phone.
+##
+## The gate is deliberately on the WORK and not only on the visibility: a panel
+## nobody can see still pays for every string formatted into it, and a switch
+## that removed the drawing but left the updating would measure half a thing.
 func _refresh_hud() -> void:
-	# Hidden means not updated. A panel nobody can see still pays for every
-	# string formatted into it, and half a switch would measure half a thing.
-	if not DebugFlags.on("hud"):
-		return
-	_sync_fire_buttons()
-	if battle == null:
+	if not DebugFlags.on("hud") or battle == null:
 		return
 	var me: ShipState = battle.player()
 	var foe: ShipState = battle.enemy()
+	var t: int = 0
 
-	$Left/ShipPanel/V/Head.text = String(me.fit.hull()["name"]).to_upper()
-	$Left/ShipPanel/V/Throttle/Boxes.paint(
-		int(roundf(me.ordered_throttle * float(THROTTLE_NOTCHES))), THROTTLE_NOTCHES)
-	$Left/ShipPanel/V/Throttle/Out.text = "%d" % int(
-		roundf(me.ordered_throttle * float(THROTTLE_NOTCHES)))
-	$Left/ShipPanel/V/Body.text = "\n".join([
-		"BOXES  %d / %d" % [me.total_boxes(), me.total_boxes_max()],
-		"SPEED  %.1f / %.1f" % [me.speed, me.max_speed()],
-		"HEADING  %03d  ordered %03d" % [int(me.heading), int(me.ordered_heading)],
-	])
+	if DebugFlags.on("ship"):
+		t = HudProfile.open("ship")
+		_sync_fire_buttons()
+		$Left/ShipPanel/V/Head.text = String(me.fit.hull()["name"]).to_upper()
+		$Left/ShipPanel/V/Throttle/Boxes.paint(
+			int(roundf(me.ordered_throttle * float(THROTTLE_NOTCHES))), THROTTLE_NOTCHES)
+		$Left/ShipPanel/V/Throttle/Out.text = "%d" % int(
+			roundf(me.ordered_throttle * float(THROTTLE_NOTCHES)))
+		$Left/ShipPanel/V/Body.text = "\n".join([
+			"BOXES  %d / %d" % [me.total_boxes(), me.total_boxes_max()],
+			"SPEED  %.1f / %.1f" % [me.speed, me.max_speed()],
+			"HEADING  %03d  ordered %03d" % [int(me.heading), int(me.ordered_heading)],
+		])
+		HudProfile.close("ship", t)
 
-	var out: float = me.power_output()
-	$Left/PowerPanel/V/Head.text = "POWER  %d / %d" % [int(out),
-		int(me.fit.hull()["budgets"]["power"])]
-	# The strip is as long as the reactor's SURVIVING output, so losing power
-	# boxes visibly shortens every row instead of silently rescaling them.
-	# One box per point of the hull's reactor budget, and the boxes past what
-	# the reactor still puts out are drawn as shot away, so damage shortens the
-	# usable strip in front of the player instead of quietly rescaling it.
-	var budget: int = int(me.fit.hull()["budgets"]["power"])
-	var ceiling: int = int(floorf(out))
-	for sink in ["Weapons", "Shields", "Engines", "Systems", "Reserve"]:
-		var row: HBoxContainer = $Left/PowerPanel/V.get_node(sink)
-		var units: float = me.alloc_units(sink.to_lower())
-		row.get_node("Boxes").paint(int(roundf(units)), budget, ceiling)
-		row.get_node("Out").text = str(int(roundf(units)))
+	if DebugFlags.on("power"):
+		t = HudProfile.open("power")
+		var out: float = me.power_output()
+		$Left/PowerPanel/V/Head.text = "POWER  %d / %d" % [int(out),
+			int(me.fit.hull()["budgets"]["power"])]
+		# The strip is as long as the reactor's SURVIVING output, so losing power
+		# boxes visibly shortens every row instead of silently rescaling them.
+		var budget: int = int(me.fit.hull()["budgets"]["power"])
+		var ceiling: int = int(floorf(out))
+		for sink in ["Weapons", "Shields", "Engines", "Systems", "Reserve"]:
+			var row: HBoxContainer = $Left/PowerPanel/V.get_node(sink)
+			var units: float = me.alloc_units(sink.to_lower())
+			row.get_node("Boxes").paint(int(roundf(units)), budget, ceiling)
+			row.get_node("Out").text = str(int(roundf(units)))
+		HudProfile.close("power", t)
 
-	var dmg: Array[String] = []
-	for sys in me.systems:
-		if int(sys["boxes"]) < int(sys["boxes_max"]):
-			dmg.append("%s  %d/%d" % [String(sys["code"]), int(sys["boxes"]),
-				int(sys["boxes_max"])])
-	$Left/DamagePanel/V/BodyScroll/Body.text = "No damage." if dmg.is_empty() else "\n".join(dmg)
-	$Left/DamagePanel/V/CommScroll/CommLog.text = "\n".join(_report_lines.slice(-6))
+	if DebugFlags.on("damage"):
+		t = HudProfile.open("damage")
+		var dmg: Array[String] = []
+		for sys in me.systems:
+			if int(sys["boxes"]) < int(sys["boxes_max"]):
+				dmg.append("%s  %d/%d" % [String(sys["code"]), int(sys["boxes"]),
+					int(sys["boxes_max"])])
+		$Left/DamagePanel/V/BodyScroll/Body.text = \
+			"No damage." if dmg.is_empty() else "\n".join(dmg)
+		$Left/DamagePanel/V/CommScroll/CommLog.text = "\n".join(_report_lines.slice(-6))
+		HudProfile.close("damage", t)
 
-	_refresh_target_readout(me, foe)
-	$Right/OwnPanel/V/Display.refresh()
-	$Right/TargetDisplayPanel/V/Display.refresh()
-	$Right/FightTabs.refresh(me.systems, me.repair_queue)
-	$Left/KeepTabs.refresh(me.systems, me.repair_queue)
-	$Right/FightPanel.refresh()
-	$Left/KeepPanel.refresh()
+	if DebugFlags.on("target"):
+		t = HudProfile.open("target")
+		_refresh_target_readout(me, foe)
+		HudProfile.close("target", t)
 
-	for i in range(_weapon_rows.size()):
-		var w: Dictionary = me.weapons_rt[i]
-		if w["weapon"].is_empty():
-			_weapon_rows[i].paint("%s (empty)" % String(w["mount"]["id"]), "empty", 0.0)
-			continue
-		var check: Dictionary = me.fire_check(i, foe.pos)
-		_weapon_rows[i].paint("%s %s" % [String(w["mount"]["id"]),
-			String(w["weapon"]["name"])], String(check["reason"]), float(w["charge"]))
-	$Right/WeaponsPanel/V/Battery.text = "BATTERY %d%%" % int(me.battery * 100.0)
-	Paint.tint($Right/WeaponsPanel/V/Battery, "font_color",
-		Palette.OK if me.battery >= 1.0 else Palette.DIM)
+	if DebugFlags.on("own_ssd"):
+		t = HudProfile.open("own_ssd")
+		$Right/OwnPanel/V/Display.refresh()
+		HudProfile.close("own_ssd", t)
+
+	if DebugFlags.on("target_ssd"):
+		t = HudProfile.open("target_ssd")
+		$Right/TargetDisplayPanel/V/Display.refresh()
+		HudProfile.close("target_ssd", t)
+
+	if DebugFlags.on("fight"):
+		t = HudProfile.open("fight")
+		$Right/FightTabs.refresh(me.systems, me.repair_queue)
+		$Right/FightPanel.refresh()
+		HudProfile.close("fight", t)
+
+	if DebugFlags.on("keep"):
+		t = HudProfile.open("keep")
+		$Left/KeepTabs.refresh(me.systems, me.repair_queue)
+		$Left/KeepPanel.refresh()
+		HudProfile.close("keep", t)
+
+	if DebugFlags.on("weapons"):
+		t = HudProfile.open("weapons")
+		for i in range(_weapon_rows.size()):
+			var w: Dictionary = me.weapons_rt[i]
+			if w["weapon"].is_empty():
+				_weapon_rows[i].paint("%s (empty)" % String(w["mount"]["id"]), "empty", 0.0)
+				continue
+			var check: Dictionary = me.fire_check(i, foe.pos)
+			_weapon_rows[i].paint("%s %s" % [String(w["mount"]["id"]),
+				String(w["weapon"]["name"])], String(check["reason"]), float(w["charge"]))
+		$Right/WeaponsPanel/V/Battery.text = "BATTERY %d%%" % int(me.battery * 100.0)
+		Paint.tint($Right/WeaponsPanel/V/Battery, "font_color",
+			Palette.OK if me.battery >= 1.0 else Palette.DIM)
+		HudProfile.close("weapons", t)
+
+	HudProfile.tick()
 
 
 ## The contact readout, and what it says when the sensors cannot hold a lock.
@@ -851,7 +886,7 @@ func _refresh_hud() -> void:
 ## The debug overlay's switches that belong to this screen rather than to the
 ## world: the second 3D render, and the whole interface.
 func _apply_debug() -> void:
-	_apply_hud_visible(DebugFlags.on("hud"))
+	_apply_hud_visible()
 	var inset: SubViewport = $Mid/ViewPanel/Stack/InsetFrame/InsetContainer/Inset
 	var want: int = SubViewport.UPDATE_WHEN_PARENT_VISIBLE if DebugFlags.on("inset") \
 		else SubViewport.UPDATE_DISABLED
@@ -881,8 +916,14 @@ func _refresh_target_readout(me: ShipState, foe: ShipState) -> void:
 
 
 func _position_ship_labels() -> void:
-	if battle == null or not DebugFlags.on("hud"):
+	if battle == null or not DebugFlags.on("hud") or not DebugFlags.on("overlays"):
 		return
+	var stamp: int = HudProfile.open("overlays")
+	_position_ship_labels_body()
+	HudProfile.close("overlays", stamp)
+
+
+func _position_ship_labels_body() -> void:
 	var world: Node3D = _world()
 	var stack: Control = $Mid/ViewPanel/Stack
 	var me: ShipState = battle.player()
@@ -994,30 +1035,21 @@ func _note(line: String) -> void:
 		_report_lines = _report_lines.slice(-40)
 
 
-## Everything that is interface, as one switch.
+## Show or hide each part of the interface, from the node paths in the flag
+## data. One loop for every flag rather than a branch per panel, so adding a
+## part is an entry in data/debug.json and nothing here (CLAUDE.md 5.4).
 ##
-## The battle keeps running and the 3D view keeps rendering, so what this
-## measures is the interface and nothing else: both what it costs to DRAW,
-## which is the per frame cull and record of every visible CanvasItem, and what
-## it costs to UPDATE, which is _refresh_hud. Those are separate costs and the
-## HUD repaint flag only reaches the second, which is why turning that one all
-## the way down can change a frame very little while the interface is still
-## most of it.
-##
-## Listed rather than derived from a container, because the middle column holds
-## the 3D view as well as the two button rows and hiding it would hide the
-## thing being measured against.
-const HUD_PARTS: Array = [
-	"Left", "Right", "Mid/Actions", "Mid/ReplayBar",
-	"Mid/ViewPanel/Stack/Bracket0", "Mid/ViewPanel/Stack/Bracket1",
-	"Mid/ViewPanel/Stack/PlayerLabel", "Mid/ViewPanel/Stack/EnemyLabel",
-	"Mid/ViewPanel/Stack/EnemyStatus", "Mid/ViewPanel/Stack/InsetCaption",
-	"Mid/ViewPanel/Stack/TouchControls", "Mid/ViewPanel/Stack/InsetFrame",
-]
-
-
-func _apply_hud_visible(on: bool) -> void:
-	for path in HUD_PARTS:
-		var node: CanvasItem = get_node_or_null(NodePath(path)) as CanvasItem
-		if node != null and node.visible != on:
-			node.visible = on
+## The "hud" flag is the master: everything goes when it is off, whatever the
+## individual switches say, so the coarse question can be asked without first
+## putting ten fine ones back.
+func _apply_hud_visible() -> void:
+	var all_on: bool = DebugFlags.on("hud")
+	for id in DebugFlags.ids():
+		var paths: Array = DebugFlags.nodes(String(id))
+		if paths.is_empty():
+			continue
+		var want: bool = all_on and DebugFlags.on(String(id))
+		for path in paths:
+			var node: CanvasItem = get_node_or_null(NodePath(String(path))) as CanvasItem
+			if node != null and node.visible != want:
+				node.visible = want

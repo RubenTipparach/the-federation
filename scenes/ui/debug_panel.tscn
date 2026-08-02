@@ -80,7 +80,7 @@ anchor_right = 1.0
 offset_left = -232.0
 offset_top = 8.0
 offset_right = -8.0
-offset_bottom = 620.0
+offset_bottom = 700.0
 grow_horizontal = 0
 theme_override_styles/panel = SubResource("back")
 
@@ -211,6 +211,20 @@ theme_override_font_sizes/font_size = 11
 text = "FLAG"
 
 [node name="F11" type="Button" parent="Panel/V/Flags"]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+focus_mode = 0
+theme_override_font_sizes/font_size = 11
+text = "FLAG"
+
+[node name="F12" type="Button" parent="Panel/V/Flags"]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+focus_mode = 0
+theme_override_font_sizes/font_size = 11
+text = "FLAG"
+
+[node name="F13" type="Button" parent="Panel/V/Flags"]
 custom_minimum_size = Vector2(0, 34)
 layout_mode = 2
 focus_mode = 0

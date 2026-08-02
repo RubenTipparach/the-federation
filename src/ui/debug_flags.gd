@@ -49,6 +49,18 @@ static func ids() -> Array:
 	return _order
 
 
+## The combat screen nodes a flag hides, or an empty list when it only gates
+## work. Read from the data file so the mapping lives beside the flag it
+## belongs to rather than in a table in the screen (CLAUDE.md 5.4).
+static func nodes(id: String) -> Array:
+	return spec(id).get("nodes", [])
+
+
+## The timing bucket a flag owns in HudProfile, or "" when it measures nothing.
+static func part(id: String) -> String:
+	return String(spec(id).get("part", ""))
+
+
 static func spec(id: String) -> Dictionary:
 	_load()
 	assert(_spec.has(id), "unknown debug flag: " + id)
