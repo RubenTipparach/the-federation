@@ -1,0 +1,180 @@
+[gd_scene load_steps=4 format=3]
+
+; The debug overlay. Its own CanvasLayer above every screen, hidden until it is
+; summoned, because it is an instrument and not part of the game (CLAUDE.md 6.2,
+; and see the header of src/ui/debug_panel.gd).
+;
+; Twelve authored button slots, configured from data/debug.json and hidden when
+; there are fewer flags than slots, which is the same pattern the subsystem tab
+; strip uses (CLAUDE.md 5.1: nothing is built in code).
+;
+; The buttons are 34 pixels tall because this is meant to be operated with a
+; thumb on a phone, which is the whole reason it exists.
+
+[ext_resource type="Script" path="res://src/ui/debug_panel.gd" id="1"]
+[ext_resource type="Script" path="res://src/ui/frame_graph.gd" id="2"]
+
+; An opaque backing of its own rather than the skin's plate. The plate has a
+; glass centre that the battle shows through, which is right for a HUD sitting
+; over space and wrong for an instrument that has to be read while the thing
+; behind it is moving. Colours are the palette's black and gold.
+
+[sub_resource type="StyleBoxFlat" id="back"]
+bg_color = Color(0.043, 0.063, 0.086, 0.96)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.651, 0.533, 0.29, 1)
+content_margin_left = 8.0
+content_margin_top = 6.0
+content_margin_right = 8.0
+content_margin_bottom = 8.0
+
+[node name="DebugPanel" type="CanvasLayer"]
+layer = 128
+script = ExtResource("1")
+
+[node name="Panel" type="PanelContainer" parent="."]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -232.0
+offset_top = 8.0
+offset_right = -8.0
+offset_bottom = 620.0
+grow_horizontal = 0
+theme_override_styles/panel = SubResource("back")
+
+[node name="V" type="VBoxContainer" parent="Panel"]
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="Head" type="HBoxContainer" parent="Panel/V"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="Panel/V/Head"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 11
+text = "DEBUG"
+theme_type_variation = &"HeaderLabel"
+
+[node name="Reset" type="Button" parent="Panel/V/Head"]
+custom_minimum_size = Vector2(52, 26)
+layout_mode = 2
+focus_mode = 0
+theme_override_font_sizes/font_size = 10
+text = "RESET"
+
+[node name="Close" type="Button" parent="Panel/V/Head"]
+custom_minimum_size = Vector2(34, 26)
+layout_mode = 2
+focus_mode = 0
+theme_override_font_sizes/font_size = 10
+text = "X"
+
+[node name="Counters" type="Label" parent="Panel/V"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "measuring"
+
+[node name="Graph" type="Control" parent="Panel/V"]
+custom_minimum_size = Vector2(200, 56)
+layout_mode = 2
+mouse_filter = 2
+script = ExtResource("2")
+
+[node name="GraphNote" type="Label" parent="Panel/V"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+text = "200 frames, lines at 60 and 30 fps, top of scale 50 ms"
+autowrap_mode = 2
+
+[node name="Flags" type="VBoxContainer" parent="Panel/V"]
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="F0" type="Button" parent="Panel/V/Flags"]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+focus_mode = 0
+theme_override_font_sizes/font_size = 11
+text = "FLAG"
+
+[node name="F1" type="Button" parent="Panel/V/Flags"]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+focus_mode = 0
+theme_override_font_sizes/font_size = 11
+text = "FLAG"
+
+[node name="F2" type="Button" parent="Panel/V/Flags"]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+focus_mode = 0
+theme_override_font_sizes/font_size = 11
+text = "FLAG"
+
+[node name="F3" type="Button" parent="Panel/V/Flags"]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+focus_mode = 0
+theme_override_font_sizes/font_size = 11
+text = "FLAG"
+
+[node name="F4" type="Button" parent="Panel/V/Flags"]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+focus_mode = 0
+theme_override_font_sizes/font_size = 11
+text = "FLAG"
+
+[node name="F5" type="Button" parent="Panel/V/Flags"]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+focus_mode = 0
+theme_override_font_sizes/font_size = 11
+text = "FLAG"
+
+[node name="F6" type="Button" parent="Panel/V/Flags"]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+focus_mode = 0
+theme_override_font_sizes/font_size = 11
+text = "FLAG"
+
+[node name="F7" type="Button" parent="Panel/V/Flags"]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+focus_mode = 0
+theme_override_font_sizes/font_size = 11
+text = "FLAG"
+
+[node name="F8" type="Button" parent="Panel/V/Flags"]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+focus_mode = 0
+theme_override_font_sizes/font_size = 11
+text = "FLAG"
+
+[node name="F9" type="Button" parent="Panel/V/Flags"]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+focus_mode = 0
+theme_override_font_sizes/font_size = 11
+text = "FLAG"
+
+[node name="F10" type="Button" parent="Panel/V/Flags"]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+focus_mode = 0
+theme_override_font_sizes/font_size = 11
+text = "FLAG"
+
+[node name="F11" type="Button" parent="Panel/V/Flags"]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+focus_mode = 0
+theme_override_font_sizes/font_size = 11
+text = "FLAG"
