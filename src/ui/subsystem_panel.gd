@@ -76,8 +76,10 @@ func refresh() -> void:
 	var index: int = SystemTabs.system_index_for(_station, _ship.systems)
 
 	$V/Head/Title.text = String(spec["label"]).to_upper()
-	$V/Blurb.text = String(spec["blurb"])
-	$V/Blurb.add_theme_color_override("font_color", Palette.DIM)
+	# What the station is for lives in a tooltip, not on the panel. A battle
+	# screen has no room for prose and a player under fire has no time for it,
+	# so the sentence is available on a hover and absent from the layout.
+	tooltip_text = String(spec["blurb"])
 
 	# Reset the authored rows, then let the station turn on the ones it wants.
 	for i in range(ROW_COUNT):
@@ -234,7 +236,7 @@ func _render_repair() -> void:
 
 	$V/Total.visible = true
 	if jobs.is_empty():
-		$V/Total.text = "Nothing queued. Click a damaged system on the ship display."
+		$V/Total.text = "NOTHING QUEUED"
 		$V/Total.add_theme_color_override("font_color", Palette.DIM)
 	else:
 		var total: int = RepairModel.queue_cost(_ship.systems, jobs, tuning)

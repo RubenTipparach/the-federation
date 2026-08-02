@@ -225,12 +225,6 @@ autowrap_mode = 2
 theme_override_font_sizes/font_size = 10
 text = ""
 
-[node name="Blurb" type="Label" parent="V"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 9
-autowrap_mode = 2
-text = ""
-
 [node name="Fix" type="Button" parent="V"]
 layout_mode = 2
 focus_mode = 0

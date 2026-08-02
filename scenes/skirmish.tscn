@@ -89,13 +89,6 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 4
 
-[node name="Hint" type="Label" parent="Mid"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 10
-horizontal_alignment = 1
-autowrap_mode = 2
-text = "Your current design fights the selected AI opponent."
-
 [node name="Foes" type="PanelContainer" parent="."]
 layout_mode = 2
 size_flags_horizontal = 3

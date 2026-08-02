@@ -29,12 +29,6 @@ size_flags_vertical = 3
 custom_minimum_size = Vector2(420, 420)
 script = ExtResource("2")
 
-[node name="Note" type="Label" parent="WheelPanel/V"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 11
-autowrap_mode = 2
-text = "Angle is bearing, 000 dead ahead, clockwise. Radius is effective range: a long thin wedge is a sniper, a short fat one is a brawler. Red hatching is a blind bearing. Isolate a mount to see its permitted field."
-
 [node name="Right" type="VBoxContainer" parent="."]
 layout_mode = 2
 custom_minimum_size = Vector2(320, 0)
@@ -98,12 +92,6 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 11
 text = "OVERRIDE DEMO"
 theme_type_variation = &"HeaderLabel"
-
-[node name="Note" type="Label" parent="Right/OverridePanel/V"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 11
-autowrap_mode = 2
-text = "A special weapon may ignore its mount's field. Swap one in and watch the blind bearing close."
 
 [node name="Swap" type="Button" parent="Right/OverridePanel/V"]
 layout_mode = 2

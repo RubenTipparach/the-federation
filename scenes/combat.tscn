@@ -168,12 +168,6 @@ theme_override_font_sizes/font_size = 11
 horizontal_alignment = 2
 text = "0"
 
-[node name="Note" type="Label" parent="Left/PowerPanel/V"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 10
-autowrap_mode = 2
-text = "Reactor output is fixed. Adding here takes from somewhere else."
-
 [node name="KeepTabs" parent="Left" instance=ExtResource("9")]
 layout_mode = 2
 
@@ -451,12 +445,6 @@ theme_type_variation = &"HeaderLabel"
 
 [node name="Display" parent="Right/OwnPanel/V" instance=ExtResource("8")]
 layout_mode = 2
-
-[node name="Hint" type="Label" parent="Right/OwnPanel/V"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 9
-autowrap_mode = 2
-text = "Click a damaged system to queue a repair. Right click for detail."
 
 [node name="TargetDisplayPanel" type="PanelContainer" parent="Right"]
 layout_mode = 2
