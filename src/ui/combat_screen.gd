@@ -47,6 +47,9 @@ var _weapon_rows: Array = []
 ## Left is the helm and nothing else, so an order can never be mistaken for a
 ## camera move.
 var _orbiting: bool = false
+## Seconds until the panels are repainted again. Always zero at full rate, so
+## the throttle costs nothing when it is not being used.
+var _hud_due: float = 0.0
 ## The last range and bearing the sensors actually measured, and when. Held so
 ## a lost lock can show a stale reading with its age instead of a blank panel.
 var _last_seen_range: float = 0.0
@@ -288,8 +291,16 @@ func _physics_process(delta: float) -> void:
 				_note(String(line))
 		if String(e["type"]) == "end":
 			_show_end(int(e["winner"]))
-	_refresh_hud()
-	_refresh_target_label()
+	_apply_debug()
+	# The HUD repaint is throttled separately from the simulation, which keeps
+	# stepping at full rate: that is what makes the switch measure interface
+	# cost rather than changing the game (DebugFlags).
+	var hz: float = DebugFlags.number("hud_hz", 60.0)
+	_hud_due -= delta
+	if _hud_due <= 0.0:
+		_hud_due = 1.0 / maxf(1.0, hz)
+		_refresh_hud()
+		_refresh_target_label()
 	_position_ship_labels()
 
 
@@ -812,6 +823,16 @@ func _refresh_hud() -> void:
 ## Whether the lock holds is asked of the ship, which asks the terrain. The
 ## firing check asks the same question through the same call, so a contact that
 ## cannot be shot at is never shown as one that can (CLAUDE.md 4.1).
+## The debug overlay's switches that belong to this screen rather than to the
+## world: the second 3D render, which is the inset.
+func _apply_debug() -> void:
+	var inset: SubViewport = $Mid/ViewPanel/Stack/InsetFrame/InsetContainer/Inset
+	var want: int = SubViewport.UPDATE_WHEN_PARENT_VISIBLE if DebugFlags.on("inset") \
+		else SubViewport.UPDATE_DISABLED
+	if inset.render_target_update_mode != want:
+		inset.render_target_update_mode = want
+
+
 func _refresh_target_readout(me: ShipState, foe: ShipState) -> void:
 	var seen: bool = me.can_see(foe.pos)
 	if seen:

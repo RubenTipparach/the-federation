@@ -30,8 +30,21 @@ func _ready() -> void:
 	$Root/Content/Skirmish.begin_battle.connect(_on_begin_battle)
 	$Root/Content/Combat.battle_ended.connect(_on_battle_ended)
 
+	# The debug overlay is summoned by tapping the version label three times.
+	# There is no keyboard on the machine it exists for, and a corner label is
+	# both reachable with a thumb and not something anybody presses three times
+	# by accident. It is an instrument, not a screen: see src/ui/debug_panel.gd.
+	$Root/TopBar/Version.gui_input.connect(_on_version_input)
+
 	show_tab("Fitting")
 	_print_smoke_report()
+
+
+func _on_version_input(event: InputEvent) -> void:
+	var tapped: bool = (event is InputEventMouseButton
+		and event.pressed and event.button_index == MOUSE_BUTTON_LEFT)
+	if tapped or event is InputEventScreenTouch and event.pressed:
+		$DebugPanel.note_summon_tap()
 
 
 func show_tab(tab: String) -> void:

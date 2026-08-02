@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://src/ui/main.gd" id="1"]
 [ext_resource type="Theme" path="res://assets/ui/skin_theme.tres" id="2"]
@@ -6,6 +6,7 @@
 [ext_resource type="PackedScene" path="res://scenes/arcs.tscn" id="4"]
 [ext_resource type="PackedScene" path="res://scenes/skirmish.tscn" id="5"]
 [ext_resource type="PackedScene" path="res://scenes/combat.tscn" id="6"]
+[ext_resource type="PackedScene" path="res://scenes/ui/debug_panel.tscn" id="7"]
 
 [node name="Main" type="Control"]
 layout_mode = 3
@@ -67,8 +68,10 @@ size_flags_horizontal = 3
 
 [node name="Version" type="Label" parent="Root/TopBar"]
 layout_mode = 2
+mouse_filter = 0
 theme_override_font_sizes/font_size = 10
 text = "prototype"
+tooltip_text = "Tap three times for the debug overlay."
 
 [node name="Content" type="Control" parent="Root"]
 layout_mode = 2
@@ -88,3 +91,5 @@ layout_mode = 1
 [node name="Combat" parent="Root/Content" instance=ExtResource("6")]
 visible = false
 layout_mode = 1
+
+[node name="DebugPanel" parent="." instance=ExtResource("7")]

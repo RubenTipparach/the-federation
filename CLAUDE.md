@@ -288,6 +288,19 @@ exception until it is listed in this section and agreed.
   left standing, because section 7 says nothing may be treated as an exception until it
   is listed. Agreed with the tactical reskin (2026-08-01).
 
+- **The frame time graph paints itself, and the debug overlay it sits in is not game
+  UI.** `src/ui/frame_graph.gd` draws one column per frame in `Control._draw()` for the
+  same reason every other painter here does: its content is a ring buffer of live
+  samples, so the node tree that described it would have to be rebuilt every frame,
+  which is the thing section 5.1 forbids. The overlay around it
+  (`src/ui/debug_panel.gd`, `scenes/ui/debug_panel.tscn`) is an instrument rather than a
+  screen, so section 6.2 is satisfied rather than excepted: it lives on its own
+  CanvasLayer above every screen instead of inside the tactical view, it is invisible
+  until deliberately summoned by a three finger touch or F3, and every flag it holds is
+  view only, so a battle plays out identically whatever is switched off. Its buttons are
+  authored in the scene and configured from `data/debug.json`, so nothing is
+  constructed. Agreed with the instruction to build it (2026-08-02).
+
 **One candidate is pending a decision.** Rendering roughly 3,000 hexes with smooth zoom and
 several frequently changing per hex overlays is hard to do with statically authored nodes
 alone. `docs/06-technical-architecture.md` §9 raises this and does **not** adopt a procedural

@@ -38,6 +38,25 @@ static func scene_for(feature: Dictionary) -> PackedScene:
 	return SCENES.get(kind, null)
 
 
+## What the debug overlay has switched off among the features. Clouds and world
+## art are separable from terrain as a whole because they cost differently: a
+## cloud is fill rate, a world is a second render target, and a rock is neither.
+func apply_debug() -> void:
+	var clouds: bool = DebugFlags.on("clouds")
+	var worlds: bool = DebugFlags.on("worlds")
+	for child in get_children():
+		var kind: String = String(child.get_meta("terrain_kind", ""))
+		if kind == Terrain.KIND_NEBULA:
+			(child as Node3D).visible = clouds
+		elif kind == Terrain.KIND_PLANET:
+			# The world stops REDRAWING rather than disappearing, so what is
+			# measured is the cost of its viewport and not the cost of the disc.
+			var render: SubViewport = child.get_node_or_null("Render")
+			if render != null:
+				render.render_target_update_mode = SubViewport.UPDATE_ALWAYS if worlds \
+					else SubViewport.UPDATE_DISABLED
+
+
 func build(terrain: Terrain) -> void:
 	for child in get_children():
 		remove_child(child)
@@ -50,4 +69,7 @@ func build(terrain: Terrain) -> void:
 			continue
 		var node: Node3D = scene.instantiate()
 		add_child(node)
+		# Stamped so the debug overlay can find the clouds and the worlds again
+		# without asking each scene what it is.
+		node.set_meta("terrain_kind", String(feature["kind"]))
 		node.place(feature)
