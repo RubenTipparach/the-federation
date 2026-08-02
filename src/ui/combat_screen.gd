@@ -124,13 +124,13 @@ func bind_session(p_session: Session) -> void:
 	# and the ship's business sits on the left beside the log, where the comm
 	# log had room to spare. Three columns on the right, two on the left, so
 	# neither needs a second row of tabs.
-	$Right/FightTabs.setup("fight", 3)
-	$Left/KeepTabs.setup("keep", 2)
-	$Right/FightTabs.tab_selected.connect(_on_station_selected.bind($Right/FightPanel))
-	$Left/KeepTabs.tab_selected.connect(_on_station_selected.bind($Left/KeepPanel))
-	$Right/FightTabs.repair_requested.connect(_on_repair_requested)
-	$Left/KeepTabs.repair_requested.connect(_on_repair_requested)
-	for panel in [$Right/FightPanel, $Left/KeepPanel]:
+	$Right/FightStation/FightTabs.setup("fight")
+	$Left/KeepStation/KeepTabs.setup("keep")
+	$Right/FightStation/FightTabs.tab_selected.connect(_on_station_selected.bind($Right/FightStation/FightPanel))
+	$Left/KeepStation/KeepTabs.tab_selected.connect(_on_station_selected.bind($Left/KeepStation/KeepPanel))
+	$Right/FightStation/FightTabs.repair_requested.connect(_on_repair_requested)
+	$Left/KeepStation/KeepTabs.repair_requested.connect(_on_repair_requested)
+	for panel in [$Right/FightStation/FightPanel, $Left/KeepStation/KeepPanel]:
 		panel.repair_requested.connect(_on_repair_requested)
 		panel.repair_dropped.connect(_on_repair_dropped)
 		panel.regen_facing_picked.connect(_on_regen_facing_picked)
@@ -245,10 +245,10 @@ func _bind_displays() -> void:
 	$Right/TargetDisplayPanel/V/Display.bind_ship(battle.target_for(me), false, false)
 	# A tractor beam is a relationship between two ships, so the panel that draws
 	# it needs the battle. Everything else it draws comes from the one ship.
-	$Right/FightPanel.battle = battle
-	$Left/KeepPanel.battle = battle
-	$Right/FightPanel.show_station($Right/FightTabs.selected(), me)
-	$Left/KeepPanel.show_station($Left/KeepTabs.selected(), me)
+	$Right/FightStation/FightPanel.battle = battle
+	$Left/KeepStation/KeepPanel.battle = battle
+	$Right/FightStation/FightPanel.show_station($Right/FightStation/FightTabs.selected(), me)
+	$Left/KeepStation/KeepPanel.show_station($Left/KeepStation/KeepTabs.selected(), me)
 
 
 func _build_weapon_rows() -> void:
@@ -878,15 +878,15 @@ func _refresh_hud() -> void:
 	if DebugFlags.on("fight") and _feed.moved(
 			[HudFeed.SYSTEMS, HudFeed.SHIELDS, HudFeed.QUEUE, HudFeed.POWER]):
 		t = HudProfile.open("fight")
-		$Right/FightTabs.refresh(me.systems, me.repair_queue)
-		$Right/FightPanel.refresh()
+		$Right/FightStation/FightTabs.refresh(me.systems, me.repair_queue)
+		$Right/FightStation/FightPanel.refresh()
 		HudProfile.close("fight", t)
 
 	if DebugFlags.on("keep") and _feed.moved(
 			[HudFeed.SYSTEMS, HudFeed.QUEUE, HudFeed.POWER]):
 		t = HudProfile.open("keep")
-		$Left/KeepTabs.refresh(me.systems, me.repair_queue)
-		$Left/KeepPanel.refresh()
+		$Left/KeepStation/KeepTabs.refresh(me.systems, me.repair_queue)
+		$Left/KeepStation/KeepPanel.refresh()
 		HudProfile.close("keep", t)
 
 	# SHIELDS as well as WEAPONS, because this panel prints the battery and the

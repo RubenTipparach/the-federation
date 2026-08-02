@@ -66,8 +66,7 @@
       "default": true,
       "part": "keep",
       "nodes": [
-        "Left/KeepTabs",
-        "Left/KeepPanel"
+        "Left/KeepStation"
       ],
       "cost": "4 tabs and whichever station is open",
       "note": "The left tab strip and its panel: repair, life, cargo, lab."
@@ -111,8 +110,7 @@
       "default": true,
       "part": "fight",
       "nodes": [
-        "Right/FightTabs",
-        "Right/FightPanel"
+        "Right/FightStation"
       ],
       "cost": "6 tabs and whichever station is open",
       "note": "The right tab strip and its panel: shields, reactor, sensors, tractor, marines, shuttle."

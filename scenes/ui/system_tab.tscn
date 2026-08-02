@@ -1,39 +1,88 @@
 [gd_scene load_steps=2 format=3]
 
-; One subsystem station tab. Structure only: the label, the icon and what box
+; One subsystem station tab. Structure only: the mark, the icon and what box
 ; it speaks for all come from data/stations.json, configured by
 ; src/ui/system_tabs.gd. Authored rather than built in code (CLAUDE.md 5.1).
 ;
+; The tab is a vertical stencil, the box's committed icon over a short mark,
+; in a 60 pixel column beside the panel rather than a wide button above it.
+;
+; The icon and the mark are AUTHORED CHILD NODES rather than the Button's own
+; icon and text properties, and that is deliberate rather than fussy. A Button
+; reserves horizontal room for its icon even when vertical_icon_alignment puts
+; the icon above the text, so the text rect a 60 pixel button clips to is 60
+; less the content margins less the icon width, which is 22 pixels and trims a
+; four letter mark to two. Two authored nodes in a box are predictable; the
+; Button's internal layout was not.
+;
+; Both children ignore the mouse so the click lands on the Button underneath
+; them. Fix does not: it is a real second control and has to take its own.
+;
+; Fixed size, both dimensions, per CLAUDE.md 6.4. A strip whose width followed
+; its longest mark would move the panel beside it every time a station opened,
+; and the panel is the thing a captain is reading.
+;
 ; The Fix button sits ON the tab because a station whose box is gone is
 ; disabled, and a disabled tab cannot be opened to reach a repair button
-; inside it. The way to fix a dark console has to be on the outside of it.
+; inside it. The way to fix a dark console has to be on the outside of it. It
+; is pinned to the bottom strip the mark does not use, so it never has to move
+; anything to appear.
 
 [ext_resource type="Texture2D" path="res://assets/icons/rpr.png" id="1"]
 
 [node name="SystemTab" type="Button"]
-custom_minimum_size = Vector2(0, 36)
-size_flags_horizontal = 3
+custom_minimum_size = Vector2(60, 58)
+custom_maximum_size = Vector2(60, 58)
+propagate_maximum_size = true
+size_flags_horizontal = 0
 toggle_mode = true
 focus_mode = 0
+clip_contents = true
+
+[node name="Stack" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 3.0
+offset_bottom = -3.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 1
+
+[node name="Icon" type="TextureRect" parent="Stack"]
+custom_minimum_size = Vector2(0, 22)
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Mark" type="Label" parent="Stack"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_font_sizes/font_size = 11
+text = "MARK"
+horizontal_alignment = 1
 clip_text = true
-expand_icon = true
-theme_override_font_sizes/font_size = 12
-theme_override_constants/icon_max_width = 18
-theme_override_constants/h_separation = 4
 
 [node name="Fix" type="Button" parent="."]
-custom_minimum_size = Vector2(19, 19)
+custom_minimum_size = Vector2(52, 11)
+custom_maximum_size = Vector2(52, 11)
+propagate_maximum_size = true
 layout_mode = 1
-anchors_preset = 1
-anchor_left = 1.0
+anchors_preset = 12
+anchor_top = 1.0
 anchor_right = 1.0
-offset_left = -20
-offset_top = 1
-offset_right = -1
-offset_bottom = 20
-grow_horizontal = 0
+anchor_bottom = 1.0
+offset_left = 4.0
+offset_top = -15.0
+offset_right = -4.0
+offset_bottom = -4.0
+grow_horizontal = 2
+grow_vertical = 0
 focus_mode = 0
 flat = true
 expand_icon = true
 icon = ExtResource("1")
-theme_override_constants/icon_max_width = 12
+theme_override_constants/icon_max_width = 9

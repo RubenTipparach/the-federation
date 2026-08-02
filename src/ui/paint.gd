@@ -49,6 +49,15 @@ static func button_tint(node: Button, color: Color) -> void:
 		tint(node, StringName(slot), color)
 
 
+## A station tab's icon and its mark, in one call. Same reason BUTTON_SLOTS is
+## one list rather than seven call sites: a tab whose glyph says the box is
+## dead and whose mark says it is fine is exactly the bug worth designing out.
+## The icon is a white alpha mask, so it takes the colour as a modulate.
+static func stencil(icon: CanvasItem, mark: Control, color: Color) -> void:
+	shade(icon, color)
+	tint(mark, "font_color", color)
+
+
 ## Modulate. `CanvasItem.set_modulate` does not compare either, and it dirties
 ## the item and every child of it when it is set.
 static func shade(node: CanvasItem, color: Color) -> void:

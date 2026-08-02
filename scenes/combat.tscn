@@ -180,10 +180,23 @@ horizontal_alignment = 2
 text = "0"
 text_overrun_behavior = 1
 
-[node name="KeepTabs" parent="Left" instance=ExtResource("9")]
+; The station strip stands beside the panel it opens, not above it. The column
+; is 360 wide and the strip is 60, so the panel is 360 - 60 - 4 = 296. That
+; arithmetic is written out rather than left to a container, because CLAUDE.md
+; 6.4 wants a panel's size authored: a panel that took whatever was left over
+; would move the moment the strip did.
+
+[node name="KeepStation" type="HBoxContainer" parent="Left"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="KeepTabs" parent="Left/KeepStation" instance=ExtResource("9")]
 layout_mode = 2
 
-[node name="KeepPanel" parent="Left" instance=ExtResource("10")]
+[node name="KeepPanel" parent="Left/KeepStation" instance=ExtResource("10")]
+custom_minimum_size = Vector2(296, 0)
+custom_maximum_size = Vector2(296, -1)
+propagate_maximum_size = true
 layout_mode = 2
 
 [node name="DamagePanel" type="PanelContainer" parent="Left"]
@@ -520,10 +533,19 @@ theme_type_variation = &"HeaderLabel"
 [node name="Display" parent="Right/TargetDisplayPanel/V" instance=ExtResource("8")]
 layout_mode = 2
 
-[node name="FightTabs" parent="Right" instance=ExtResource("9")]
+; Same arithmetic as the left column: 360 - 60 - 4 = 296.
+
+[node name="FightStation" type="HBoxContainer" parent="Right"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="FightTabs" parent="Right/FightStation" instance=ExtResource("9")]
 layout_mode = 2
 
-[node name="FightPanel" parent="Right" instance=ExtResource("10")]
+[node name="FightPanel" parent="Right/FightStation" instance=ExtResource("10")]
+custom_minimum_size = Vector2(296, 0)
+custom_maximum_size = Vector2(296, -1)
+propagate_maximum_size = true
 layout_mode = 2
 
 [node name="WeaponsPanel" type="PanelContainer" parent="Right"]

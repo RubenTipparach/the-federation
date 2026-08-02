@@ -1,11 +1,16 @@
 class_name SystemTabs
-extends GridContainer
+extends VBoxContainer
 
 ## A strip of subsystem station tabs. The tactical view has two of them: the
 ## systems a player reaches for under fire sit on the right beside the target,
 ## and the ship's business sits on the left beside the log. Both are this one
-## component with a different side and column count (CLAUDE.md 4.1), so a tab
-## behaves the same wherever it is drawn.
+## component with a different side (CLAUDE.md 4.1), so a tab behaves the same
+## wherever it is drawn.
+##
+## A column, sixty pixels wide, standing beside the panel it opens. A tab shows
+## its box's icon over a short mark rather than a name, which is what lets the
+## strip be this narrow, and the mark is in data/stations.json beside the name
+## rather than trimmed from it here.
 ##
 ## Every station has an authored button in system_tabs.tscn and a strip shows
 ## only the ones its side asks for. Nothing is constructed here: this script
@@ -33,9 +38,8 @@ var _last_systems: Array[Dictionary] = []
 
 ## Show the stations belonging to one side. Called once per screen: which tabs
 ## a strip carries does not change while a battle runs.
-func setup(side: String, cols: int) -> void:
+func setup(side: String) -> void:
 	_ids = Catalog.station_ids(side)
-	columns = maxi(1, cols)
 	for child in get_children():
 		var id: String = String(child.name)
 		var wanted: bool = _ids.has(id)
@@ -44,9 +48,13 @@ func setup(side: String, cols: int) -> void:
 			continue
 		var spec: Dictionary = Catalog.station(id)
 		var b: Button = child
-		b.text = String(spec["label"])
+		# The mark, not the name. Sixty pixels does not hold "Shields", and a
+		# name trimmed to fit would put the same four letters there by accident
+		# rather than by a decision recorded in the data file.
+		b.get_node("Stack/Mark").text = String(spec["mark"])
 		var path: String = ICON_DIR + String(spec["icon"]) + ".png"
-		b.icon = load(path) if ResourceLoader.exists(path) else null
+		var icon: TextureRect = b.get_node("Stack/Icon")
+		icon.texture = load(path) if ResourceLoader.exists(path) else null
 		if not b.pressed.is_connected(_on_pressed):
 			b.pressed.connect(_on_pressed.bind(id))
 			b.get_node("Fix").pressed.connect(_on_fix.bind(id))
@@ -137,9 +145,10 @@ func refresh(systems: Array[Dictionary], queue: Array[int]) -> void:
 			tint = Palette.with_alpha(Palette.DIM, 0.5)
 		elif key == _selected:
 			tint = Palette.CYAN
-		Paint.button_tint(b, tint)
-		Paint.tint(b, "font_hover_color",
-			Palette.FG if live and not out else tint)
+		# The icon and the mark are painted together, never one without the
+		# other: a glyph saying the box is dead over a mark saying it is fine
+		# is the one state a tab must not be able to reach.
+		Paint.stencil(b.get_node("Stack/Icon"), b.get_node("Stack/Mark"), tint)
 
 		# A dark station cannot be opened, so the way to fix it lives on the
 		# outside of the tab. Shown whenever the box has lost anything, not

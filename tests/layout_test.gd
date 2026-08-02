@@ -62,9 +62,14 @@ func _initialize() -> void:
 	var right: Control = c.get_node("Right")
 	var mid: Control = c.get_node("Mid")
 	var view: SubViewport = c.get_node("Mid/ViewPanel/Stack/ViewContainer/View")
+	# The station strip and the panel beside it. Their widths are arithmetic on
+	# the column's, so a mark or a readout that grew would show up here first.
+	var tabs: Control = c.get_node("Right/FightStation/FightTabs")
+	var station: Control = c.get_node("Right/FightStation/FightPanel")
 
 	var before := {
 		"left": left.size, "right": right.size, "mid": mid.size, "view": view.size,
+		"tabs": tabs.size, "station": station.size,
 	}
 	print("")
 	print("Layout, at rest")
@@ -88,10 +93,16 @@ func _initialize() -> void:
 	_ok("the middle column did not move", mid.size, before["mid"])
 	_ok("the 3D render target was not resized", view.size, before["view"])
 
+	_ok("the station strip did not move", tabs.size, before["tabs"])
+	_ok("the station panel did not move", station.size, before["station"])
+
 	# The columns are pinned by a maximum, so this is what the rule actually
 	# says: authored width, whatever is inside them.
 	_ok("the left column is its authored width", int(left.size.x), 360)
 	_ok("the right column is its authored width", int(right.size.x), 360)
+	# 360 for the column, less 60 for the strip, less the 4 between them.
+	_ok("the station strip is its authored width", int(tabs.size.x), 60)
+	_ok("the station panel is what is left of the column", int(station.size.x), 296)
 
 	print("")
 	if _failed == 0:

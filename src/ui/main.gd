@@ -36,8 +36,25 @@ func _ready() -> void:
 	# by accident. It is an instrument, not a screen: see src/ui/debug_panel.gd.
 	$Root/TopBar/Version.gui_input.connect(_on_version_input)
 
+	_wear_deck()
 	show_tab("Fitting")
 	_print_smoke_report()
+
+
+## Wear the deck of the navy that built the hull in the session.
+##
+## Both halves of a skin move together or the interface lies: Palette serves
+## the lit readouts, the generated theme carries the plates the readouts sit
+## on, and Palette.theme_path names the theme built from the same skin, so
+## there is no way to end up with gunmetal plates behind phosphor numbers.
+##
+## Set on this node because it is the Control every screen hangs under, which
+## makes the swap one assignment rather than a walk.
+func _wear_deck() -> void:
+	Palette.use_faction(session.faction())
+	var deck: Theme = load(Palette.theme_path())
+	if theme != deck:
+		theme = deck
 
 
 func _on_version_input(event: InputEvent) -> void:
@@ -75,6 +92,10 @@ func _on_design_changed() -> void:
 func _on_design_selected(hull_id: String) -> void:
 	if hull_id != session.fit.hull_id:
 		session.fit = ShipFit.create_default(hull_id)
+	# The hull names the navy and the navy names the deck, so picking a ship is
+	# also picking a console. Done before the screens repaint, so they repaint
+	# once, in the skin they are about to be wearing.
+	_wear_deck()
 	$Root/Content/Fitting.refresh_from_session()
 	$Root/Content/Skirmish.refresh()
 
