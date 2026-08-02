@@ -24,7 +24,7 @@ extends CanvasLayer
 
 ## How many authored button slots there are. A flag list longer than this shows
 ## the first SLOTS and says so, rather than silently dropping the rest.
-const SLOTS: int = 12
+const SLOTS: int = 14
 ## The counters and the graph repaint far slower than they sample, because a
 ## readout that repaints every frame is measuring itself. Ten a second is fast
 ## enough to watch a toggle take effect and slow enough to cost nothing.
@@ -138,6 +138,8 @@ func _process(delta: float) -> void:
 	if _since_sample < 1.0 / SAMPLE_HZ:
 		return
 	_paint_counters()
+	_paint_buttons()
+	HudProfile.flush()
 	$Panel/V/Graph.queue_redraw()
 	_since_sample = 0.0
 	_frames = 0
@@ -171,9 +173,17 @@ func _paint_counters() -> void:
 	# hundred frames' average is how a split comes out backwards.
 	var script_ms: float = (_script_elapsed / maxf(1.0, float(_frames))) * 1000.0
 	var rest_ms: float = maxf(ms - script_ms, 0.0)
+	# The parts total against the script total, because the difference is the
+	# most useful number on the panel and nobody should have to add up eleven
+	# buttons to find it. Script minus parts is everything the interface does
+	# NOT account for: the simulation, the 3D rig update, and the engine's own
+	# container sorting and minimum size work, which is charged to the process
+	# step and is invisible to any stopwatch we put around our own calls.
+	var parts_ms: float = HudProfile.total_us() / 1000.0
 	$Panel/V/Counters.text = "\n".join([
 		"%5.1f ms      %5.1f fps" % [ms, 1000.0 / maxf(ms, 0.001)],
 		"%5.1f script  %5.1f rest" % [script_ms, rest_ms],
+		"%5.2f ui parts of that script" % [parts_ms],
 		"%5d draws   %6d prims" % [draws, prims],
 		"%5.1f MB video" % [mem],
 	])
@@ -198,12 +208,26 @@ func _on_flag(id: String) -> void:
 	_paint_buttons()
 
 
+## Each switch, with what that part of the interface actually costs beside it.
+##
+## The number is the point. A switch says what something is worth by removing
+## it, which needs two readings and a steady hand, and there are eleven of them.
+## Printing the measurement means the list reads worst first at a glance and
+## nobody has to toggle anything to find out where the time went.
 func _paint_buttons() -> void:
 	var ids: Array = DebugFlags.ids()
 	for i in range(mini(SLOTS, ids.size())):
 		var id: String = String(ids[i])
 		var b: Button = _slot(i)
-		b.text = DebugFlags.caption(id)
+		var caption: String = DebugFlags.caption(id)
+		var part: String = DebugFlags.part(id)
+		if not part.is_empty():
+			var us: float = HudProfile.cost_us(part)
+			# Minus one is "not measured since the last flush", which is what a
+			# part that is switched off reads. A dash rather than 0.00, because
+			# "not running" and "free" are different answers.
+			caption += "   %s" % ("    -" if us < 0.0 else "%5.2f ms" % (us / 1000.0))
+		b.text = caption
 		var entry: Dictionary = DebugFlags.spec(id)
 		var default_on: bool = String(entry["kind"]) != "bool" or DebugFlags.on(id)
 		Paint.tint(b, "font_color",
