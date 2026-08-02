@@ -75,6 +75,10 @@ var _drag_moved: float = 0.0
 ## there is no hover on a phone, so hover picking there costs nothing at all.
 var _pointer_at: Vector2 = NO_POINTER
 var _report_lines: Array[String] = []
+## What changed since the last tick. Panels that did not change are not
+## repainted at all, which is what the UI repaint rate was faking by being
+## wrong more slowly (HudFeed).
+var _feed: HudFeed = HudFeed.new()
 var _wired: bool = false
 
 ## Set while watching a recording. The battle is driven by the log's commands
@@ -188,6 +192,7 @@ func _world() -> Node3D:
 
 ## Watch a recording. The view, the HUD, and the comm log are the live ones.
 func start_replay(log: BattleLog) -> void:
+	_feed.force()
 	replay_log = log
 	battle = log.replay_setup()
 	_world().bind_battle(battle)
@@ -203,6 +208,7 @@ func start_replay(log: BattleLog) -> void:
 
 
 func start_battle() -> void:
+	_feed.force()
 	replay_log = null
 	$Mid/ReplayBar.visible = false
 	battle = Battle.create_duel(session.fit.duplicate_fit(), session.enemy_hull_id,
@@ -556,6 +562,7 @@ func _lock_under_mouse() -> void:
 ## A station was opened. The panel is told which ship it is drawing here rather
 ## than holding one, so the same panel serves a live battle and a replay.
 func _on_station_selected(id: String, panel: Node) -> void:
+	_feed.force()
 	if battle != null:
 		panel.show_station(id, battle.player())
 
@@ -789,9 +796,24 @@ func _refresh_hud() -> void:
 		return
 	var me: ShipState = battle.player()
 	var foe: ShipState = battle.enemy()
+	# One pass over the ship, before any panel asks anything. Every panel below
+	# reads its answer from this rather than working out for itself whether it
+	# has anything to do, because thirty of those tests is thirty chances for
+	# one to be wrong (CLAUDE.md 4.1).
+	# The range and bearing are taken LIVE here, not from the cached last seen
+	# pair. Those are written by the target panel, so signing on them would mean
+	# the panel only repaints when it has already repainted: a readout that
+	# freezes the instant it stops being refreshed, which is a deadlock wearing
+	# a plausible face.
+	var seen: bool = me.can_see(foe.pos)
+	var rng: float = me.pos.distance_to(foe.pos) if seen else _last_seen_range
+	var brg: float = Sectors.bearing_between(me.pos, foe.pos) if seen \
+		else _last_seen_bearing
+	var lost_tenths: int = 0 if seen else int((battle.time - _last_seen_at) * 10.0)
+	_feed.sample(me, foe, seen, rng, brg, lost_tenths, _report_lines.size())
 	var t: int = 0
 
-	if DebugFlags.on("ship"):
+	if DebugFlags.on("ship") and _feed.moved([HudFeed.HELM]):
 		t = HudProfile.open("ship")
 		_sync_fire_buttons()
 		$Left/ShipPanel/V/Head.text = String(me.fit.hull()["name"]).to_upper()
@@ -806,7 +828,7 @@ func _refresh_hud() -> void:
 		])
 		HudProfile.close("ship", t)
 
-	if DebugFlags.on("power"):
+	if DebugFlags.on("power") and _feed.moved([HudFeed.POWER]):
 		t = HudProfile.open("power")
 		var out: float = me.power_output()
 		$Left/PowerPanel/V/Head.text = "POWER  %d / %d" % [int(out),
@@ -822,7 +844,7 @@ func _refresh_hud() -> void:
 			row.get_node("Out").text = str(int(roundf(units)))
 		HudProfile.close("power", t)
 
-	if DebugFlags.on("damage"):
+	if DebugFlags.on("damage") and _feed.moved([HudFeed.SYSTEMS, HudFeed.LOG]):
 		t = HudProfile.open("damage")
 		var dmg: Array[String] = []
 		for sys in me.systems:
@@ -834,34 +856,45 @@ func _refresh_hud() -> void:
 		$Left/DamagePanel/V/CommScroll/CommLog.text = "\n".join(_report_lines.slice(-6))
 		HudProfile.close("damage", t)
 
-	if DebugFlags.on("target"):
+	if DebugFlags.on("target") and _feed.moved([HudFeed.TARGET]):
 		t = HudProfile.open("target")
 		_refresh_target_readout(me, foe)
 		HudProfile.close("target", t)
 
-	if DebugFlags.on("own_ssd"):
+	if DebugFlags.on("own_ssd") and _feed.moved([HudFeed.SHIELDS, HudFeed.SYSTEMS]):
 		t = HudProfile.open("own_ssd")
 		$Right/OwnPanel/V/Display.refresh()
 		HudProfile.close("own_ssd", t)
 
-	if DebugFlags.on("target_ssd"):
+	if DebugFlags.on("target_ssd") and _feed.moved([HudFeed.FOE]):
 		t = HudProfile.open("target_ssd")
 		$Right/TargetDisplayPanel/V/Display.refresh()
 		HudProfile.close("target_ssd", t)
 
-	if DebugFlags.on("fight"):
+	# The station panels serve all ten stations and the open one is not known
+	# from here, so they sign on everything any station could read. Wider than
+	# necessary on purpose: repainting when nothing moved is waste, and NOT
+	# repainting when something did is a stale readout in a fight.
+	if DebugFlags.on("fight") and _feed.moved(
+			[HudFeed.SYSTEMS, HudFeed.SHIELDS, HudFeed.QUEUE, HudFeed.POWER]):
 		t = HudProfile.open("fight")
 		$Right/FightTabs.refresh(me.systems, me.repair_queue)
 		$Right/FightPanel.refresh()
 		HudProfile.close("fight", t)
 
-	if DebugFlags.on("keep"):
+	if DebugFlags.on("keep") and _feed.moved(
+			[HudFeed.SYSTEMS, HudFeed.QUEUE, HudFeed.POWER]):
 		t = HudProfile.open("keep")
 		$Left/KeepTabs.refresh(me.systems, me.repair_queue)
 		$Left/KeepPanel.refresh()
 		HudProfile.close("keep", t)
 
-	if DebugFlags.on("weapons"):
+	# SHIELDS as well as WEAPONS, because this panel prints the battery and the
+	# battery lives in the shields facet. Caught by tests/hud_test.gd at one
+	# failure in eight hundred: the readout sat a single percent behind, which
+	# no screenshot would ever have shown and which is exactly how a dirty
+	# check optimisation goes wrong.
+	if DebugFlags.on("weapons") and _feed.moved([HudFeed.WEAPONS, HudFeed.SHIELDS]):
 		t = HudProfile.open("weapons")
 		for i in range(_weapon_rows.size()):
 			var w: Dictionary = me.weapons_rt[i]
@@ -1067,3 +1100,6 @@ func _apply_hud_visible() -> void:
 			var node: CanvasItem = get_node_or_null(NodePath(String(path))) as CanvasItem
 			if node != null and node.visible != want:
 				node.visible = want
+				# A panel coming back is showing whatever it held when it went
+				# away, which may be a whole battle out of date.
+				_feed.force()
