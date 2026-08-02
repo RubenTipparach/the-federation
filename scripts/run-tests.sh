@@ -61,6 +61,24 @@ main() {
   fi
   rm -f "$out"
   step "Layout is fixed"
+
+  # CLAUDE.md 4.1 in spirit: panels repaint only when a facet they declared has
+  # moved, and a missed facet leaves a readout frozen without crashing, warning
+  # or showing up in a screenshot. This drives a real battle and compares every
+  # panel's text against the ship it claims to describe.
+  step "Running HUD staleness test"
+  out="$(mktemp)"
+  status=0
+  xvfb-run -a "$GODOT_BIN" --path "$REPO_ROOT" --rendering-driver opengl3 \
+    --script res://tests/hud_test.gd >"$out" 2>&1 || status=$?
+  sed -n '/^Driving/,/CHECKS/p' "$out" | sed 's/^/  /' >&2
+  if ! grep -q "ALL HUD CHECKS PASSED" "$out"; then
+    sed -n '/first:/,$p' "$out" | sed 's/^/  /' >&2
+    rm -f "$out"
+    die "a HUD panel went stale: it stopped tracking the ship"
+  fi
+  rm -f "$out"
+  step "No panel goes stale"
 }
 
 main "$@"

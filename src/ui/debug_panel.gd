@@ -69,13 +69,44 @@ var _sweep_baseline: float = -1.0
 ## matters more than it looks: hiding a panel makes its container re-sort and
 ## every sibling re-fit, and the frame that lands in is not the steady state.
 const SWEEP_SETTLE: int = 6
-const SWEEP_SAMPLE: int = 20
+const SWEEP_SAMPLE: int = 30
+## Passes over the whole list, averaged. One pass on the phone produced -13.6 ms
+## for a panel, which is impossible: removing something cannot make the frame
+## slower, so that number was the noise floor rather than a measurement. Three
+## passes and a paused battle bring it down far enough for the small parts to be
+## distinguishable from zero.
+const SWEEP_PASSES: int = 3
+var _sweep_pass: int = 0
+var _sweep_sum: Dictionary = {}
+## The battle is paused for the duration. A sweep takes half a minute, and in
+## that time the ships close, the terrain slides past and the damage report
+## fills up, so an unpaused sweep measures the battle changing as much as it
+## measures the panels. It is restored to whatever it was when the sweep ends.
+var _sweep_was_paused: bool = false
 ## Each part is measured against a baseline taken IMMEDIATELY before it, rather
 ## than against one baseline at the start. A sweep takes half a minute, the
 ## ships close and the terrain slides past in that time, and a single baseline
 ## turns that drift into a per part cost. Two passes per part is twice as long
 ## and the only version whose numbers survive being repeated.
 var _sweep_phase: int = 0
+
+
+## Ask the ENGINE what rendering cost, rather than inferring it from a frame
+## time minus a script time. That inference was wrong, provably: it once
+## reported 57.6 ms of script inside a 22.0 ms frame. Godot measures its own
+## render time per viewport, split into the CPU that builds the command lists
+## and the GPU that executes them, and it does not need us to guess.
+##
+## The 3D subviewport is measured separately from the window, so the readout
+## can say which of the two renders is expensive.
+func _enable_render_timing() -> void:
+	var vp: Viewport = get_viewport()
+	if vp != null:
+		RenderingServer.viewport_set_measure_render_time(vp.get_viewport_rid(), true)
+	var view: SubViewport = get_node_or_null(
+		"/root/Main/Root/Content/Combat/Mid/ViewPanel/Stack/ViewContainer/View")
+	if view != null:
+		RenderingServer.viewport_set_measure_render_time(view.get_viewport_rid(), true)
 
 
 func _ready() -> void:
@@ -97,6 +128,7 @@ func _ready() -> void:
 	if ids.size() > SLOTS:
 		push_warning("debug panel has %d flags and %d slots" % [ids.size(), SLOTS])
 	_paint_buttons()
+	_enable_render_timing()
 
 
 func _slot(i: int) -> Button:
@@ -201,8 +233,16 @@ func _paint_counters() -> void:
 	# NOT account for: the simulation, the 3D rig update, and the engine's own
 	# container sorting and minimum size work, which is charged to the process
 	# step and is invisible to any stopwatch we put around our own calls.
+	var vp: Viewport = get_viewport()
+	var rend_cpu: float = 0.0
+	var rend_gpu: float = 0.0
+	if vp != null:
+		var rid: RID = vp.get_viewport_rid()
+		rend_cpu = RenderingServer.viewport_get_measured_render_time_cpu(rid)
+		rend_gpu = RenderingServer.viewport_get_measured_render_time_gpu(rid)
 	$Panel/V/Counters.text = "\n".join([
 		"%5.1f ms      %5.1f fps" % [ms, 1000.0 / maxf(ms, 0.001)],
+		"%5.1f gpu     %5.1f render cpu" % [rend_gpu, rend_cpu],
 		"%5d draws   %6d prims" % [draws, prims],
 		"%5.1f MB video" % [mem],
 		"MEASURE times each part for real" if not HudProfile.has_measured()
@@ -278,6 +318,12 @@ func _start_sweep() -> void:
 	# Everything back on first, or a part left off from a previous session
 	# would be measured against a baseline that already excluded it.
 	DebugFlags.reset()
+	var combat: Node = get_node_or_null("/root/Main/Root/Content/Combat")
+	if combat != null:
+		_sweep_was_paused = bool(combat.paused)
+		combat.paused = true
+	_sweep_sum = {}
+	_sweep_pass = 0
 	_sweep_at = 0
 	_sweep_phase = 0
 	_sweep_baseline = -1.0
@@ -303,21 +349,35 @@ func _step_sweep(delta: float) -> void:
 		_sweep_phase = 1
 		DebugFlags.set_on(id, false)
 	else:
-		# The frame gained this much without it. Put it back and move on.
-		HudProfile.set_measured(DebugFlags.part(id), (_sweep_baseline - ms) * 1000.0)
+		# The frame gained this much without it. Accumulated across passes and
+		# divided at the end, so one unlucky pass cannot be the answer.
+		var part: String = DebugFlags.part(id)
+		_sweep_sum[part] = float(_sweep_sum.get(part, 0.0)) \
+			+ (_sweep_baseline - ms) * 1000.0
 		DebugFlags.set_on(id, true)
 		_sweep_phase = 0
 		_sweep_at += 1
 	_sweep_frames = 0
 	_sweep_elapsed = 0.0
-	if _sweep_at >= _sweep.size():
-		_sweep = []
-		_sweep_at = -1
-		_paint_buttons()
+	if _sweep_at < _sweep.size():
+		return
+	_sweep_at = 0
+	_sweep_pass += 1
+	if _sweep_pass < SWEEP_PASSES:
+		return
+	for part in _sweep_sum:
+		HudProfile.set_measured(String(part),
+			float(_sweep_sum[part]) / float(SWEEP_PASSES))
+	_sweep = []
+	_sweep_at = -1
+	var combat: Node = get_node_or_null("/root/Main/Root/Content/Combat")
+	if combat != null:
+		combat.paused = _sweep_was_paused
+	_paint_buttons()
 
 
 func _paint_sweep_progress() -> void:
-	$Panel/V/Head/Title.text = "MEASURING %d/%d %s" % [
-		_sweep_at + 1, _sweep.size(), "base" if _sweep_phase == 0 else "off "]
+	$Panel/V/Head/Title.text = "MEASURING %d/%d  pass %d/%d" % [
+		_sweep_at + 1, _sweep.size(), _sweep_pass + 1, SWEEP_PASSES]
 	Paint.tint($Panel/V/Head/Title, "font_color", Palette.CYAN)
 	$Panel/V/Counters.text = "hold still.\nswitching each part off in turn\nand timing the frame without it."
