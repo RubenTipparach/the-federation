@@ -156,14 +156,14 @@ func _paint_counters() -> void:
 	# read a shorter bar as a faster frame.
 	$Panel/V/GraphNote.text = "200 frames, lines at 60 and 30 fps, top %d ms" % [
 		int($Panel/V/Graph.ceiling_ms())]
-	$Panel/V/GraphNote.add_theme_color_override("font_color", Palette.DIM)
-	$Panel/V/Counters.add_theme_color_override("font_color",
+	Paint.tint($Panel/V/GraphNote, "font_color", Palette.DIM)
+	Paint.tint($Panel/V/Counters, "font_color",
 		Palette.OK if ms < 20.0 else (Palette.AMBER if ms < 40.0 else Palette.CRIT))
 	# A frame measured with something switched off is not the game's frame, and
 	# it is very easy to forget that and quote the number anyway.
 	var dirty: bool = DebugFlags.modified()
 	$Panel/V/Head/Title.text = "DEBUG  (MODIFIED)" if dirty else "DEBUG"
-	$Panel/V/Head/Title.add_theme_color_override("font_color",
+	Paint.tint($Panel/V/Head/Title, "font_color",
 		Palette.AMBER if dirty else Palette.DIM)
 
 
@@ -180,6 +180,6 @@ func _paint_buttons() -> void:
 		b.text = DebugFlags.caption(id)
 		var entry: Dictionary = DebugFlags.spec(id)
 		var default_on: bool = String(entry["kind"]) != "bool" or DebugFlags.on(id)
-		b.add_theme_color_override("font_color",
+		Paint.tint(b, "font_color",
 			Palette.FG if default_on else Palette.AMBER)
 		b.tooltip_text = "%s\ncost: %s" % [String(entry["note"]), String(entry["cost"])]

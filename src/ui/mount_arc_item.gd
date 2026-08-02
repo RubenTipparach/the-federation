@@ -12,7 +12,7 @@ var mount_id: String = ""
 func setup(mount: Dictionary, fit: ShipFit) -> void:
 	mount_id = String(mount["id"])
 	$Body/Title.text = "%s  %s" % [mount_id, String(mount["pos"])]
-	$Body/Title.add_theme_color_override("font_color", Color.WHITE)
+	Paint.tint($Body/Title, "font_color", Color.WHITE)
 	var w: Dictionary = fit.weapon_in(mount_id)
 	var lines: Array[String] = []
 	lines.append("%s / permits %s" % [String(mount["size"]), " ".join(Array(mount["families"]))])
@@ -27,7 +27,7 @@ func setup(mount: Dictionary, fit: ShipFit) -> void:
 		lines.append(line)
 	$Body/Meta.text = "\n".join(lines)
 	var overridden: bool = not w.is_empty() and bool(w.get("special", false))
-	$Body/Meta.add_theme_color_override(
+	Paint.tint($Body/Meta, 
 		"font_color", Palette.AMBER if overridden else Palette.DIM)
 	if not pressed.is_connected(_on_pressed):
 		pressed.connect(_on_pressed)

@@ -41,7 +41,7 @@ func show_target(p_state: int, p_name: String, p_hull_frac: float,
 	label.visible = state == State.LOCKED
 	if label.visible:
 		label.text = p_name
-		label.add_theme_color_override("font_color", tint)
+		Paint.tint(label, "font_color", tint)
 	queue_redraw()
 
 

@@ -23,6 +23,9 @@ const BRACKET_MIN_PX := 16.0
 const BRACKET_MAX_PX := 120.0
 ## Extra pixels around a ship that still count as pointing at it.
 const BRACKET_PICK_SLACK := 10.0
+## Off screen by more than any real pointer position, so "no pointer" needs no
+## second boolean that could disagree with the position beside it.
+const NO_POINTER := Vector2(-1e9, -1e9)
 ## How far the pointer may travel before a right button press stops being a
 ## click and becomes a camera orbit. Small enough that a deliberate drag is
 ## never read as a lock, large enough that a hand tremor is not a drag.
@@ -59,6 +62,18 @@ var _last_seen_at: float = 0.0
 var _touches: Dictionary = {}
 var _pinch_span: float = -1.0
 var _drag_moved: float = 0.0
+## Where the pointer is inside the battle view, in that view's own coordinates,
+## or NO_POINTER when it is not over the view at all.
+##
+## Cached from the events Godot already delivers rather than asked for. Asking
+## costs a DisplayServer round trip to the operating system: measured at 190
+## microseconds for get_global_mouse_position and 151 for the local one, and
+## hover picking called both once a frame, which was the whole cost of the
+## per frame path and nine times the cost of stepping the simulation.
+##
+## A touch device never sets this, which is correct rather than a limitation:
+## there is no hover on a phone, so hover picking there costs nothing at all.
+var _pointer_at: Vector2 = NO_POINTER
 var _report_lines: Array[String] = []
 var _wired: bool = false
 
@@ -128,6 +143,7 @@ func bind_session(p_session: Session) -> void:
 
 	var container: SubViewportContainer = $Mid/ViewPanel/Stack/ViewContainer
 	container.gui_input.connect(_on_view_input)
+	container.mouse_exited.connect(func() -> void: _pointer_at = NO_POINTER)
 
 	# The plan inset renders the same world as the main view: one scene, two
 	# cameras, so the tactical picture cannot diverge from the pretty one.
@@ -443,6 +459,11 @@ func _refresh_target_label() -> void:
 func _on_view_input(event: InputEvent) -> void:
 	if battle == null:
 		return
+	# Every mouse event that reaches the view carries where it happened, in the
+	# view's own coordinates, which is exactly what picking wants. Recorded
+	# first so every branch below has already updated it.
+	if event is InputEventMouse:
+		_pointer_at = event.position
 	var world: Node3D = _world()
 	# Godot emits a press AND a release for every wheel notch, so without the
 	# pressed guard each notch would zoom twice.
@@ -699,15 +720,15 @@ func _show_end(winner: int, reason: String = "") -> void:
 	var detail: Label = overlay.get_node("P/V/Detail")
 	if not reason.is_empty():
 		result.text = reason.to_upper()
-		result.add_theme_color_override("font_color", Palette.AMBER)
+		Paint.tint(result, "font_color", Palette.AMBER)
 		detail.text = "The engagement is broken off."
 	elif winner == 0:
 		result.text = "VICTORY"
-		result.add_theme_color_override("font_color", Palette.OK)
+		Paint.tint(result, "font_color", Palette.OK)
 		detail.text = "%s is destroyed." % String(battle.enemy().fit.hull()["name"])
 	else:
 		result.text = "SHIP LOST"
-		result.add_theme_color_override("font_color", Palette.CRIT)
+		Paint.tint(result, "font_color", Palette.CRIT)
 		detail.text = "%s is destroyed." % String(battle.player().fit.hull()["name"])
 	paused = true
 
@@ -744,7 +765,7 @@ func _sync_fire_buttons() -> void:
 		var button: Button = $Mid/Actions.get_node(String(pair[0]))
 		var lit: bool = can and bool(ready[String(pair[1])])
 		button.disabled = not lit
-		button.add_theme_color_override("font_color",
+		Paint.tint(button, "font_color",
 			Palette.OK if lit else Palette.DIM)
 
 
@@ -807,7 +828,7 @@ func _refresh_hud() -> void:
 		_weapon_rows[i].paint("%s %s" % [String(w["mount"]["id"]),
 			String(w["weapon"]["name"])], String(check["reason"]), float(w["charge"]))
 	$Right/WeaponsPanel/V/Battery.text = "BATTERY %d%%" % int(me.battery * 100.0)
-	$Right/WeaponsPanel/V/Battery.add_theme_color_override("font_color",
+	Paint.tint($Right/WeaponsPanel/V/Battery, "font_color",
 		Palette.OK if me.battery >= 1.0 else Palette.DIM)
 
 
@@ -847,11 +868,11 @@ func _refresh_target_readout(me: ShipState, foe: ShipState) -> void:
 		"BOXES  %d / %d" % [foe.total_boxes(), foe.total_boxes_max()],
 		"RANGE  %.1f   BRG  %03d" % [_last_seen_range, int(_last_seen_bearing)],
 	])
-	body.add_theme_color_override("font_color", Palette.FG if seen else Palette.DIM)
+	Paint.tint(body, "font_color", Palette.FG if seen else Palette.DIM)
 	var lock: Label = $Right/TargetPanel/V/Lock
 	lock.visible = not seen
 	lock.text = "SENSOR LOCK LOST   %.1fs" % [battle.time - _last_seen_at]
-	lock.add_theme_color_override("font_color", Palette.CRIT)
+	Paint.tint(lock, "font_color", Palette.CRIT)
 
 
 func _position_ship_labels() -> void:
@@ -865,14 +886,14 @@ func _position_ship_labels() -> void:
 	var p: Vector2 = world.screen_pos(me.pos)
 	stack.get_node("PlayerLabel").position = p + Vector2(-30, -46)
 	stack.get_node("PlayerLabel").text = String(me.fit.hull()["name"]).to_upper()
-	stack.get_node("PlayerLabel").add_theme_color_override("font_color", Palette.CYAN)
+	Paint.tint(stack.get_node("PlayerLabel"), "font_color", Palette.CYAN)
 	# Which shields are down is a sensor reading like any other, so it goes with
 	# the lock rather than surviving it.
 	var seen: bool = me.can_see(foe.pos)
 	var q: Vector2 = world.screen_pos(foe.pos)
 	stack.get_node("EnemyLabel").position = q + Vector2(-34, -58)
 	stack.get_node("EnemyLabel").text = String(foe.fit.hull()["name"]).to_upper()
-	stack.get_node("EnemyLabel").add_theme_color_override("font_color", Palette.MAGENTA)
+	Paint.tint(stack.get_node("EnemyLabel"), "font_color", Palette.MAGENTA)
 	var status: Label = stack.get_node("EnemyStatus")
 	var downs: Array[String] = []
 	for f in range(6):
@@ -880,7 +901,7 @@ func _position_ship_labels() -> void:
 			downs.append("#%d" % (f + 1))
 	status.position = q + Vector2(-40, -42)
 	status.text = "" if downs.is_empty() or not seen else "SHIELD %s DOWN" % " ".join(downs)
-	status.add_theme_color_override("font_color", Palette.AMBER)
+	Paint.tint(status, "font_color", Palette.AMBER)
 	_refresh_brackets(world, stack)
 
 
@@ -941,11 +962,10 @@ func _ship_screen_radius(world: Node3D, ship: ShipState) -> float:
 ## against the same projection the brackets are drawn from, so what lights up
 ## is exactly what is under the pointer.
 func _ship_under_mouse() -> int:
-	var container: Control = $Mid/ViewPanel/Stack/ViewContainer
-	if not container.get_global_rect().has_point(container.get_global_mouse_position()):
+	if _pointer_at == NO_POINTER:
 		return -1
 	var world: Node3D = _world()
-	var mouse: Vector2 = container.get_local_mouse_position()
+	var mouse: Vector2 = _pointer_at
 	var best: int = -1
 	var best_d: float = INF
 	for i in range(battle.ships.size()):

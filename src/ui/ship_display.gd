@@ -76,7 +76,7 @@ func refresh() -> void:
 	var boxes_max: int = maxi(1, _ship.total_boxes_max())
 	var frac: float = float(boxes) / float(boxes_max)
 	$Ring/Hull.text = "%d%%" % int(round(frac * 100.0))
-	$Ring/Hull.add_theme_color_override("font_color",
+	Paint.tint($Ring/Hull, "font_color",
 		Palette.CRIT if frac < 0.4 else (Palette.AMBER if frac < 0.7 else Palette.FG))
 	$Ring/Hull.tooltip_text = "%d of %d boxes" % [boxes, boxes_max]
 
@@ -102,6 +102,6 @@ func refresh() -> void:
 		label.visible = top > 0
 		label.text = "%s   %d / %d" % [family.to_upper(), cur, top]
 		var whole: bool = top > 0 and cur >= top
-		label.add_theme_color_override("font_color",
+		Paint.tint(label, "font_color",
 			Palette.family_color(family) if whole else (
 				Palette.CRIT if cur == 0 else Palette.AMBER))

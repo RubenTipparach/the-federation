@@ -13,14 +13,14 @@ func setup(mount: Dictionary, fit: ShipFit) -> void:
 	_mount = mount
 	var mount_id: String = String(mount["id"])
 	$Body/Title.text = "%s  %s" % [mount_id, String(mount["pos"])]
-	$Body/Title.add_theme_color_override("font_color", Color.WHITE)
+	Paint.tint($Body/Title, "font_color", Color.WHITE)
 	var families: Array = mount["families"]
 	$Body/Meta.text = "%s / %s / field %s" % [
 		String(mount["size"]),
 		" ".join(families),
 		Sectors.label_for_sectors(Catalog.to_int_array(mount["field"])),
 	]
-	$Body/Meta.add_theme_color_override("font_color", Palette.DIM)
+	Paint.tint($Body/Meta, "font_color", Palette.DIM)
 
 	var selector: OptionButton = $Body/Weapon
 	selector.clear()

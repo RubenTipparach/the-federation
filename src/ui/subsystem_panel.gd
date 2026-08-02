@@ -104,7 +104,7 @@ func refresh() -> void:
 		badge = "DEFERRED"
 		badge_tint = Palette.DIM
 	$V/Head/Badge.text = badge
-	$V/Head/Badge.add_theme_color_override("font_color", badge_tint)
+	Paint.tint($V/Head/Badge, "font_color", badge_tint)
 
 	# A station whose box is gone shows the box, and nothing it could not
 	# actually do. The way back is the repair button, which is the same answer
@@ -133,7 +133,7 @@ func _paint_row(i: int, label: String, level: int, capacity: int, out: String,
 	row.visible = true
 	row.get_node("L").text = label
 	row.get_node("Out").text = out
-	row.get_node("Out").add_theme_color_override("font_color", tint)
+	Paint.tint(row.get_node("Out"), "font_color", tint)
 	var boxes: Control = row.get_node("Boxes")
 	boxes.setup(tint, clickable)
 	boxes.paint(level, maxi(1, capacity), ceiling)
@@ -173,7 +173,7 @@ func _render_shields() -> void:
 		var b: Button = $V/Picker.get_node("P%d" % f)
 		b.button_pressed = _ship.shield_bias == f
 		b.disabled = _ship.shields[f] >= _ship.shield_max
-		b.add_theme_color_override("font_color",
+		Paint.tint(b, "font_color",
 			Palette.CYAN if _ship.shield_bias == f else Palette.DIM)
 
 
@@ -214,7 +214,7 @@ func _render_repair() -> void:
 		node.get_node("Line/Where").text = "core" if int(sys["sector"]) < 0 \
 			else "#%d" % (int(sys["sector"]) + 1)
 		node.get_node("Line/Cost").text = "%d p" % cost
-		node.get_node("Line/Cost").add_theme_color_override("font_color",
+		Paint.tint(node.get_node("Line/Cost"), "font_color",
 			Palette.DIM if affordable else Palette.AMBER)
 		var icon_path: String = ICON_DIR + String(sys["code"]).to_lower().replace("-", "") + ".png"
 		var icon: TextureRect = node.get_node("Line/Icon")
@@ -231,18 +231,18 @@ func _render_repair() -> void:
 			frac = clampf(_ship.repair_progress / maxf(0.001, needed), 0.0, 1.0)
 		fill.color = Palette.with_alpha(Palette.CYAN, 1.0 if i == 0 else 0.0)
 		fill.anchor_right = maxf(frac, 0.001)
-		node.get_node("Line/Code").add_theme_color_override("font_color",
+		Paint.tint(node.get_node("Line/Code"), "font_color",
 			Palette.CYAN if i == 0 else Palette.FG)
 
 	$V/Total.visible = true
 	if jobs.is_empty():
 		$V/Total.text = "NOTHING QUEUED"
-		$V/Total.add_theme_color_override("font_color", Palette.DIM)
+		Paint.tint($V/Total, "font_color", Palette.DIM)
 	else:
 		var total: int = RepairModel.queue_cost(_ship.systems, jobs, tuning)
 		$V/Total.text = "QUEUE %d JOB%s      %d of %d parts" % [
 			jobs.size(), "" if jobs.size() == 1 else "S", total, _ship.parts]
-		$V/Total.add_theme_color_override("font_color",
+		Paint.tint($V/Total, "font_color",
 			Palette.AMBER if total > _ship.parts else Palette.DIM)
 
 
@@ -309,7 +309,7 @@ func _render_tractor_idle(tuning: Dictionary) -> void:
 		check = Tractor.latch_check(_ship, target, tuning)
 	var ok: bool = bool(check["ok"])
 	$V/Head/Badge.text = String(check["reason"]).to_upper()
-	$V/Head/Badge.add_theme_color_override("font_color",
+	Paint.tint($V/Head/Badge, "font_color",
 		Palette.OK if ok else Palette.AMBER)
 	$V/Cmds/Latch.text = "LATCH"
 	$V/Cmds/Latch.disabled = not ok
@@ -331,7 +331,7 @@ func _render_tractor_contest(beam: Tractor, tuning: Dictionary) -> void:
 	var theirs: Color = Palette.MAGENTA
 
 	$V/Head/Badge.text = "HOLDING" if holding else "UNDER TOW"
-	$V/Head/Badge.add_theme_color_override("font_color",
+	Paint.tint($V/Head/Badge, "font_color",
 		Palette.OK if holding == (grip > shove) else Palette.AMBER)
 
 	$V/Tug.visible = true
@@ -339,18 +339,18 @@ func _render_tractor_contest(beam: Tractor, tuning: Dictionary) -> void:
 		shove, theirs if holding else mine,
 		int(tuning["tractor"]["bar_units"]))
 	$V/Tug/Labels/L.text = "YOUR GRIP" if holding else "THEIR GRIP"
-	$V/Tug/Labels/L.add_theme_color_override("font_color", mine if holding else theirs)
+	Paint.tint($V/Tug/Labels/L, "font_color", mine if holding else theirs)
 	$V/Tug/Labels/R.text = "THEIR SHOVE" if holding else "YOUR SHOVE"
-	$V/Tug/Labels/R.add_theme_color_override("font_color", theirs if holding else mine)
+	Paint.tint($V/Tug/Labels/R, "font_color", theirs if holding else mine)
 
 	# The multiplication is printed rather than hidden, because a captain losing
 	# to a lighter ship has earned an explanation.
 	var ratio: float = Tractor.tonnage(beam.held) / Tractor.tonnage(beam.holder)
 	$V/Tug/Reading/L.text = "%.1f grip" % grip
-	$V/Tug/Reading/L.add_theme_color_override("font_color", mine if holding else theirs)
+	Paint.tint($V/Tug/Reading/L, "font_color", mine if holding else theirs)
 	$V/Tug/Reading/R.text = "%.1f x %.2f = %.1f" % [
 		Tractor.bid_of(beam.held), ratio, shove]
-	$V/Tug/Reading/R.add_theme_color_override("font_color", theirs if holding else mine)
+	Paint.tint($V/Tug/Reading/R, "font_color", theirs if holding else mine)
 
 	var frac: float = beam.strain_frac(tuning)
 	var track: ColorRect = $V/Tug/Strain
@@ -362,17 +362,17 @@ func _render_tractor_contest(beam: Tractor, tuning: Dictionary) -> void:
 		float(tuning["tractor"]["break_seconds"]) - beam.strain)
 	if frac <= 0.0:
 		$V/Tug/Note/L.text = "Grip secure"
-		$V/Tug/Note/L.add_theme_color_override("font_color", Palette.DIM)
+		Paint.tint($V/Tug/Note/L, "font_color", Palette.DIM)
 	elif holding:
 		$V/Tug/Note/L.text = "Grip failing in %.1fs" % seconds_left
-		$V/Tug/Note/L.add_theme_color_override("font_color", Palette.AMBER)
+		Paint.tint($V/Tug/Note/L, "font_color", Palette.AMBER)
 	else:
 		$V/Tug/Note/L.text = "Breaking free in %.1fs" % seconds_left
-		$V/Tug/Note/L.add_theme_color_override("font_color", Palette.OK)
+		Paint.tint($V/Tug/Note/L, "font_color", Palette.OK)
 	$V/Tug/Note/R.text = "%d t against %d t, %s" % [
 		int(Tractor.tonnage(beam.held)), int(Tractor.tonnage(beam.holder)),
 		"reeling in" if beam.mode == Tractor.MODE_REEL else "holding range"]
-	$V/Tug/Note/R.add_theme_color_override("font_color", Palette.DIM)
+	Paint.tint($V/Tug/Note/R, "font_color", Palette.DIM)
 
 	# Only the holder chooses hold or reel. The prisoner does not get a say in
 	# whether it is being pulled closer, so those buttons are simply not theirs.
@@ -419,8 +419,8 @@ func _refresh_fix(index: int) -> void:
 	var cost: int = RepairModel.job_cost(_ship.systems[index], Catalog.tuning())
 	fix.disabled = queued
 	fix.text = "QUEUED FOR REPAIR" if queued else "QUEUE REPAIR   %d PARTS" % cost
-	fix.add_theme_color_override("font_color", Palette.OK if queued else Palette.AMBER)
-	fix.add_theme_color_override("font_disabled_color", Palette.OK)
+	Paint.tint(fix, "font_color", Palette.OK if queued else Palette.AMBER)
+	Paint.tint(fix, "font_disabled_color", Palette.OK)
 
 
 func _on_fix() -> void:

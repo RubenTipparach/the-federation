@@ -38,4 +38,4 @@ func refresh(shield: float, shield_max: float, has_shield: bool = true) -> void:
 		$V/Head/Arc.text = "NO SHIELD"
 		return
 	var frac: float = 0.0 if shield_max <= 0.0 else shield / shield_max
-	$V/Head/Tag.add_theme_color_override("font_color", Palette.shield_color(frac))
+	Paint.tint($V/Head/Tag, "font_color", Palette.shield_color(frac))

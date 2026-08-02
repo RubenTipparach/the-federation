@@ -20,7 +20,7 @@ static func chip_color(reason: String) -> Color:
 
 func paint(display_name: String, reason: String, charge: float) -> void:
 	$Name.text = display_name
-	$Name.add_theme_color_override("font_color", Palette.FG)
+	Paint.tint($Name, "font_color", Palette.FG)
 	# The capacitor is the thing a captain watches: a bar that fills, and a
 	# chip that says why the shot cannot be taken when it is full.
 	var bar: ProgressBar = $Cap
@@ -33,8 +33,8 @@ func paint(display_name: String, reason: String, charge: float) -> void:
 		chip = "%d%%" % int(charge * 100.0)
 	$Chip.text = chip
 	var hue: Color = chip_color(reason)
-	$Chip.add_theme_color_override("font_color", hue)
+	Paint.tint($Chip, "font_color", hue)
 	# The chip already carries the reason; the note only adds words when the
 	# chip is a percentage.
 	$Note.text = "charging" if reason == "charging" else ""
-	$Note.add_theme_color_override("font_color", Palette.DIM)
+	Paint.tint($Note, "font_color", Palette.DIM)
