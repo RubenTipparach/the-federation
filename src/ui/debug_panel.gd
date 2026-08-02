@@ -46,6 +46,13 @@ var _tap_window: float = 0.0
 ## the sample window rather than whichever frame happened to land on it.
 var _frames: int = 0
 var _elapsed: float = 0.0
+## Script time accumulated over the same window as _elapsed. Godot reports its
+## timing monitors for the LAST frame only, so sampling one of them against an
+## averaged frame time compares two different frames and the split can come out
+## inverted. Observed doing exactly that before this was averaged: 18 script
+## against 129 rest on one sample and 139 against 5 on the next, with the total
+## barely moving.
+var _script_elapsed: float = 0.0
 ## Touch indices currently down. Watched, never consumed: the overlay must not
 ## be able to swallow a helm order it happened to see first.
 var _fingers: Dictionary = {}
@@ -125,6 +132,8 @@ func _process(delta: float) -> void:
 	$Panel/V/Graph.push(delta * 1000.0)
 	_frames += 1
 	_elapsed += delta
+	_script_elapsed += (Performance.get_monitor(Performance.TIME_PROCESS)
+		+ Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS))
 	_since_sample += delta
 	if _since_sample < 1.0 / SAMPLE_HZ:
 		return
@@ -133,6 +142,7 @@ func _process(delta: float) -> void:
 	_since_sample = 0.0
 	_frames = 0
 	_elapsed = 0.0
+	_script_elapsed = 0.0
 
 
 ## What a frame costs, and the one split that says who to blame.
@@ -156,11 +166,10 @@ func _paint_counters() -> void:
 	var prims: int = int(Performance.get_monitor(
 		Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME))
 	var mem: float = Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED) / 1048576.0
-	# Godot reports these in seconds, and each is the LAST frame rather than an
-	# average, which is why they are shown beside an averaged frame time rather
-	# than subtracted from it and presented as a percentage.
-	var script_ms: float = (Performance.get_monitor(Performance.TIME_PROCESS)
-		+ Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS)) * 1000.0
+	# Averaged over the same window as the frame time, because Godot reports
+	# these for the last frame only and comparing one frame's script time to a
+	# hundred frames' average is how a split comes out backwards.
+	var script_ms: float = (_script_elapsed / maxf(1.0, float(_frames))) * 1000.0
 	var rest_ms: float = maxf(ms - script_ms, 0.0)
 	$Panel/V/Counters.text = "\n".join([
 		"%5.1f ms      %5.1f fps" % [ms, 1000.0 / maxf(ms, 0.001)],
