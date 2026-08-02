@@ -74,19 +74,33 @@ theme_override_font_sizes/font_size = 12
 text = "prototype"
 
 ; The gear. Right end of the bar, past the tabs, because it is the least used
-; thing on the bar and because an icon beside three words does not read as a
-; fourth screen. Fixed size per CLAUDE.md 6.4.
+; thing on the bar.
+;
+; It carries the word as well as the glyph. The mockup had it icon only, on the
+; grounds that an icon beside three words would not read as a fourth screen,
+; and that was wrong in the way the old DEBUG button was wrong: a small dim
+; thing in a corner is a thing nobody finds. The gap before it is what keeps it
+; from reading as a tab, not the absence of a label.
+;
+; icon_max_width is 24 against a 48 pixel mask, which is an exact halving. The
+; project filters canvas textures with nearest for the pixel art, so any other
+; ratio drops rows out of the glyph and eats the teeth. This was 20, and it
+; looked like a smudge.
+;
+; Fixed size per CLAUDE.md 6.4.
 
 [node name="Settings" type="Button" parent="Root/TopBar"]
-custom_minimum_size = Vector2(48, 40)
-custom_maximum_size = Vector2(48, 40)
+custom_minimum_size = Vector2(184, 40)
+custom_maximum_size = Vector2(184, 40)
 propagate_maximum_size = true
 layout_mode = 2
 focus_mode = 0
-expand_icon = true
+clip_text = true
 icon = ExtResource("9")
-tooltip_text = "Settings"
-theme_override_constants/icon_max_width = 20
+text = "Settings"
+tooltip_text = "Designs, instruments, and quitting"
+theme_override_constants/icon_max_width = 24
+theme_override_constants/h_separation = 8
 
 [node name="Content" type="Control" parent="Root"]
 layout_mode = 2
