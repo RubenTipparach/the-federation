@@ -96,6 +96,24 @@ func _initialize() -> void:
 		func() -> void: c.get_node("Left/KeepPanel").refresh())
 
 	print("")
+	print("THE REST OF THE PER FRAME PATH")
+	# Everything _physics_process does besides repainting panels. Added because
+	# the overlay's per part timings summed to about a twelfth of the script
+	# time it reported, so most of the frame is spent somewhere the panel
+	# timings cannot see, and guessing where would have been the same mistake
+	# twice.
+	var w: Node3D = c._world()
+	var no_events: Array[Dictionary] = []
+	_time("_world().update_visuals", ROUNDS,
+		func() -> void: w.update_visuals(1.0 / 60.0, no_events))
+	_time("_world().follow_pivot", ROUNDS,
+		func() -> void: w.follow_pivot(1.0 / 60.0))
+	_time("_track_plan_camera", ROUNDS, func() -> void: c._track_plan_camera())
+	_time("_apply_debug (every frame)", ROUNDS, func() -> void: c._apply_debug())
+	_time("_apply_sticks", ROUNDS, func() -> void: c._apply_sticks(1.0 / 60.0))
+	_time("_refresh_target_label", ROUNDS, func() -> void: c._refresh_target_label())
+
+	print("")
 	print("INSIDE _position_ship_labels")
 	var world: Node3D = c._world()
 	var stack: Control = c.get_node("Mid/ViewPanel/Stack")

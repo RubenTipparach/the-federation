@@ -4,9 +4,17 @@
   "_history": "This list used to switch off the 3D scene: starfield, nebulae, deck grid, weapon arcs, impact flares, terrain, world art, plan inset, render scale. They are gone, retired by one reading on the phone the overlay exists for: 45.8 ms a frame, of which 38.4 was script and 7.4 was everything the renderer does. Eighty four percent of the frame was our own GDScript, so which pixels the 3D scene draws was not the question, and nine switches for it were nine ways to ask the wrong one. The list is the interface now, one flag per panel, because that is where the time goes.",
   "order": [
     "hud",
-    "ship", "power", "damage", "keep",
-    "target", "own_ssd", "target_ssd", "fight", "weapons",
+    "ship",
+    "power",
+    "damage",
+    "keep",
+    "target",
+    "own_ssd",
+    "target_ssd",
+    "fight",
+    "weapons",
     "overlays",
+    "world",
     "hud_hz"
   ],
   "flags": {
@@ -24,7 +32,9 @@
       "kind": "bool",
       "default": true,
       "part": "ship",
-      "nodes": ["Left/ShipPanel"],
+      "nodes": [
+        "Left/ShipPanel"
+      ],
       "cost": "4 labels and the throttle strip",
       "note": "Hull name, boxes, speed, heading and the ordered throttle."
     },
@@ -33,7 +43,9 @@
       "kind": "bool",
       "default": true,
       "part": "power",
-      "nodes": ["Left/PowerPanel"],
+      "nodes": [
+        "Left/PowerPanel"
+      ],
       "cost": "5 box strips and 6 labels",
       "note": "The reactor budget and its five sinks. Each row repaints a strip of discrete boxes as long as the reactor's surviving output."
     },
@@ -42,7 +54,9 @@
       "kind": "bool",
       "default": true,
       "part": "damage",
-      "nodes": ["Left/DamagePanel"],
+      "nodes": [
+        "Left/DamagePanel"
+      ],
       "cost": "2 autowrapped labels, one line per damaged system",
       "note": "The damage report walks every system every tick to build its list, and the comm log rejoins its last six lines."
     },
@@ -51,7 +65,10 @@
       "kind": "bool",
       "default": true,
       "part": "keep",
-      "nodes": ["Left/KeepTabs", "Left/KeepPanel"],
+      "nodes": [
+        "Left/KeepTabs",
+        "Left/KeepPanel"
+      ],
       "cost": "4 tabs and whichever station is open",
       "note": "The left tab strip and its panel: repair, life, cargo, lab."
     },
@@ -60,7 +77,9 @@
       "kind": "bool",
       "default": true,
       "part": "target",
-      "nodes": ["Right/TargetPanel"],
+      "nodes": [
+        "Right/TargetPanel"
+      ],
       "cost": "2 labels and a sensor lock test",
       "note": "Contact, boxes, range and bearing. The lock test asks the terrain whether the contact can be seen, which is a segment solve per feature."
     },
@@ -69,7 +88,9 @@
       "kind": "bool",
       "default": true,
       "part": "own_ssd",
-      "nodes": ["Right/OwnPanel"],
+      "nodes": [
+        "Right/OwnPanel"
+      ],
       "cost": "a painted shield ring and 32 subsystem slots",
       "note": "The largest single widget in the interface by node count. Its ring paints in _draw and each slot is a texture and two rects."
     },
@@ -78,7 +99,9 @@
       "kind": "bool",
       "default": true,
       "part": "target_ssd",
-      "nodes": ["Right/TargetDisplayPanel"],
+      "nodes": [
+        "Right/TargetDisplayPanel"
+      ],
       "cost": "a second painted shield ring",
       "note": "The same component as the own ship display, drawn smaller and read only."
     },
@@ -87,7 +110,10 @@
       "kind": "bool",
       "default": true,
       "part": "fight",
-      "nodes": ["Right/FightTabs", "Right/FightPanel"],
+      "nodes": [
+        "Right/FightTabs",
+        "Right/FightPanel"
+      ],
       "cost": "6 tabs and whichever station is open",
       "note": "The right tab strip and its panel: shields, reactor, sensors, tractor, marines, shuttle."
     },
@@ -96,7 +122,9 @@
       "kind": "bool",
       "default": true,
       "part": "weapons",
-      "nodes": ["Right/WeaponsPanel"],
+      "nodes": [
+        "Right/WeaponsPanel"
+      ],
       "cost": "one row per mount, each running a firing check",
       "note": "Every row asks the ship whether that mount could fire, and each of those runs an arc test, a lock test and a range test against the terrain. It is the most simulation work the interface causes."
     },
@@ -106,10 +134,14 @@
       "default": true,
       "part": "overlays",
       "nodes": [
-        "Mid/ViewPanel/Stack/Bracket0", "Mid/ViewPanel/Stack/Bracket1",
-        "Mid/ViewPanel/Stack/PlayerLabel", "Mid/ViewPanel/Stack/EnemyLabel",
-        "Mid/ViewPanel/Stack/EnemyStatus", "Mid/ViewPanel/Stack/InsetCaption",
-        "Mid/ViewPanel/Stack/TouchControls", "Mid/ViewPanel/Stack/InsetFrame"
+        "Mid/ViewPanel/Stack/Bracket0",
+        "Mid/ViewPanel/Stack/Bracket1",
+        "Mid/ViewPanel/Stack/PlayerLabel",
+        "Mid/ViewPanel/Stack/EnemyLabel",
+        "Mid/ViewPanel/Stack/EnemyStatus",
+        "Mid/ViewPanel/Stack/InsetCaption",
+        "Mid/ViewPanel/Stack/TouchControls",
+        "Mid/ViewPanel/Stack/InsetFrame"
       ],
       "cost": "brackets, ship labels, sticks and the plan inset",
       "note": "Everything drawn over the battle rather than beside it. The only part that updates every frame rather than at the HUD rate, because the camera moves and the labels have to follow it."
@@ -117,11 +149,26 @@
     "hud_hz": {
       "label": "UI repaint",
       "kind": "cycle",
-      "values": [60.0, 30.0, 15.0, 5.0, 1.0],
+      "values": [
+        60.0,
+        30.0,
+        15.0,
+        5.0,
+        1.0
+      ],
       "part": "",
       "nodes": [],
       "cost": "how often the panels above are updated",
       "note": "Update rate only. It does not reduce what is DRAWN, because Godot has no partial 2D redraw and every visible item is recorded every frame regardless. So this moving very little while the interface is still most of the frame is the expected result rather than a broken switch."
+    },
+    "world": {
+      "label": "Ship rigs (3D)",
+      "kind": "bool",
+      "default": true,
+      "part": "world",
+      "nodes": [],
+      "cost": "the per frame update of both ship rigs",
+      "note": "Not interface, and here anyway, because it is measured as the largest single thing the frame does in script and a breakdown that leaves out the biggest item is a breakdown that misleads. Shield segments, arc wedges, range rings and impact flares, every frame rather than at the HUD rate."
     }
   }
 }
