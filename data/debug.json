@@ -2,49 +2,103 @@
   "_comment": "The debug overlay's switches. Every one is VIEW ONLY: a switch here may hide something, stop something repainting, or lower a render scale, and may never touch the simulation. That is the property that makes the overlay safe to leave in a build, because a battle plays out identically whatever is switched off (CLAUDE.md 5.2). Adding a switch is an entry here plus one read at the place that decides the thing, which is why the panel itself knows nothing about what any of these mean.",
   "_kinds": "bool is on or off. cycle steps through values, and the first value is the default. cost is what measuring said the thing was worth, in milliseconds per frame at 800x500 under a CPU rasteriser: meaningless absolutely, useful for ordering the list worst first.",
   "order": [
-    "sky", "clouds", "grid", "arcs", "flares",
-    "terrain", "worlds", "inset", "render_scale", "hud_hz"
+    "hud",
+    "sky",
+    "clouds",
+    "grid",
+    "arcs",
+    "flares",
+    "terrain",
+    "worlds",
+    "inset",
+    "render_scale",
+    "hud_hz"
   ],
   "flags": {
+    "hud": {
+      "label": "Game UI",
+      "kind": "bool",
+      "default": true,
+      "cost": "the whole 2D interface, drawn and updated",
+      "note": "Hides every panel and every screen space label, and stops the HUD refresh running at all. The battle and the 3D view carry on, and this overlay is on its own layer so it stays. Turn it off to find out how much of the frame is the interface, before spending time on which part of it."
+    },
     "sky": {
-      "label": "Starfield", "kind": "bool", "default": true, "cost": "25.0",
+      "label": "Starfield",
+      "kind": "bool",
+      "default": true,
+      "cost": "25.0",
       "note": "Voronoi stars over an fbm nebula, evaluated per pixel of sky every frame."
     },
     "clouds": {
-      "label": "Nebulae", "kind": "bool", "default": true, "cost": "fill",
+      "label": "Nebulae",
+      "kind": "bool",
+      "default": true,
+      "cost": "fill",
       "note": "Additive, double sided, no depth write. One cloud can cover the screen."
     },
     "grid": {
-      "label": "Deck grid", "kind": "bool", "default": true, "cost": "3.4",
+      "label": "Deck grid",
+      "kind": "bool",
+      "default": true,
+      "cost": "3.4",
       "note": "A full screen transparent quad drawn before everything else."
     },
     "arcs": {
-      "label": "Arcs + rings", "kind": "bool", "default": true, "cost": "fill",
+      "label": "Arcs + rings",
+      "kind": "bool",
+      "default": true,
+      "cost": "fill",
       "note": "Twelve wedges, six shield bands and a range ring per ship, all blended."
     },
     "flares": {
-      "label": "Impact flares", "kind": "bool", "default": true, "cost": "fill",
+      "label": "Impact flares",
+      "kind": "bool",
+      "default": true,
+      "cost": "fill",
       "note": "The shield glow behind a struck facing."
     },
     "terrain": {
-      "label": "Terrain", "kind": "bool", "default": true, "cost": "geometry",
+      "label": "Terrain",
+      "kind": "bool",
+      "default": true,
+      "cost": "geometry",
       "note": "Every rock, cloud and world at once, for a floor on what the map costs."
     },
     "worlds": {
-      "label": "World art", "kind": "bool", "default": true, "cost": "target",
+      "label": "World art",
+      "kind": "bool",
+      "default": true,
+      "cost": "target",
       "note": "Stops the planet's own viewport redrawing. The planet freezes rather than vanishing."
     },
     "inset": {
-      "label": "Plan inset", "kind": "bool", "default": true, "cost": "target",
+      "label": "Plan inset",
+      "kind": "bool",
+      "default": true,
+      "cost": "target",
       "note": "A second camera on the same world: small, but it repeats every draw call."
     },
     "render_scale": {
-      "label": "Render scale", "kind": "cycle", "values": [1.0, 0.75, 0.5, 0.35],
+      "label": "Render scale",
+      "kind": "cycle",
+      "values": [
+        1.0,
+        0.75,
+        0.5,
+        0.35
+      ],
       "cost": "pixels",
       "note": "How many 3D pixels are drawn before the view is stretched to fit. The bluntest instrument here and usually the most effective."
     },
     "hud_hz": {
-      "label": "HUD repaint", "kind": "cycle", "values": [60, 30, 15, 5],
+      "label": "HUD repaint",
+      "kind": "cycle",
+      "values": [
+        60,
+        30,
+        15,
+        5
+      ],
       "cost": "cpu",
       "note": "How often the panels repaint. The simulation keeps stepping at full rate either way, so this isolates interface cost from everything else."
     }

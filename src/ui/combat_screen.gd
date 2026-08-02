@@ -770,6 +770,10 @@ func _sync_fire_buttons() -> void:
 
 
 func _refresh_hud() -> void:
+	# Hidden means not updated. A panel nobody can see still pays for every
+	# string formatted into it, and half a switch would measure half a thing.
+	if not DebugFlags.on("hud"):
+		return
 	_sync_fire_buttons()
 	if battle == null:
 		return
@@ -845,8 +849,9 @@ func _refresh_hud() -> void:
 ## firing check asks the same question through the same call, so a contact that
 ## cannot be shot at is never shown as one that can (CLAUDE.md 4.1).
 ## The debug overlay's switches that belong to this screen rather than to the
-## world: the second 3D render, which is the inset.
+## world: the second 3D render, and the whole interface.
 func _apply_debug() -> void:
+	_apply_hud_visible(DebugFlags.on("hud"))
 	var inset: SubViewport = $Mid/ViewPanel/Stack/InsetFrame/InsetContainer/Inset
 	var want: int = SubViewport.UPDATE_WHEN_PARENT_VISIBLE if DebugFlags.on("inset") \
 		else SubViewport.UPDATE_DISABLED
@@ -876,7 +881,7 @@ func _refresh_target_readout(me: ShipState, foe: ShipState) -> void:
 
 
 func _position_ship_labels() -> void:
-	if battle == null:
+	if battle == null or not DebugFlags.on("hud"):
 		return
 	var world: Node3D = _world()
 	var stack: Control = $Mid/ViewPanel/Stack
@@ -987,3 +992,32 @@ func _note(line: String) -> void:
 	_report_lines.append(line)
 	if _report_lines.size() > 40:
 		_report_lines = _report_lines.slice(-40)
+
+
+## Everything that is interface, as one switch.
+##
+## The battle keeps running and the 3D view keeps rendering, so what this
+## measures is the interface and nothing else: both what it costs to DRAW,
+## which is the per frame cull and record of every visible CanvasItem, and what
+## it costs to UPDATE, which is _refresh_hud. Those are separate costs and the
+## HUD repaint flag only reaches the second, which is why turning that one all
+## the way down can change a frame very little while the interface is still
+## most of it.
+##
+## Listed rather than derived from a container, because the middle column holds
+## the 3D view as well as the two button rows and hiding it would hide the
+## thing being measured against.
+const HUD_PARTS: Array = [
+	"Left", "Right", "Mid/Actions", "Mid/ReplayBar",
+	"Mid/ViewPanel/Stack/Bracket0", "Mid/ViewPanel/Stack/Bracket1",
+	"Mid/ViewPanel/Stack/PlayerLabel", "Mid/ViewPanel/Stack/EnemyLabel",
+	"Mid/ViewPanel/Stack/EnemyStatus", "Mid/ViewPanel/Stack/InsetCaption",
+	"Mid/ViewPanel/Stack/TouchControls", "Mid/ViewPanel/Stack/InsetFrame",
+]
+
+
+func _apply_hud_visible(on: bool) -> void:
+	for path in HUD_PARTS:
+		var node: CanvasItem = get_node_or_null(NodePath(path)) as CanvasItem
+		if node != null and node.visible != on:
+			node.visible = on

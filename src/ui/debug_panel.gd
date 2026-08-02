@@ -46,6 +46,13 @@ var _tap_window: float = 0.0
 ## the sample window rather than whichever frame happened to land on it.
 var _frames: int = 0
 var _elapsed: float = 0.0
+## Script time accumulated over the same window as _elapsed. Godot reports its
+## timing monitors for the LAST frame only, so sampling one of them against an
+## averaged frame time compares two different frames and the split can come out
+## inverted. Observed doing exactly that before this was averaged: 18 script
+## against 129 rest on one sample and 139 against 5 on the next, with the total
+## barely moving.
+var _script_elapsed: float = 0.0
 ## Touch indices currently down. Watched, never consumed: the overlay must not
 ## be able to swallow a helm order it happened to see first.
 var _fingers: Dictionary = {}
@@ -125,6 +132,8 @@ func _process(delta: float) -> void:
 	$Panel/V/Graph.push(delta * 1000.0)
 	_frames += 1
 	_elapsed += delta
+	_script_elapsed += (Performance.get_monitor(Performance.TIME_PROCESS)
+		+ Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS))
 	_since_sample += delta
 	if _since_sample < 1.0 / SAMPLE_HZ:
 		return
@@ -133,12 +142,23 @@ func _process(delta: float) -> void:
 	_since_sample = 0.0
 	_frames = 0
 	_elapsed = 0.0
+	_script_elapsed = 0.0
 
 
-## What a frame actually costs, and what it costs it in. Draw calls and
-## primitives are here because they say WHICH kind of too much: a frame that is
-## slow with few draw calls is fill rate or shader bound, which is a different
-## problem from one that is slow with thousands.
+## What a frame costs, and the one split that says who to blame.
+##
+## SCRIPT is time inside _process and _physics_process: our GDScript, which is
+## the simulation and every panel repaint. REST is the frame minus that: the
+## engine's own culling and command recording, submitting to the driver, and
+## waiting for the GPU.
+##
+## That split is the whole point of this readout, because without it "the frame
+## is 119 milliseconds" has at least four possible causes and no way to choose
+## between them. Script large means our code. Rest large with few draw calls
+## means fill rate or shaders. Rest large with many draw calls means driver
+## overhead, which on a phone running WebGL is a real and separate thing.
+##
+## Draw calls and primitives stay because they tell the last two apart.
 func _paint_counters() -> void:
 	var ms: float = (_elapsed / maxf(1.0, float(_frames))) * 1000.0
 	var draws: int = int(Performance.get_monitor(
@@ -146,8 +166,14 @@ func _paint_counters() -> void:
 	var prims: int = int(Performance.get_monitor(
 		Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME))
 	var mem: float = Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED) / 1048576.0
+	# Averaged over the same window as the frame time, because Godot reports
+	# these for the last frame only and comparing one frame's script time to a
+	# hundred frames' average is how a split comes out backwards.
+	var script_ms: float = (_script_elapsed / maxf(1.0, float(_frames))) * 1000.0
+	var rest_ms: float = maxf(ms - script_ms, 0.0)
 	$Panel/V/Counters.text = "\n".join([
 		"%5.1f ms      %5.1f fps" % [ms, 1000.0 / maxf(ms, 0.001)],
+		"%5.1f script  %5.1f rest" % [script_ms, rest_ms],
 		"%5d draws   %6d prims" % [draws, prims],
 		"%5.1f MB video" % [mem],
 	])
