@@ -245,6 +245,75 @@ stream of events to follow, so a log there is noise pretending to be information
 
 ---
 
+### 6.4 Panels are a fixed size, and content never changes it
+
+**A panel's size is authored. What goes inside it may never change it.** The tactical
+view is a cockpit: a captain learns where the shield readout is and reaches for it
+without looking. A panel that moves because the enemy has a longer name, or because
+the range gained a digit, or because a repair was queued, has broken that. Every
+screen in this game is laid out on a fixed reference resolution, and a panel is a
+fixed rectangle on it.
+
+This is not only a layout rule. Content driven sizing is also among the most expensive
+things the interface does. A label whose width changes invalidates its own minimum
+size, which makes its parent container re-sort, which re-fits every sibling, which
+makes each sibling that moved re-break its text. One number gaining a digit can cost
+dozens of text re-shapes in a frame. Pinning the panels is how that cascade stops
+happening.
+
+Concretely, for every panel and every screen:
+
+- **Set `custom_minimum_size` and `custom_maximum_size` to the same value.** In
+  Godot 4.7 the maximum has priority over the minimum, so the two together are a
+  fixed size rather than a request. A minimum on its own is only a floor, and a
+  floor is what the combat screen used to have.
+- **Set `propagate_maximum_size = true`** on the node you pinned, so nothing below
+  it can escape. A container sets this on its children on its own, but write it in
+  the scene anyway: the whole layout rests on it, and an implicit engine default is
+  a poor thing to rest on.
+- **Set `clip_contents = true`** on the panel. The maximum fixes layout, it does not
+  fix drawing: a label laid out at 280 pixels still paints its 288th pixel.
+- **Set `clip_text = true`, and prefer `text_overrun_behavior` TRIM_ELLIPSIS,** on
+  any Label or Button whose text is written at runtime. An ellipsis tells the player
+  a reading was truncated; a hard cut silently removes a digit from a number. Do not
+  apply either to static labels: clipping costs a batch break per node, and forty of
+  those is forty draw calls for nothing.
+- **The 3D viewport is a panel like any other.** Its size is arithmetic from the
+  fixed columns, and it is written in the scene. A render target reallocated because
+  a hull name got longer is the same bug wearing a different hat.
+
+**Content that does not fit scrolls. It does not push.** Where the amount of content
+is genuinely unbounded, such as the damage report, the comm log and the repair queue,
+wrap it in an authored `ScrollContainer` inside the fixed panel. Set the axis you do
+not want to scroll to SHOW_NEVER and never to DISABLED: only DISABLED re-enables
+content driven sizing on that axis, which is the opposite of what its name suggests.
+For autowrapped text use RESERVE on the scrolling axis, so the bar appearing does not
+narrow the column and re-wrap every line.
+
+A scroll bar is not a slider, so section 6.2 does not reach it. That ban is about
+allocation under fire, where a slow precise drag is the wrong ask and the value is a
+whole number anyway. Scrolling a damage report is reading, not commanding, and the
+replay scrub already establishes the distinction.
+
+**The exception, and it is narrow.** A panel or the viewport may change size when
+resizing IS the game mechanic, and only then. If a station is meant to expand when it
+is opened, if a display grows because the player bought a bigger sensor suite, if a
+cinematic pulls the camera frame in, that is gameplay expressed as layout and it is
+allowed. It has to be deliberate, it has to be driven by a sim value rather than by
+the width of a string, and like every other exception in this repository it has to be
+written down in section 7 before it is built. What is never allowed is a panel that
+resizes because of how many characters happened to land in it.
+
+This is checkable, so it is checked. `tests/run_tests.gd` instantiates the combat
+screen, writes a deliberately overlong string into every Label, waits two process
+frames and asserts every panel is still its authored size. Two frames, not one:
+minimum size updates and container sorts are each deferred by one, and a test that
+waits a single frame passes when it should not. Note that `get_combined_minimum_size()`
+still reports the UNBOUNDED value once a maximum is set, so assert on `size`, or on
+`get_bound_minimum_size()`, never on the combined minimum.
+
+---
+
 ## 7. Documented Exceptions
 
 Exceptions to the rules above live here, with the reason. Nothing may be treated as an

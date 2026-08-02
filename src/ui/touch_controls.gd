@@ -21,7 +21,7 @@ func _ready() -> void:
 	$Camera.moved.connect(func(v: Vector2) -> void: camera_moved.emit(v))
 	$Targeting/Prev.pressed.connect(func() -> void: target_stepped.emit(-1))
 	$Targeting/Next.pressed.connect(func() -> void: target_stepped.emit(1))
-	$Targeting/Label.add_theme_color_override("font_color", Palette.DIM)
+	Paint.tint($Targeting/Label, "font_color", Palette.DIM)
 
 
 ## Shown only where there is a touchscreen. A desktop player never sees it,

@@ -26,7 +26,7 @@ func vector() -> Vector2:
 
 
 func _ready() -> void:
-	$Caption.add_theme_color_override("font_color", Palette.DIM)
+	Paint.tint($Caption, "font_color", Palette.DIM)
 	_set_vector(Vector2.ZERO)
 
 

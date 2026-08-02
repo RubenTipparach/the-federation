@@ -43,7 +43,7 @@ func _fill_maps() -> void:
 	for card in row.get_children():
 		card.paint_selected(card.map_id == session.map_id)
 	$Mid/MapBlurb.text = String(Catalog.map(session.map_id)["blurb"])
-	$Mid/MapBlurb.add_theme_color_override("font_color", Palette.DIM)
+	Paint.tint($Mid/MapBlurb, "font_color", Palette.DIM)
 	$Mid/Kind.text = "DUEL / %s" % String(Catalog.map(session.map_id)["name"]).to_upper()
 
 
@@ -61,9 +61,9 @@ func _fill_replays() -> void:
 	var paths: Array[String] = ReplayStore.list_paths()
 	if paths.is_empty():
 		var empty: Label = Label.new()
-		empty.text = "No recordings yet. Every battle you fight is saved here."
+		empty.text = "No recordings yet."
 		empty.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		empty.add_theme_color_override("font_color", Palette.DIM)
+		Paint.tint(empty, "font_color", Palette.DIM)
 		list.add_child(empty)
 		return
 	for path in paths:
@@ -99,7 +99,7 @@ func _fill_yours() -> void:
 	var tonnage: int = int(session.fit.hull()["tonnage"])
 	var cap: int = int(Catalog.tuning()["skirmish"]["command_tonnage"])
 	$Yours/V/Tonnage.text = "COMMAND TONNAGE  %d / %d" % [tonnage, cap]
-	$Yours/V/Tonnage.add_theme_color_override("font_color",
+	Paint.tint($Yours/V/Tonnage, "font_color",
 		Palette.CRIT if tonnage > cap else Palette.DIM)
 
 
@@ -118,7 +118,7 @@ func _fill_foes() -> void:
 		card.chosen.connect(_on_foe_chosen)
 	$Foes/V/Tonnage.text = "ENEMY TONNAGE  %d" % int(
 		Catalog.hull(session.enemy_hull_id)["tonnage"])
-	$Foes/V/Tonnage.add_theme_color_override("font_color", Palette.DIM)
+	Paint.tint($Foes/V/Tonnage, "font_color", Palette.DIM)
 
 
 func _on_yours_chosen(hull_id: String) -> void:

@@ -35,7 +35,7 @@ func setup(p_map_id: String) -> void:
 
 func paint_selected(selected: bool) -> void:
 	button_pressed = selected
-	$V/Name.add_theme_color_override("font_color",
+	Paint.tint($V/Name, "font_color",
 		Palette.CYAN if selected else Palette.DIM)
 
 

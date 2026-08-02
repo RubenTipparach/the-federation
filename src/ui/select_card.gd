@@ -12,10 +12,10 @@ var id: String = ""
 func setup(p_id: String, title: String, meta: String, accent: Color) -> void:
 	id = p_id
 	$Body/Title.text = title
-	$Body/Title.add_theme_color_override("font_color", Color.WHITE)
+	Paint.tint($Body/Title, "font_color", Color.WHITE)
 	$Body/Meta.text = meta
-	$Body/Meta.add_theme_color_override("font_color", Palette.DIM)
-	add_theme_color_override("font_color", accent)
+	Paint.tint($Body/Meta, "font_color", Palette.DIM)
+	Paint.tint(self, "font_color", accent)
 	if not pressed.is_connected(_on_pressed):
 		pressed.connect(_on_pressed)
 

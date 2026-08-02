@@ -35,6 +35,26 @@ main() {
   fi
   rm -f "$out"
   step "Simulation tests pass"
+
+  # CLAUDE.md 6.4: no panel and no viewport may resize because of its content.
+  # This one needs a rendering context, because Controls do not lay out or
+  # report sizes without one, so it runs under xvfb rather than --headless.
+  if ! command -v xvfb-run >/dev/null; then
+    step "Skipping layout test (xvfb-run not installed)"
+    return 0
+  fi
+  step "Running layout test"
+  out="$(mktemp)"
+  status=0
+  xvfb-run -a "$GODOT_BIN" --path "$REPO_ROOT" --rendering-driver opengl3 \
+    --script res://tests/layout_test.gd >"$out" 2>&1 || status=$?
+  sed -n '/^Layout, at rest$/,/CHECKS/p' "$out" | sed 's/^/  /' >&2
+  if ! grep -q "ALL LAYOUT CHECKS PASSED" "$out"; then
+    rm -f "$out"
+    die "layout test failed: a panel resized because of its content"
+  fi
+  rm -f "$out"
+  step "Layout is fixed"
 }
 
 main "$@"

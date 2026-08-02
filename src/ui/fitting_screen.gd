@@ -174,7 +174,7 @@ func _refresh_budgets() -> void:
 	var d: Dictionary = session.fit.derived()
 	$Right/BudgetsPanel/V/ArcSummary.text = "Covered %d / %d   Blind %s" % [
 		int(d["covered"]), int(d["total_sectors"]), String(d["blind_label"])]
-	$Right/BudgetsPanel/V/ArcSummary.add_theme_color_override("font_color",
+	Paint.tint($Right/BudgetsPanel/V/ArcSummary, "font_color",
 		Palette.OK if d["blind"].is_empty() else Palette.CRIT)
 
 

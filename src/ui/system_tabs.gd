@@ -137,11 +137,8 @@ func refresh(systems: Array[Dictionary], queue: Array[int]) -> void:
 			tint = Palette.with_alpha(Palette.DIM, 0.5)
 		elif key == _selected:
 			tint = Palette.CYAN
-		for slot in ["font_color", "font_disabled_color", "font_pressed_color",
-				"icon_normal_color", "icon_disabled_color", "icon_pressed_color",
-				"icon_hover_color"]:
-			b.add_theme_color_override(slot, tint)
-		b.add_theme_color_override("font_hover_color",
+		Paint.button_tint(b, tint)
+		Paint.tint(b, "font_hover_color",
 			Palette.FG if live and not out else tint)
 
 		# A dark station cannot be opened, so the way to fix it lives on the
