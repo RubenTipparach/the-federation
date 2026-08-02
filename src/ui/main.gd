@@ -30,11 +30,15 @@ func _ready() -> void:
 	$Root/Content/Skirmish.begin_battle.connect(_on_begin_battle)
 	$Root/Content/Combat.battle_ended.connect(_on_battle_ended)
 
-	# The debug overlay is summoned by tapping the version label three times.
-	# There is no keyboard on the machine it exists for, and a corner label is
-	# both reachable with a thumb and not something anybody presses three times
-	# by accident. It is an instrument, not a screen: see src/ui/debug_panel.gd.
-	$Root/TopBar/Version.gui_input.connect(_on_version_input)
+	# Settings hangs off the top bar rather than being a fourth tab: the tabs are
+	# where the game is, and this is where the things around the game are. It is
+	# therefore not reachable during a battle, which is deliberate (CLAUDE.md
+	# 6.2). It is handed the session because it saves the current design, and the
+	# overlay because its instrument switch turns that on.
+	$Settings.session = session
+	$Settings.overlay = $DebugPanel
+	$Settings.design_chosen.connect(_on_design_loaded)
+	$Root/TopBar/Settings.pressed.connect($Settings.toggle)
 
 	_wear_deck()
 	show_tab("Fitting")
@@ -55,13 +59,23 @@ func _wear_deck() -> void:
 	var deck: Theme = load(Palette.theme_path())
 	if theme != deck:
 		theme = deck
+	# The two overlays hang off CanvasLayers, which are not Controls, so the
+	# theme above does not reach them. Settings is handed it; the debug overlay
+	# is deliberately not, because an instrument that changed appearance with
+	# the deck would be one more thing to doubt when a reading looks wrong.
+	$Settings.wear(deck)
 
 
-func _on_version_input(event: InputEvent) -> void:
-	var tapped: bool = (event is InputEventMouseButton
-		and event.pressed and event.button_index == MOUSE_BUTTON_LEFT)
-	if tapped or event is InputEventScreenTouch and event.pressed:
-		$DebugPanel.note_summon_tap()
+## A design loaded from settings replaces the one in the session, which is the
+## same thing picking a hull does. Routed here rather than done in the panel
+## because main owns the session and the repaint that has to follow it
+## (CLAUDE.md 4.2).
+func _on_design_loaded(fit: ShipFit) -> void:
+	session.fit = fit
+	_wear_deck()
+	$Root/Content/Fitting.refresh_from_session()
+	$Root/Content/Arcs.refresh()
+	$Root/Content/Skirmish.refresh()
 
 
 func show_tab(tab: String) -> void:

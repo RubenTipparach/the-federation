@@ -1,5 +1,13 @@
 [gd_scene load_steps=2 format=3]
 
+; A pressable card with a title and a subtitle, reused by the hull list, the
+; skirmish design list, the enemy list and the settings panel's saved designs
+; (CLAUDE.md 4.1: one card, four callers, parameterized rather than cloned).
+;
+; Delete is authored here and hidden, rather than a fifth card scene existing
+; for the one list whose rows can be thrown away. Same pattern as the Fix
+; button on a station tab: the card configures it, it does not build it.
+
 [ext_resource type="Script" path="res://src/ui/select_card.gd" id="1"]
 
 [node name="SelectCard" type="Button"]
@@ -29,3 +37,24 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 13
 text = "meta"
 autowrap_mode = 2
+
+[node name="Delete" type="Button" parent="."]
+visible = false
+custom_minimum_size = Vector2(90, 32)
+custom_maximum_size = Vector2(90, 32)
+propagate_maximum_size = true
+layout_mode = 1
+anchors_preset = 6
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -102.0
+offset_top = -16.0
+offset_right = -12.0
+offset_bottom = 16.0
+grow_horizontal = 0
+grow_vertical = 2
+focus_mode = 0
+theme_override_font_sizes/font_size = 12
+text = "DELETE"

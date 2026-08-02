@@ -33,15 +33,8 @@ const SAMPLE_HZ: float = 10.0
 ## view already uses one for the helm and two for pinch zoom, so three is the
 ## first count that cannot be reached by playing.
 const SUMMON_FINGERS: int = 3
-## Taps on the version label, for the screens that show one. The battle hides
-## the top bar for the whole engagement (CLAUDE.md 6.2), which is exactly when
-## this is wanted, so the gesture above is the one that actually matters.
-const SUMMON_TAPS: int = 3
-const SUMMON_WINDOW: float = 1.5
 
 var _since_sample: float = 0.0
-var _taps: int = 0
-var _tap_window: float = 0.0
 ## Frame times since the last readout, so the number shown is an average over
 ## the sample window rather than whichever frame happened to land on it.
 var _frames: int = 0
@@ -110,7 +103,10 @@ func _enable_render_timing() -> void:
 
 
 func _ready() -> void:
-	# The layer stays visible so the summon button does; only the panel hides.
+	# The layer stays visible and only the panel hides, so the overlay can be
+	# turned on before a battle and still be there during one. That is the whole
+	# route now that the corner button is gone: the gear that opens settings
+	# lives on the top bar, and the top bar is hidden in a fight.
 	$Panel.visible = false
 	var ids: Array = DebugFlags.ids()
 	for i in range(SLOTS):
@@ -119,7 +115,6 @@ func _ready() -> void:
 		b.visible = wanted
 		if wanted:
 			b.pressed.connect(_on_flag.bind(String(ids[i])))
-	$Summon.pressed.connect(_toggle)
 	$Panel/V/Head/Measure.pressed.connect(_start_sweep)
 	$Panel/V/Head/Close.pressed.connect(func() -> void: $Panel.visible = false)
 	$Panel/V/Head/Reset.pressed.connect(func() -> void:
@@ -156,27 +151,22 @@ func _input(event: InputEvent) -> void:
 
 
 func _toggle() -> void:
-	$Panel.visible = not $Panel.visible
-	if $Panel.visible:
+	set_shown(not $Panel.visible)
+
+
+## Whether the overlay is up. The settings panel asks, so its box reads the
+## overlay rather than a copy of the answer kept beside it.
+func is_shown() -> bool:
+	return $Panel.visible
+
+
+func set_shown(on: bool) -> void:
+	$Panel.visible = on
+	if on:
 		_paint_buttons()
 
 
-## Count taps on whatever handle summons this. Three inside a second and a half,
-## which is a run nobody performs by accident and anybody can perform on a
-## touch screen without a keyboard.
-func note_summon_tap() -> void:
-	if _tap_window <= 0.0:
-		_taps = 0
-	_tap_window = SUMMON_WINDOW
-	_taps += 1
-	if _taps >= SUMMON_TAPS:
-		_taps = 0
-		_toggle()
-
-
 func _process(delta: float) -> void:
-	if _tap_window > 0.0:
-		_tap_window -= delta
 	if not $Panel.visible:
 		return
 	if not _sweep.is_empty():
