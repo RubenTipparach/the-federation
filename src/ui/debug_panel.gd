@@ -2,11 +2,17 @@ extends CanvasLayer
 
 ## An instrument for finding out what a frame costs, on the device it is slow on.
 ##
-## This is not part of the game. It is a tool, it sits on its own CanvasLayer
-## above every screen rather than inside any of them, and it is invisible until
-## deliberately summoned. CLAUDE.md 6.2 says nothing but fighting belongs in the
-## tactical view, and that stands: this is not something a player reaches for
-## under fire, it is something a developer reaches for instead of playing.
+## This is not part of the game. It is a tool, and it sits on its own CanvasLayer
+## above every screen rather than inside any of them. CLAUDE.md 6.2 says nothing
+## but fighting belongs in the tactical view, and that stands: this is not
+## something a player reaches for under fire, it is something a developer
+## reaches for instead of playing.
+##
+## It is opened by a button in the corner, which is on screen at all times. That
+## button was a gesture first, hidden so as not to put a control in the battle
+## view, and that was the wrong trade: an instrument nobody can find on the
+## machine it was built for is not an instrument. The gestures below still work
+## and cost nothing, but the button is the way in.
 ##
 ## Everything it switches is view only (see DebugFlags), so a battle plays out
 ## identically whatever is off. That is what makes it safe to leave in a
@@ -46,7 +52,8 @@ var _fingers: Dictionary = {}
 
 
 func _ready() -> void:
-	visible = false
+	# The layer stays visible so the summon button does; only the panel hides.
+	$Panel.visible = false
 	var ids: Array = DebugFlags.ids()
 	for i in range(SLOTS):
 		var b: Button = _slot(i)
@@ -54,7 +61,8 @@ func _ready() -> void:
 		b.visible = wanted
 		if wanted:
 			b.pressed.connect(_on_flag.bind(String(ids[i])))
-	$Panel/V/Head/Close.pressed.connect(func() -> void: visible = false)
+	$Summon.pressed.connect(_toggle)
+	$Panel/V/Head/Close.pressed.connect(func() -> void: $Panel.visible = false)
 	$Panel/V/Head/Reset.pressed.connect(func() -> void:
 		DebugFlags.reset()
 		_paint_buttons())
@@ -88,8 +96,8 @@ func _input(event: InputEvent) -> void:
 
 
 func _toggle() -> void:
-	visible = not visible
-	if visible:
+	$Panel.visible = not $Panel.visible
+	if $Panel.visible:
 		_paint_buttons()
 
 
@@ -109,7 +117,7 @@ func note_summon_tap() -> void:
 func _process(delta: float) -> void:
 	if _tap_window > 0.0:
 		_tap_window -= delta
-	if not visible:
+	if not $Panel.visible:
 		return
 	# Every frame goes into the graph; only the readout and the repaint are
 	# throttled. A spike that lands between samples is exactly the thing worth
