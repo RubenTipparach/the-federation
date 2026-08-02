@@ -296,10 +296,16 @@ func _physics_process(delta: float) -> void:
 		events = _step_replay(delta)
 	elif not paused and not battle.over:
 		events = battle.step(delta)
-	var t_world: int = HudProfile.open("world")
-	_world().update_visuals(delta, events)
+	# The rig update is gated as well as timed. It was timed only, which made
+	# its switch a no op and its measurement noise: the sweep turns a part off
+	# and times the frame, so a flag that removes nothing measures nothing.
+	# follow_pivot stays outside the gate because it is the camera, and a
+	# battle you cannot see is not a measurement of anything.
+	if DebugFlags.on("world"):
+		var t_world: int = HudProfile.open("world")
+		_world().update_visuals(delta, events)
+		HudProfile.close("world", t_world)
 	_world().follow_pivot(delta)
-	HudProfile.close("world", t_world)
 	_track_plan_camera()
 	for e in events:
 		# Every event that narrates itself gets narrated: shots, launches,
