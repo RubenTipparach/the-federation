@@ -46,16 +46,36 @@ var _tap_window: float = 0.0
 ## the sample window rather than whichever frame happened to land on it.
 var _frames: int = 0
 var _elapsed: float = 0.0
-## Script time accumulated over the same window as _elapsed. Godot reports its
-## timing monitors for the LAST frame only, so sampling one of them against an
-## averaged frame time compares two different frames and the split can come out
-## inverted. Observed doing exactly that before this was averaged: 18 script
-## against 129 rest on one sample and 139 against 5 on the next, with the total
-## barely moving.
-var _script_elapsed: float = 0.0
 ## Touch indices currently down. Watched, never consumed: the overlay must not
 ## be able to swallow a helm order it happened to see first.
 var _fingers: Dictionary = {}
+
+## The sweep. It switches each part off in turn, waits for the frame time to
+## settle, averages it, and puts it back, so what lands on each button is what
+## the frame actually gained rather than what a stopwatch around our own calls
+## managed to see. That distinction is the whole reason it exists: on the phone
+## the parts reported 1.07 ms between them and removing them took 18.1 ms off
+## the frame, because almost none of the work happens inside the call.
+##
+## It is exactly what a person would otherwise do by hand, which somebody did,
+## eleven times, with screenshots. Doing it in the panel takes twenty seconds
+## and does not depend on anybody being careful.
+var _sweep: Array = []
+var _sweep_at: int = -1
+var _sweep_frames: int = 0
+var _sweep_elapsed: float = 0.0
+var _sweep_baseline: float = -1.0
+## Frames thrown away after a switch moves, then frames averaged. The discard
+## matters more than it looks: hiding a panel makes its container re-sort and
+## every sibling re-fit, and the frame that lands in is not the steady state.
+const SWEEP_SETTLE: int = 6
+const SWEEP_SAMPLE: int = 20
+## Each part is measured against a baseline taken IMMEDIATELY before it, rather
+## than against one baseline at the start. A sweep takes half a minute, the
+## ships close and the terrain slides past in that time, and a single baseline
+## turns that drift into a per part cost. Two passes per part is twice as long
+## and the only version whose numbers survive being repeated.
+var _sweep_phase: int = 0
 
 
 func _ready() -> void:
@@ -69,6 +89,7 @@ func _ready() -> void:
 		if wanted:
 			b.pressed.connect(_on_flag.bind(String(ids[i])))
 	$Summon.pressed.connect(_toggle)
+	$Panel/V/Head/Measure.pressed.connect(_start_sweep)
 	$Panel/V/Head/Close.pressed.connect(func() -> void: $Panel.visible = false)
 	$Panel/V/Head/Reset.pressed.connect(func() -> void:
 		DebugFlags.reset()
@@ -126,14 +147,15 @@ func _process(delta: float) -> void:
 		_tap_window -= delta
 	if not $Panel.visible:
 		return
+	if not _sweep.is_empty():
+		_step_sweep(delta)
+		return
 	# Every frame goes into the graph; only the readout and the repaint are
 	# throttled. A spike that lands between samples is exactly the thing worth
 	# seeing, so it must not be the thing that gets dropped.
 	$Panel/V/Graph.push(delta * 1000.0)
 	_frames += 1
 	_elapsed += delta
-	_script_elapsed += (Performance.get_monitor(Performance.TIME_PROCESS)
-		+ Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS))
 	_since_sample += delta
 	if _since_sample < 1.0 / SAMPLE_HZ:
 		return
@@ -144,7 +166,6 @@ func _process(delta: float) -> void:
 	_since_sample = 0.0
 	_frames = 0
 	_elapsed = 0.0
-	_script_elapsed = 0.0
 
 
 ## What a frame costs, and the one split that says who to blame.
@@ -168,24 +189,24 @@ func _paint_counters() -> void:
 	var prims: int = int(Performance.get_monitor(
 		Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME))
 	var mem: float = Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED) / 1048576.0
-	# Averaged over the same window as the frame time, because Godot reports
-	# these for the last frame only and comparing one frame's script time to a
-	# hundred frames' average is how a split comes out backwards.
-	var script_ms: float = (_script_elapsed / maxf(1.0, float(_frames))) * 1000.0
-	var rest_ms: float = maxf(ms - script_ms, 0.0)
+	# There was a script and rest split here. It is gone, because it was wrong:
+	# on the phone it reported 57.6 ms of script inside a 22.0 ms frame, which
+	# cannot happen, so every reading it ever gave was suspect. The sweep
+	# measures the same question by removing things and timing the result, which
+	# cannot report an impossible number because it only ever compares two
+	# frame times.
 	# The parts total against the script total, because the difference is the
 	# most useful number on the panel and nobody should have to add up eleven
 	# buttons to find it. Script minus parts is everything the interface does
 	# NOT account for: the simulation, the 3D rig update, and the engine's own
 	# container sorting and minimum size work, which is charged to the process
 	# step and is invisible to any stopwatch we put around our own calls.
-	var parts_ms: float = HudProfile.total_us() / 1000.0
 	$Panel/V/Counters.text = "\n".join([
 		"%5.1f ms      %5.1f fps" % [ms, 1000.0 / maxf(ms, 0.001)],
-		"%5.1f script  %5.1f rest" % [script_ms, rest_ms],
-		"%5.2f ui parts of that script" % [parts_ms],
 		"%5d draws   %6d prims" % [draws, prims],
 		"%5.1f MB video" % [mem],
+		"MEASURE times each part for real" if not HudProfile.has_measured()
+			else "measured: ms the frame gains without it",
 	])
 	# The graph's scale is printed rather than assumed, because it snaps when a
 	# frame goes badly and a reader comparing two screenshots would otherwise
@@ -222,14 +243,81 @@ func _paint_buttons() -> void:
 		var caption: String = DebugFlags.caption(id)
 		var part: String = DebugFlags.part(id)
 		if not part.is_empty():
-			var us: float = HudProfile.cost_us(part)
-			# Minus one is "not measured since the last flush", which is what a
-			# part that is switched off reads. A dash rather than 0.00, because
-			# "not running" and "free" are different answers.
-			caption += "   %s" % ("    -" if us < 0.0 else "%5.2f ms" % (us / 1000.0))
+			# The measured cost when the sweep has produced one, and the issue
+			# time in brackets until then. Never the issue time alone and never
+			# unlabelled: it reads like a cost, it is not one, and presenting it
+			# as one sent two rounds of work at the wrong target.
+			if HudProfile.is_measured(part):
+				caption += "   %+5.1f ms" % (HudProfile.measured_us(part) / 1000.0)
+			else:
+				var us: float = HudProfile.issue_us(part)
+				caption += "   %s" % ("      -" if us < 0.0
+					else "(%.2f)" % (us / 1000.0))
 		b.text = caption
 		var entry: Dictionary = DebugFlags.spec(id)
 		var default_on: bool = String(entry["kind"]) != "bool" or DebugFlags.on(id)
 		Paint.tint(b, "font_color",
 			Palette.FG if default_on else Palette.AMBER)
 		b.tooltip_text = "%s\ncost: %s" % [String(entry["note"]), String(entry["cost"])]
+
+
+## Measure every part by removing it, one at a time.
+##
+## Only bool flags that own a timing bucket are swept. The master switch is not
+## one of them: it would measure the whole interface, which is the one number
+## the panel can already show by being turned off once.
+func _start_sweep() -> void:
+	_sweep = []
+	for id in DebugFlags.ids():
+		var key: String = String(id)
+		if key == "hud" or DebugFlags.part(key).is_empty():
+			continue
+		if String(DebugFlags.spec(key)["kind"]) != "bool":
+			continue
+		_sweep.append(key)
+	# Everything back on first, or a part left off from a previous session
+	# would be measured against a baseline that already excluded it.
+	DebugFlags.reset()
+	_sweep_at = 0
+	_sweep_phase = 0
+	_sweep_baseline = -1.0
+	_sweep_frames = 0
+	_sweep_elapsed = 0.0
+
+
+## One frame of the sweep. -1 is the baseline pass with everything on; every
+## step after it has exactly one part switched off.
+func _step_sweep(delta: float) -> void:
+	_sweep_frames += 1
+	if _sweep_frames > SWEEP_SETTLE:
+		_sweep_elapsed += delta
+	if _sweep_frames < SWEEP_SETTLE + SWEEP_SAMPLE:
+		_paint_sweep_progress()
+		return
+
+	var ms: float = (_sweep_elapsed / float(SWEEP_SAMPLE)) * 1000.0
+	var id: String = String(_sweep[_sweep_at])
+	if _sweep_phase == 0:
+		# Baseline for this part, with everything on. Now switch it off.
+		_sweep_baseline = ms
+		_sweep_phase = 1
+		DebugFlags.set_on(id, false)
+	else:
+		# The frame gained this much without it. Put it back and move on.
+		HudProfile.set_measured(DebugFlags.part(id), (_sweep_baseline - ms) * 1000.0)
+		DebugFlags.set_on(id, true)
+		_sweep_phase = 0
+		_sweep_at += 1
+	_sweep_frames = 0
+	_sweep_elapsed = 0.0
+	if _sweep_at >= _sweep.size():
+		_sweep = []
+		_sweep_at = -1
+		_paint_buttons()
+
+
+func _paint_sweep_progress() -> void:
+	$Panel/V/Head/Title.text = "MEASURING %d/%d %s" % [
+		_sweep_at + 1, _sweep.size(), "base" if _sweep_phase == 0 else "off "]
+	Paint.tint($Panel/V/Head/Title, "font_color", Palette.CYAN)
+	$Panel/V/Counters.text = "hold still.\nswitching each part off in turn\nand timing the frame without it."

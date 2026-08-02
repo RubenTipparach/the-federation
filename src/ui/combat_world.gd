@@ -131,7 +131,6 @@ func follow_pivot(delta: float = 0.0) -> void:
 
 
 func update_visuals(delta: float, events: Array[Dictionary]) -> void:
-	_apply_debug()
 	$PlayerRig.refresh()
 	$EnemyRig.refresh()
 	for e in events:
@@ -173,29 +172,6 @@ func _break_up(index: int, at: Vector2) -> void:
 	rig.stand_down()
 
 
-## What the debug overlay has switched off, applied every frame.
-##
-## Applied rather than reacted to, because a flag can change at any moment and
-## setting a property to the value it already holds costs nothing in Godot. It
-## is all view state: nothing here can reach the simulation, which is the
-## property that makes the overlay safe to leave in a build (DebugFlags).
-func _apply_debug() -> void:
-	var env: Environment = ($Env as WorldEnvironment).environment
-	var want_sky: bool = DebugFlags.on("sky")
-	var mode: int = Environment.BG_SKY if want_sky else Environment.BG_COLOR
-	if env.background_mode != mode:
-		env.background_mode = mode
-		# The flat fill is the palette's black, so switching the starfield off
-		# leaves space looking like space rather than like a missing texture.
-		env.background_color = Palette.BG
-	$Grid.visible = DebugFlags.on("grid")
-	$Terrain.visible = DebugFlags.on("terrain")
-	if $Terrain.visible:
-		$Terrain.apply_debug()
-	var scale: float = DebugFlags.number("render_scale", 1.0)
-	var view: Viewport = get_viewport()
-	if view != null and not is_equal_approx(view.scaling_3d_scale, scale):
-		view.scaling_3d_scale = scale
 
 
 func _flash_beam(from_pos: Vector2, to_pos: Vector2) -> void:

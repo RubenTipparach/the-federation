@@ -14,10 +14,29 @@ extends RefCounted
 ## that is known, the only useful question left is WHICH of our code, and no
 ## instrument answered it on the device.
 ##
-## Accumulated per tick and averaged over the panel's sample window, because a
-## single tick of any one panel is noise: the damage report costs nothing until
-## something is damaged, and the station panels cost whatever the open station
-## happens to be.
+## TWO NUMBERS, AND ONLY ONE OF THEM IS THE ANSWER.
+##
+## `issue_us` is time spent inside the call that updates a panel. It is honest
+## about what it measures and it is NOT what the panel costs, because almost
+## none of the work happens there. Setting `Label.text` returns in under a
+## microsecond: it marks the item dirty and leaves. Re-shaping the text and
+## rebuilding that item's draw commands happen later, in the engine's canvas
+## flush, outside any bracket we can put around our own calls.
+##
+## Measured on the phone, which is how this was caught: switching off panels
+## whose issue time totalled 1.07 ms took 18.1 ms off the frame. Seventeen
+## times. Quoting the issue time as the cost was wrong and it sent two rounds
+## of work at the wrong target.
+##
+## `measured_us` is the truth: the frame got this much faster with the part
+## switched off. It comes from the sweep in debug_panel.gd, which does by
+## itself what a person would otherwise do by hand with a stopwatch and eleven
+## screenshots. It catches everything, including the drawing and the engine
+## work that no stopwatch of ours can see.
+##
+## Issue time is kept because the gap between the two IS information: a part
+## whose issue time is most of its measured cost is our code, and one where it
+## is a rounding error is the renderer.
 ##
 ## One implementation, called from one place per part (CLAUDE.md 4.1). Do not
 ## time a panel at its call site with a second stopwatch: two of these would
@@ -70,11 +89,41 @@ static func flush() -> void:
 	_ticks = 0
 
 
-## Microseconds a part costs per tick, or -1 when it has not been measured
-## since the last flush. Minus one rather than zero, because "not running" and
-## "free" are different answers and a reader deserves to be able to tell.
-static func cost_us(part: String) -> float:
+## Microseconds spent ISSUING a part's update, per tick, or -1 when it has not
+## run since the last flush. Minus one rather than zero, because "not running"
+## and "free" are different answers and a reader deserves to tell them apart.
+##
+## Read the class docstring before quoting this as what a panel costs. It is
+## not that, and treating it as that is the mistake this file exists to stop
+## anybody making twice.
+static func issue_us(part: String) -> float:
 	return float(_shown.get(part, -1.0))
+
+
+## What the frame actually gained with this part switched off, in microseconds,
+## or -1 when the sweep has not measured it. This is the number to trust.
+static var _measured: Dictionary = {}
+
+
+static func set_measured(part: String, us: float) -> void:
+	_measured[part] = us
+
+
+## Whether the sweep has a reading for this part. A separate question from the
+## value, because a part can genuinely measure NEGATIVE: it is a difference of
+## two frame times and noise goes both ways. Using -1 as "no reading" collided
+## with that and hid every part whose cost fell below the noise floor, which is
+## exactly the set a reader most needs to see marked as measured and small.
+static func is_measured(part: String) -> bool:
+	return _measured.has(part)
+
+
+static func measured_us(part: String) -> float:
+	return float(_measured.get(part, 0.0))
+
+
+static func has_measured() -> bool:
+	return not _measured.is_empty()
 
 
 ## Everything measured, worst first. For a caller that wants the whole picture

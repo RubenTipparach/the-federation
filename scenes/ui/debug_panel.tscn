@@ -98,6 +98,13 @@ theme_override_font_sizes/font_size = 11
 text = "DEBUG"
 theme_type_variation = &"HeaderLabel"
 
+[node name="Measure" type="Button" parent="Panel/V/Head"]
+custom_minimum_size = Vector2(64, 26)
+layout_mode = 2
+focus_mode = 0
+theme_override_font_sizes/font_size = 10
+text = "MEASURE"
+
 [node name="Reset" type="Button" parent="Panel/V/Head"]
 custom_minimum_size = Vector2(52, 26)
 layout_mode = 2

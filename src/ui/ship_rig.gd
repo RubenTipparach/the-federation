@@ -137,8 +137,7 @@ func update_flares(delta: float) -> void:
 		_flare[f] = maxf(0.0, _flare[f] - delta / maxf(fade, 0.001))
 		# Squared so the flare drops away fast and leaves a soft tail, rather
 		# than dimming at a constant rate that reads as a fading lamp.
-		glow.visible = _flare[f] > 0.0 and _state != null and _state.alive \
-			and DebugFlags.on("flares")
+		glow.visible = _flare[f] > 0.0 and _state != null and _state.alive
 		glow.material_override.set_shader_parameter("glow", _flare[f] * _flare[f])
 
 
@@ -217,12 +216,12 @@ func refresh() -> void:
 		# overlay can take them away to see what they were costing. Read here
 		# rather than cached, because this is where visibility is decided and a
 		# flag consulted anywhere else would be fought by this line.
-		w.visible = r > 0.0 and DebugFlags.on("arcs")
+		w.visible = r > 0.0
 		if r > 0.0:
 			w.scale = Vector3(r, 1, r)
 		ring_range = maxf(ring_range, r)
 
-	$RangeRing.visible = ring_range > 0.0 and DebugFlags.on("arcs")
+	$RangeRing.visible = ring_range > 0.0
 	if ring_range > 0.0:
 		$RangeRing.scale = Vector3(ring_range, 1, ring_range)
 
@@ -232,7 +231,7 @@ func refresh() -> void:
 	for f in range(6):
 		var seg: MeshInstance3D = $Shields.get_node("S%d" % f)
 		var frac: float = _state.shields[f] / _state.shield_max
-		seg.visible = _state.alive and DebugFlags.on("arcs")
+		seg.visible = _state.alive
 		match Palette.shield_band(frac):
 			"down":
 				seg.material_override = MAT_SHIELD_DOWN

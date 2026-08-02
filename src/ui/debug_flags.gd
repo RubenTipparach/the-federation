@@ -87,6 +87,14 @@ static func number(id: String, fallback: float) -> float:
 
 
 ## Advance a flag: booleans invert, cycles step to the next value and wrap.
+## Set a bool flag outright. For the panel's sweep, which needs to put a part
+## back exactly as it found it rather than assume advance() lands there.
+static func set_on(id: String, on: bool) -> void:
+	_load()
+	if _values.has(id):
+		_values[id] = on
+
+
 static func advance(id: String) -> void:
 	_load()
 	var entry: Dictionary = spec(id)
