@@ -35,6 +35,29 @@ content_margin_bottom = 8.0
 layer = 128
 script = ExtResource("1")
 
+; The summon button. Always on screen, including during a battle, because the
+; machine this instrument exists for is a phone and a phone has no F3 key. It
+; sits bottom left: a landscape grip puts a thumb there, the overlay itself
+; opens on the right so the two never collide, and it is the one corner of the
+; tactical view that carries no control a player reaches for under fire.
+;
+; Dimmed until touched, so it reads as an instrument bolted to the outside of
+; the screen rather than as something the game is offering.
+
+[node name="Summon" type="Button" parent="."]
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 4.0
+offset_top = -32.0
+offset_right = 52.0
+offset_bottom = -4.0
+grow_vertical = 0
+modulate = Color(1, 1, 1, 0.55)
+focus_mode = 0
+theme_override_font_sizes/font_size = 10
+text = "DBG"
+
 [node name="Panel" type="PanelContainer" parent="."]
 anchors_preset = 1
 anchor_left = 1.0
