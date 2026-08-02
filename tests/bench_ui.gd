@@ -106,7 +106,7 @@ func _initialize() -> void:
 
 	print("")
 	print("PRIMITIVES, which is where the cost came from")
-	var probe: Label = c.get_node("Left/DamagePanel/V/Body")
+	var probe: Label = c.get_node("Left/DamagePanel/V/BodyScroll/Body")
 	var n: int = 0
 	_time("Label.text, value changed", PRIMITIVE_ROUNDS, func() -> void:
 		n += 1

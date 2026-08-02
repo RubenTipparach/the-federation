@@ -34,7 +34,7 @@ func paint(display_name: String, reason: String, charge: float) -> void:
 	$Chip.text = chip
 	var hue: Color = chip_color(reason)
 	Paint.tint($Chip, "font_color", hue)
-	# The chip already carries the reason; the note only adds words when the
-	# chip is a percentage.
-	$Note.text = "charging" if reason == "charging" else ""
-	Paint.tint($Note, "font_color", Palette.DIM)
+	# There was a second label here repeating the chip in lower case. It said
+	# nothing the chip did not, and it was the widest thing in the column
+	# (CLAUDE.md 6.4: the panel is a fixed rectangle, so words have to earn
+	# their pixels).

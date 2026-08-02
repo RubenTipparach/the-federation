@@ -808,8 +808,8 @@ func _refresh_hud() -> void:
 		if int(sys["boxes"]) < int(sys["boxes_max"]):
 			dmg.append("%s  %d/%d" % [String(sys["code"]), int(sys["boxes"]),
 				int(sys["boxes_max"])])
-	$Left/DamagePanel/V/Body.text = "No damage." if dmg.is_empty() else "\n".join(dmg)
-	$Left/DamagePanel/V/CommLog.text = "\n".join(_report_lines.slice(-6))
+	$Left/DamagePanel/V/BodyScroll/Body.text = "No damage." if dmg.is_empty() else "\n".join(dmg)
+	$Left/DamagePanel/V/CommScroll/CommLog.text = "\n".join(_report_lines.slice(-6))
 
 	_refresh_target_readout(me, foe)
 	$Right/OwnPanel/V/Display.refresh()
@@ -864,7 +864,7 @@ func _refresh_target_readout(me: ShipState, foe: ShipState) -> void:
 	# below, and at the bitmap face's fixed size the column has no spare row.
 	var body: Label = $Right/TargetPanel/V/Body
 	body.text = "\n".join([
-		"CONTACT  %s" % String(foe.fit.hull()["name"]),
+		String(foe.fit.hull()["name"]).to_upper(),
 		"BOXES  %d / %d" % [foe.total_boxes(), foe.total_boxes_max()],
 		"RANGE  %.1f   BRG  %03d" % [_last_seen_range, int(_last_seen_bearing)],
 	])
