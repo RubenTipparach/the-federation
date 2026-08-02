@@ -1,4 +1,4 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=5 format=3]
 
 ; The debug overlay. Its own CanvasLayer above every screen, hidden until it is
 ; summoned, because it is an instrument and not part of the game (CLAUDE.md 6.2,
@@ -31,6 +31,18 @@ content_margin_top = 6.0
 content_margin_right = 8.0
 content_margin_bottom = 8.0
 
+[sub_resource type="StyleBoxFlat" id="summon"]
+bg_color = Color(0.043, 0.063, 0.086, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.984, 0.788, 0.263, 1)
+content_margin_left = 8.0
+content_margin_top = 6.0
+content_margin_right = 8.0
+content_margin_bottom = 6.0
+
 [node name="DebugPanel" type="CanvasLayer"]
 layer = 128
 script = ExtResource("1")
@@ -41,22 +53,25 @@ script = ExtResource("1")
 ; opens on the right so the two never collide, and it is the one corner of the
 ; tactical view that carries no control a player reaches for under fire.
 ;
-; Dimmed until touched, so it reads as an instrument bolted to the outside of
-; the screen rather than as something the game is offering.
+; Full contrast on its own opaque plate: a dim button in a corner of a dark screen
+; is a button nobody finds, which was the first attempt and it did not work.
 
 [node name="Summon" type="Button" parent="."]
 anchors_preset = 2
 anchor_top = 1.0
 anchor_bottom = 1.0
-offset_left = 4.0
-offset_top = -32.0
-offset_right = 52.0
-offset_bottom = -4.0
+offset_left = 6.0
+offset_top = -58.0
+offset_right = 144.0
+offset_bottom = -6.0
 grow_vertical = 0
-modulate = Color(1, 1, 1, 0.55)
 focus_mode = 0
-theme_override_font_sizes/font_size = 10
-text = "DBG"
+theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.984, 0.788, 0.263, 1)
+theme_override_styles/normal = SubResource("summon")
+theme_override_styles/hover = SubResource("summon")
+theme_override_styles/pressed = SubResource("summon")
+text = "DEBUG"
 
 [node name="Panel" type="PanelContainer" parent="."]
 anchors_preset = 1
