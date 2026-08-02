@@ -137,8 +137,18 @@ jobs:
         if: env.CAN_DEPLOY == 'true'
         run: ./scripts/install-butler.sh
 
-      # The sim library must pass its headless suite before anything exports.
-      - name: Run simulation tests
+      # The layout test (CLAUDE.md 6.4) instantiates real Control nodes, and a
+      # Control will not lay out or report a size without a rendering context,
+      # so it runs under xvfb. Installed explicitly rather than assumed present
+      # on the runner image: run-tests.sh SKIPS that test when xvfb-run is
+      # missing, and a test that quietly skips is worse than one that fails,
+      # because the job still goes green and nobody looks again.
+      - name: Install xvfb
+        run: sudo apt-get install -y -qq xvfb
+
+      # The sim library must pass its headless suite, and the layout must still
+      # be fixed, before anything exports.
+      - name: Run simulation and layout tests
         run: ./scripts/run-tests.sh
 
       - name: Build

@@ -39,8 +39,14 @@ main() {
   # CLAUDE.md 6.4: no panel and no viewport may resize because of its content.
   # This one needs a rendering context, because Controls do not lay out or
   # report sizes without one, so it runs under xvfb rather than --headless.
+  # A skip has to be loud. CI installs xvfb precisely so this branch is never
+  # taken there; if it ever is, the job should say so in a way somebody reads
+  # rather than pass quietly with one fewer test than it claims to run.
   if ! command -v xvfb-run >/dev/null; then
-    step "Skipping layout test (xvfb-run not installed)"
+    if [[ -n "${CI:-}" ]]; then
+      die "xvfb-run is missing in CI, so the layout test cannot run"
+    fi
+    step "Skipping layout test locally (xvfb-run not installed)"
     return 0
   fi
   step "Running layout test"
