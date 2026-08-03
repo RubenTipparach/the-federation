@@ -1,4 +1,4 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=5 format=3]
 
 ; The ship systems display: the six facing shield ring, the hull integrity in
 ; the middle of it, and the subsystem slots beside it. One component, used for
@@ -14,6 +14,7 @@
 [ext_resource type="Script" path="res://src/ui/ship_display.gd" id="1"]
 [ext_resource type="Script" path="res://src/ui/ssd_control.gd" id="2"]
 [ext_resource type="PackedScene" path="res://scenes/ui/sys_line.tscn" id="3"]
+[ext_resource type="PackedScene" path="res://scenes/ui/hull_view.tscn" id="4"]
 
 [node name="ShipDisplay" type="HBoxContainer"]
 theme_override_constants/separation = 7
@@ -24,20 +25,43 @@ custom_minimum_size = Vector2(149, 149)
 layout_mode = 2
 script = ExtResource("2")
 
+; The ship itself, as a wireframe, inside the shield ring. First child so it
+; paints under the integrity reading rather than over it, and placed by the
+; ring in code because only the ring knows where its shields are.
+;
+; A line drawing rather than the painted hull the shipyard shows: this one is
+; an instrument, and a photograph of a ship competes with the damage state
+; drawn around it.
+
+[node name="Wire" parent="Ring" instance=ExtResource("4")]
+modulate = Color(1, 1, 1, 1)
+layout_mode = 0
+mouse_filter = 2
+
+; Hull integrity, at the foot of the ring rather than in the middle of it. The
+; middle belongs to the ship now, and a number printed across a drawing of the
+; ship makes neither readable. It stops short of the very bottom because the
+; ring paints its own #4 label there.
+
 [node name="Hull" type="Label" parent="Ring"]
 layout_mode = 1
-anchors_preset = 8
+anchors_preset = 7
 anchor_left = 0.5
-anchor_top = 0.5
+anchor_top = 1.0
 anchor_right = 0.5
-anchor_bottom = 0.5
+anchor_bottom = 1.0
+offset_left = -40.0
+offset_top = -44.0
+offset_right = 40.0
+offset_bottom = -23.0
 grow_horizontal = 2
-grow_vertical = 2
+grow_vertical = 0
 mouse_filter = 2
 horizontal_alignment = 1
 vertical_alignment = 1
-theme_override_font_sizes/font_size = 19
+theme_override_font_sizes/font_size = 15
 text = "100%"
+clip_text = true
 
 [node name="Side" type="VBoxContainer" parent="."]
 layout_mode = 2

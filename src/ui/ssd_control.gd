@@ -48,6 +48,18 @@ func centre() -> Vector2:
 	return size * 0.5
 
 
+## Fill the space inside the shields with a child control. The ring owns its
+## own geometry, so the shipyard's painted hull and the combat readout's
+## wireframe both ask it rather than each keeping a copy of the same two lines
+## (CLAUDE.md 4.1).
+## `frac` is how much of that space to take, for the callers that have to leave
+## room for something else in the ring. The shipyard fills it; the combat
+## readout keeps a strip at the bottom for the hull integrity.
+func fit_inside(node: Control, frac: float = 1.0) -> void:
+	node.size = Vector2.ONE * inner_radius() * 2.0 * frac
+	node.position = centre() - node.size * 0.5
+
+
 func _draw() -> void:
 	if _shields.is_empty():
 		return

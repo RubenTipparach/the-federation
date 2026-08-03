@@ -38,8 +38,18 @@ func bind_ship(ship: ShipState, detail: bool, editable: bool) -> void:
 	$Ring.compact = true
 	$Side/Slots.visible = detail
 	$Side/Families.visible = not detail
+	if not $Ring.resized.is_connected(_fit_wire):
+		$Ring.resized.connect(_fit_wire)
 	if ship == null:
+		$Ring/Wire.visible = false
 		return
+	# Editable means it is the player's own console, which is the same thing as
+	# it being the player's own ship, so the outline is friendly. The target's
+	# is not, and the two are on screen together.
+	$Ring/Wire.visible = true
+	$Ring/Wire.show_wireframe(ship.fit.hull(),
+		Palette.CYAN if editable else Palette.MAGENTA)
+	_fit_wire()
 	for i in range(SLOT_COUNT):
 		var slot: Node = _slot(i)
 		var used: bool = detail and i < ship.systems.size()
@@ -59,6 +69,22 @@ func bind_ship(ship: ShipState, detail: bool, editable: bool) -> void:
 			slot.detail_requested.connect(system_detail.emit)
 	_bound = editable
 	refresh()
+
+
+## The ring places the wireframe, and does it again whenever the ring changes
+## size, because the viewport behind it renders on demand and a resized one
+## comes back empty otherwise.
+func _fit_wire() -> void:
+	# Not the whole space: the hull integrity sits at the foot of the ring and
+	# the ship is nudged up off it.
+	$Ring.fit_inside($Ring/Wire, 0.74)
+	$Ring/Wire.position.y -= inner_gap()
+	$Ring/Wire.request_frame()
+
+
+## How far up the ship rides to clear the integrity reading under it.
+func inner_gap() -> float:
+	return $Ring.inner_radius() * 0.20
 
 
 func _slot(i: int) -> Node:

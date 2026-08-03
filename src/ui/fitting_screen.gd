@@ -198,9 +198,10 @@ func _layout_plate() -> void:
 	var centre: Vector2 = ring.centre()
 	var r: float = ring.inner_radius()
 	var hull_view: Control = ring.get_node("HullView")
-	# The ship fills the space inside the shields.
-	hull_view.size = Vector2(r * 2.0, r * 2.0)
-	hull_view.position = centre - hull_view.size * 0.5
+	# The ship fills the space inside the shields. The ring places it, because
+	# the ring is what knows where its shields are.
+	ring.fit_inside(hull_view)
+	hull_view.request_frame()
 	for sector in range(_panels.size()):
 		var panel: Control = _panels[sector]
 		panel.size = panel.get_combined_minimum_size()
