@@ -267,7 +267,21 @@ func _build_weapon_rows() -> void:
 	for i in range(battle.player().weapons_rt.size()):
 		var row: HBoxContainer = WEAPON_ROW.instantiate()
 		list.add_child(row)
+		row.overload_toggled.connect(_on_overload_toggled.bind(i))
 		_weapon_rows.append(row)
+
+
+## Arming a mount is an order like any other: it goes through the battle, so it
+## is written into the log and a replay fires the same heavy shot (docs/11).
+## The switch is then set from what the ship believes rather than from what was
+## clicked, because a refused order must not leave the panel showing it as
+## taken, and a refusal moves nothing the HUD's dirty check would notice.
+func _on_overload_toggled(on: bool, index: int) -> void:
+	if battle == null:
+		return
+	if _can_command():
+		battle.apply_command(0, "overload", [index, on])
+	_weapon_rows[index].set_armed(battle.player().overloaded(index))
 
 
 ## Keep the plan inset looking straight down at the midpoint between the two
@@ -933,11 +947,19 @@ func _refresh_hud() -> void:
 		for i in range(_weapon_rows.size()):
 			var w: Dictionary = me.weapons_rt[i]
 			if w["weapon"].is_empty():
-				_weapon_rows[i].paint("%s (empty)" % String(w["mount"]["id"]), "empty", 0.0)
+				# The mount id alone. The chip beside it already says EMPTY, and
+				# a row that says it twice is spending the column on nothing.
+				_weapon_rows[i].paint(String(w["mount"]["id"]), "empty", 0.0)
 				continue
 			var check: Dictionary = me.fire_check(i, foe.pos)
+			# The four letter code rather than the full name. The column is 118
+			# pixels and the face advances 12 to a character, so the name was
+			# being cut to "M2 Disruptor Ba" long before the arming switch
+			# arrived; the code is the same one the rest of the game prints and
+			# it is never cut (CLAUDE.md 6.4).
 			_weapon_rows[i].paint("%s %s" % [String(w["mount"]["id"]),
-				String(w["weapon"]["name"])], String(check["reason"]), float(w["charge"]))
+				String(w["weapon"]["short"])], String(check["reason"]),
+				float(w["charge"]), me.can_overload(i), me.overloaded(i))
 		$Right/WeaponsPanel/V/Battery.text = "BATTERY %d%%" % int(me.battery * 100.0)
 		Paint.tint($Right/WeaponsPanel/V/Battery, "font_color",
 			Palette.OK if me.battery >= 1.0 else Palette.DIM)

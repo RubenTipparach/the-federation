@@ -291,6 +291,26 @@ so it lives in `data/tuning.json` under `combat`:
 Arming is one shot, not a mode: the switch springs back when the weapon fires, so emptying
 the reserve twice takes two decisions.
 
+**The control is one switch per weapon row**, at the right hand end of the weapons panel,
+in three states: dark where the mount has no overload at all, raised where it can be
+armed, and lit where it is. That first state is information rather than decoration,
+because which of the fitted weapons can take an overload is something a captain wants to
+know before the moment they need it. A click, not a drag, and the state is legible without
+reading a number, which is what `CLAUDE.md` section 6.2 asks of anything on this screen.
+An armed mount that is otherwise ready says `ARMED` in the readiness chip rather than
+`RDY`, because a ready overload is not an ordinary shot.
+
+The switch reports a click and decides nothing: arming goes through
+`Battle.apply_command` like every other order, so it is written into the battle log and a
+replay fires the same heavy shot. The panel then sets the switch from what the ship
+believes rather than from what was clicked, because an order the battle refused must not
+leave the screen showing it as taken.
+
+The row is 336 pixels wide and the face advances 12 to a character, so the switch is paid
+for out of the name column, which now prints the four letter code the rest of the game
+already uses. Nothing reads shorter than it did: at the old width the column was already
+cutting `M2 Disruptor Bank` down to `M2 Disruptor Ba`.
+
 **Range falloff is a table, not a curve.** Every weapon in `data/weapons.json` carries a
 `falloff` list: bands from point blank outward, each with the damage a hit scores and the
 chance the shot connects at all. `src/sim/weapon_model.gd` is the only code that reads it,
