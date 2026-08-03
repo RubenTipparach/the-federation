@@ -7,11 +7,17 @@
 ; It sits BELOW the debug overlay's layer, so an overlay opened from here is
 ; not covered by the panel that opened it.
 ;
-; Fixed size, per CLAUDE.md 6.4: 520 by 640 in the 1920 by 1080 design space,
-; clipped, with the one unbounded thing in it (the saved designs, of which
-; there may be any number) inside an authored ScrollContainer. The horizontal
-; scroll is SHOW_NEVER rather than DISABLED, because DISABLED is the one
-; setting that re-enables content driven sizing on that axis.
+; Instruments and session, and nothing else. Saved designs used to be here and
+; are now in the shipyard, where a design is made.
+;
+; Fixed size, per CLAUDE.md 6.4: 460 by 212 in the 1920 by 1080 design space,
+; which is what the taller of its two shapes needs. It does not shrink for the
+; shorter one: a panel that changed size with its contents is the thing 6.4
+; exists to stop, and the empty strip below Quit is the price.
+; clipped. The ScrollContainer stays because the rows it holds still vary with
+; whether a battle is running. Its horizontal scroll is SHOW_NEVER rather than
+; DISABLED, because DISABLED is the one setting that re-enables content driven
+; sizing on that axis.
 
 [ext_resource type="Script" path="res://src/ui/settings_panel.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/ui/box_strip.tscn" id="2"]
@@ -34,8 +40,8 @@ grow_vertical = 2
 color = Color(0, 0, 0, 0.78)
 
 [node name="Frame" type="PanelContainer" parent="."]
-custom_minimum_size = Vector2(520, 640)
-custom_maximum_size = Vector2(520, 640)
+custom_minimum_size = Vector2(460, 212)
+custom_maximum_size = Vector2(460, 212)
 propagate_maximum_size = true
 clip_contents = true
 anchors_preset = 8
@@ -43,10 +49,10 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -260.0
-offset_top = -320.0
-offset_right = 260.0
-offset_bottom = 320.0
+offset_left = -230.0
+offset_top = -106.0
+offset_right = 230.0
+offset_bottom = 106.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -95,32 +101,6 @@ vertical_scroll_mode = 4
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 7
-
-[node name="DesignsHead" type="Label" parent="Frame/V/Scroll/Body"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 12
-text = "DESIGNS"
-theme_type_variation = &"HeaderLabel"
-
-[node name="DesignList" type="VBoxContainer" parent="Frame/V/Scroll/Body"]
-layout_mode = 2
-theme_override_constants/separation = 5
-
-[node name="NoDesigns" type="Label" parent="Frame/V/Scroll/Body"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 13
-text = "No saved designs."
-
-[node name="SaveRow" type="HBoxContainer" parent="Frame/V/Scroll/Body"]
-layout_mode = 2
-alignment = 2
-
-[node name="Save" type="Button" parent="Frame/V/Scroll/Body/SaveRow"]
-custom_minimum_size = Vector2(0, 36)
-layout_mode = 2
-focus_mode = 0
-theme_override_font_sizes/font_size = 13
-text = "SAVE CURRENT DESIGN"
 
 [node name="InstrumentsHead" type="Label" parent="Frame/V/Scroll/Body"]
 layout_mode = 2

@@ -1,20 +1,18 @@
 extends CanvasLayer
 
-## The things around the game: saved designs, the debug overlay, and leaving.
+## The things around the game: the debug overlay, and leaving.
 ##
-## Summoned by the gear on the top bar, which means it is not reachable during
-## a battle, which is deliberate. A battle is left by ending it (CLAUDE.md 6.2)
-## and DISENGAGE in the tactical view is how, so this never becomes a second
-## way to wander off mid engagement.
+## Summoned by the gear on the top bar, or by the gear at the foot of the fight
+## strip, which is the only one reachable during a battle. Opening it there
+## pauses, because CLAUDE.md 6.2 says the menu button is how a battle pauses.
 ##
-## It owns no state. The designs live in DesignStore, the fit lives in the
-## session, and the overlay owns whether it is visible; this file reads those
-## three and reports what the player pressed (5.2). That is why loading a
-## design is a signal rather than an assignment: main owns the session and the
-## repaint that follows, and a panel that reached in and swapped the fit would
-## be a second place that knows how to do it.
+## It owns no state. The overlay owns whether it is visible and the combat
+## screen owns the battle; this file reads them and reports what the player
+## pressed (5.2).
+##
+## Saved designs used to be here and are now in the shipyard, which is where a
+## design is made. Settings is the things around the game, not part of it.
 
-signal design_chosen(fit: ShipFit)
 ## The player asked to leave the battle from in here. Reported rather than
 ## done, for the same reason loading a design is: main owns the screens, and
 ## the combat screen already knows how to end a battle.
@@ -22,11 +20,6 @@ signal leave_requested
 ## Shut, by any of the four gestures that shut it. main listens so it can put
 ## a battle it paused back the way it found it.
 signal closed
-
-const SELECT_CARD: PackedScene = preload("res://scenes/ui/select_card.tscn")
-
-## Set by main, because the panel needs a fit to save and does not own one.
-var session: Session
 
 ## Set by main so the overlay can be toggled from here without this file
 ## knowing where in the tree it lives.
@@ -43,7 +36,6 @@ func _ready() -> void:
 	$Frame/Back.color = Palette.BG
 	$Dim.gui_input.connect(_on_dim_input)
 	$Frame/V/Head/Close.pressed.connect(close)
-	$Frame/V/Scroll/Body/SaveRow/Save.pressed.connect(_on_save)
 	$Frame/V/Scroll/Body/QuitRow/Quit.pressed.connect(_on_quit)
 	$Frame/V/Scroll/Body/LeaveRow/Leave.pressed.connect(_on_leave)
 	var toggle: Control = $Frame/V/Scroll/Body/DebugRow/Toggle
@@ -61,24 +53,14 @@ func wear(deck: Theme) -> void:
 	$Frame/Back.color = Palette.BG
 
 
-## What the panel offers differs inside a battle and out of it.
-##
-## Designs go away, because you cannot refit a ship under fire and a Load
-## button that silently did nothing would be worse than no button. Leaving
-## appears, because it is only a thing you can do when there is something to
-## leave. The instruments and the quit stay put in both, so the two shapes are
-## the same panel with one group swapped rather than two panels.
+## Leaving only exists while there is a battle to leave. Everything else in the
+## panel is the same in both places.
 func set_battle(on: bool) -> void:
-	var body: Node = $Frame/V/Scroll/Body
-	for id in ["DesignsHead", "DesignList", "NoDesigns", "SaveRow"]:
-		body.get_node(id).visible = not on
-	body.get_node("LeaveRow").visible = on
+	$Frame/V/Scroll/Body/LeaveRow.visible = on
 
 
 func open() -> void:
 	visible = true
-	if $Frame/V/Scroll/Body/DesignsHead.visible:
-		_fill_designs()
 	_paint_debug()
 
 
@@ -116,67 +98,6 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 
-# ---- designs -----------------------------------------------------------------
-
-
-## Every saved design, newest first. Cards are instanced from the committed
-## scene, which is what CLAUDE.md 5.1 allows and what the skirmish screen's
-## recordings list already does: the number of rows is data, so the rows cannot
-## be authored, but the row itself is.
-func _fill_designs() -> void:
-	var list: VBoxContainer = $Frame/V/Scroll/Body/DesignList
-	for child in list.get_children():
-		child.queue_free()
-	var paths: Array[String] = DesignStore.list_paths()
-	var shown: int = 0
-	for path in paths:
-		var fit: ShipFit = DesignStore.read(path)
-		if fit == null:
-			continue
-		var card: Button = SELECT_CARD.instantiate()
-		list.add_child(card)
-		card.setup(path, String(fit.hull()["name"]),
-			"%s / saved %s" % [DesignStore.describe(fit),
-				_when(DesignStore.stamp_of(path))],
-			Palette.CYAN)
-		card.allow_delete(true)
-		card.chosen.connect(func(_id: String) -> void:
-			design_chosen.emit(fit)
-			close())
-		card.delete_requested.connect(_on_delete)
-		shown += 1
-	$Frame/V/Scroll/Body/NoDesigns.visible = shown == 0
-
-
-## A saved time a player can place. The date only once it is not today, because
-## "14:22" is what you want for the one you saved a minute ago and a full
-## timestamp on every row is a wall of digits.
-func _when(stamp: int) -> String:
-	if stamp <= 0:
-		return "unknown"
-	var then: Dictionary = Time.get_datetime_dict_from_unix_time(stamp)
-	var now: Dictionary = Time.get_datetime_dict_from_unix_time(
-		int(Time.get_unix_time_from_system()))
-	var clock: String = "%02d:%02d" % [int(then["hour"]), int(then["minute"])]
-	if int(then["year"]) == int(now["year"]) and int(then["month"]) == int(now["month"]) \
-			and int(then["day"]) == int(now["day"]):
-		return clock
-	return "%04d-%02d-%02d %s" % [
-		int(then["year"]), int(then["month"]), int(then["day"]), clock]
-
-
-func _on_save() -> void:
-	if session == null:
-		return
-	DesignStore.save(session.fit, int(Time.get_unix_time_from_system()))
-	_fill_designs()
-
-
-func _on_delete(path: String) -> void:
-	DesignStore.remove(path)
-	_fill_designs()
-
-
 # ---- instruments -------------------------------------------------------------
 
 
@@ -200,9 +121,9 @@ func _paint_debug() -> void:
 # ---- session -----------------------------------------------------------------
 
 
-## Quitting is the tree's job, not a screen's. On the web this does nothing
-## visible, which is why the button says so rather than being hidden: a panel
-## whose contents change between builds is a panel nobody can learn.
+## Quitting is the tree's job, not a screen's. On the web it does nothing
+## visible; the row stays anyway, because a panel whose contents change between
+## builds is a panel nobody can learn.
 func _on_quit() -> void:
 	get_tree().quit()
 

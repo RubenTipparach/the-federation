@@ -28,9 +28,16 @@ offset_right = -14
 offset_bottom = -10
 mouse_filter = 2
 
+; TRIM_ELLIPSIS, and it is load bearing rather than cosmetic. Without it this
+; Label's minimum width is the whole string, which makes the Body's minimum
+; width the whole string, which grows the Body wider than the card and paints
+; the title outside the plate. That is invisible in a wide column and obvious
+; in a narrow one with a delete button in it (CLAUDE.md 6.4).
+
 [node name="Title" type="Label" parent="Body"]
 layout_mode = 2
 text = "Title"
+text_overrun_behavior = 1
 
 [node name="Meta" type="Label" parent="Body"]
 layout_mode = 2

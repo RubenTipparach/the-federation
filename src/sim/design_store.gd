@@ -95,10 +95,13 @@ static func remove(path: String) -> bool:
 
 
 ## A one line description for a list row: what the ship is, not what the file
-## is. The date is appended by the caller, because only the caller knows the
-## player's clock.
+## is.
+##
+## No hull class in it, deliberately. The row's title is the ship's name and
+## the hull list sits directly above it in the same column, so the class is
+## already on screen twice; what is not is how much of the design is actually
+## fitted. The column is 288 wide with a delete button in it, which leaves
+## room for two lines, and this is what two lines can carry.
 static func describe(fit: ShipFit) -> String:
-	var h: Dictionary = fit.hull()
-	return "%s / %d t / %d of %d mounts" % [
-		String(h["cls"]), int(h["tonnage"]),
-		fit.mounts_fitted(), fit.mounts().size()]
+	return "%d t / %d of %d mounts" % [
+		int(fit.hull()["tonnage"]), fit.mounts_fitted(), fit.mounts().size()]

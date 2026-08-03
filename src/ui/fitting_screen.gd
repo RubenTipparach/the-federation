@@ -7,6 +7,10 @@ extends HBoxContainer
 ## real battle uses.
 
 signal design_changed
+## A saved design was loaded. Reported rather than applied, because it replaces
+## the hull as well as the loadout and main owns the session and the three other
+## screens that have to repaint (CLAUDE.md 4.2).
+signal design_chosen(fit: ShipFit)
 
 const SELECT_CARD := preload("res://scenes/ui/select_card.tscn")
 const SECTOR_PANEL := preload("res://scenes/ui/sector_panel.tscn")
@@ -40,11 +44,46 @@ func bind_session(p_session: Session) -> void:
 		buttons[i].pressed.connect(_on_fire.bind(dmg))
 	$Center/V/Controls/Reset.pressed.connect(_reset_demo)
 	$Center/V/Ring.resized.connect(_layout_plate)
+	$Left/DesignsPanel/V/Save.pressed.connect(_on_save_design)
 
 
 func refresh_from_session() -> void:
 	_build_hull_list()
+	_build_design_list()
 	_rebuild_all()
+
+
+## Every saved design, newest first. Choosing one loads it; the delete button on
+## the card throws it away. The store is DesignStore, which a headless tool can
+## read the same files through.
+func _build_design_list() -> void:
+	var list: VBoxContainer = $Left/DesignsPanel/V/Scroll/DesignList
+	for child in list.get_children():
+		child.queue_free()
+	var shown: int = 0
+	for path in DesignStore.list_paths():
+		var fit: ShipFit = DesignStore.read(path)
+		if fit == null:
+			continue
+		var card: Button = SELECT_CARD.instantiate()
+		list.add_child(card)
+		card.setup(path, String(fit.hull()["name"]), DesignStore.describe(fit),
+			Palette.AMBER)
+		card.allow_delete(true)
+		card.chosen.connect(func(_id: String) -> void: design_chosen.emit(fit))
+		card.delete_requested.connect(_on_delete_design)
+		shown += 1
+	$Left/DesignsPanel/V/Empty.visible = shown == 0
+
+
+func _on_save_design() -> void:
+	DesignStore.save(session.fit, int(Time.get_unix_time_from_system()))
+	_build_design_list()
+
+
+func _on_delete_design(path: String) -> void:
+	DesignStore.remove(path)
+	_build_design_list()
 
 
 func _build_hull_list() -> void:

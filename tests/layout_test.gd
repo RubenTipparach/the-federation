@@ -104,10 +104,10 @@ func _initialize() -> void:
 	_ok("the station strip is its authored width", int(tabs.size.x), 60)
 	_ok("the station panel is what is left of the column", int(station.size.x), 296)
 
-	# The settings panel is a fixed rectangle too, and it is the one panel whose
-	# contents are strings off disk: a design named by a future rename dialog,
-	# or a hull note that grew. Opened and stuffed here for the same reason the
-	# columns are.
+	# The settings panel is a fixed rectangle too, and it is the one that floats
+	# over whatever screen is behind it, so a panel that grew would cover
+	# something rather than merely misalign. Opened and stuffed for the same
+	# reason the columns are.
 	var settings: Node = main.get_node("Settings")
 	settings.open()
 	await process_frame
@@ -121,7 +121,7 @@ func _initialize() -> void:
 	print("")
 	print("Settings, after %d of its labels were stuffed" % frame_labels)
 	_ok("the settings panel did not move", frame.size, frame_before)
-	_ok("the settings panel is its authored size", frame.size, Vector2(520, 640))
+	_ok("the settings panel is its authored size", frame.size, Vector2(460, 212))
 
 	print("")
 	if _failed == 0:

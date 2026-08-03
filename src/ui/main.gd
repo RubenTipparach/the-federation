@@ -29,6 +29,7 @@ func _ready() -> void:
 	$Root/TopBar/TabSkirmish.pressed.connect(show_tab.bind("Skirmish"))
 
 	$Root/Content/Fitting.design_changed.connect(_on_design_changed)
+	$Root/Content/Fitting.design_chosen.connect(_on_design_loaded)
 	$Root/Content/Arcs.design_changed.connect(_on_design_changed)
 	$Root/Content/Skirmish.design_selected.connect(_on_design_selected)
 	$Root/Content/Skirmish.begin_battle.connect(_on_begin_battle)
@@ -36,12 +37,8 @@ func _ready() -> void:
 
 	# Settings hangs off the top bar rather than being a fourth tab: the tabs are
 	# where the game is, and this is where the things around the game are. It is
-	# therefore not reachable during a battle, which is deliberate (CLAUDE.md
-	# 6.2). It is handed the session because it saves the current design, and the
-	# overlay because its instrument switch turns that on.
-	$Settings.session = session
+	# handed the overlay because its instrument switch is what turns that on.
 	$Settings.overlay = $DebugPanel
-	$Settings.design_chosen.connect(_on_design_loaded)
 	$Settings.leave_requested.connect(_on_settings_leave)
 	$Settings.closed.connect(_on_settings_closed)
 	$Root/TopBar/Settings.pressed.connect(_on_topbar_settings)
@@ -110,10 +107,10 @@ func _on_settings_leave() -> void:
 	$Root/Content/Combat.leave_battle()
 
 
-## A design loaded from settings replaces the one in the session, which is the
-## same thing picking a hull does. Routed here rather than done in the panel
-## because main owns the session and the repaint that has to follow it
-## (CLAUDE.md 4.2).
+## A design loaded in the shipyard replaces the one in the session, which is
+## the same thing picking a hull does. Routed here rather than done in the
+## screen because main owns the session and the three other screens that have
+## to repaint (CLAUDE.md 4.2).
 func _on_design_loaded(fit: ShipFit) -> void:
 	session.fit = fit
 	_wear_deck()

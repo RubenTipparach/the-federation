@@ -54,6 +54,48 @@ ENG 58   TAC 44
 QUALITY VETERAN
 MARINES 12"
 
+; Saved designs, in the shipyard where a design is made. The list is unbounded,
+; so it scrolls inside a panel that fills what the column has left rather than
+; growing it (CLAUDE.md 6.4).
+
+[node name="DesignsPanel" type="PanelContainer" parent="Left"]
+layout_mode = 2
+size_flags_vertical = 3
+clip_contents = true
+
+[node name="V" type="VBoxContainer" parent="Left/DesignsPanel"]
+layout_mode = 2
+theme_override_constants/separation = 7
+
+[node name="Head" type="Label" parent="Left/DesignsPanel/V"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "SAVED DESIGNS"
+theme_type_variation = &"HeaderLabel"
+
+[node name="Empty" type="Label" parent="Left/DesignsPanel/V"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "None saved."
+
+[node name="Scroll" type="ScrollContainer" parent="Left/DesignsPanel/V"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 3
+vertical_scroll_mode = 4
+
+[node name="DesignList" type="VBoxContainer" parent="Left/DesignsPanel/V/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 7
+
+[node name="Save" type="Button" parent="Left/DesignsPanel/V"]
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+focus_mode = 0
+theme_override_font_sizes/font_size = 13
+text = "SAVE THIS DESIGN"
+
 [node name="Center" type="PanelContainer" parent="."]
 layout_mode = 2
 size_flags_horizontal = 3
