@@ -1,8 +1,8 @@
 extends Button
 
 ## A pressable card with a title and a subtitle, reused by the hull list, the
-## skirmish design list, and the enemy list (CLAUDE.md 4.1: one card, three
-## callers, parameterized rather than cloned).
+## skirmish design list, the enemy list and the shipyard's saved designs
+## (CLAUDE.md 4.1: one card, four callers, parameterized rather than cloned).
 
 signal chosen(id: String)
 

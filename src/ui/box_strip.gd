@@ -36,8 +36,11 @@ var ceiling: int = -1
 
 
 func setup(p_accent: Color, clickable: bool = false) -> void:
+	var want_empty: Color = Palette.LINE_HOT if clickable else Palette.LINE
+	if accent == p_accent and empty == want_empty:
+		return
 	accent = p_accent
-	empty = Palette.LINE_HOT if clickable else Palette.LINE
+	empty = want_empty
 	queue_redraw()
 
 

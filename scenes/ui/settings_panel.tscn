@@ -1,0 +1,192 @@
+[gd_scene load_steps=3 format=3]
+
+; The settings panel. Its own CanvasLayer above every screen, hidden until the
+; gear on the top bar summons it, because it is not a screen: the three tabs
+; are where the game is, and this is where the things around the game are.
+;
+; It sits BELOW the debug overlay's layer, so an overlay opened from here is
+; not covered by the panel that opened it.
+;
+; Instruments and session, and nothing else. Saved designs used to be here and
+; are now in the shipyard, where a design is made.
+;
+; Fixed size, per CLAUDE.md 6.4: 460 by 212 in the 1920 by 1080 design space,
+; which is what the taller of its two shapes needs. It does not shrink for the
+; shorter one: a panel that changed size with its contents is the thing 6.4
+; exists to stop, and the empty strip below Quit is the price.
+; clipped. The ScrollContainer stays because the rows it holds still vary with
+; whether a battle is running. Its horizontal scroll is SHOW_NEVER rather than
+; DISABLED, because DISABLED is the one setting that re-enables content driven
+; sizing on that axis.
+
+[ext_resource type="Script" path="res://src/ui/settings_panel.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/ui/box_strip.tscn" id="2"]
+
+[node name="SettingsPanel" type="CanvasLayer"]
+layer = 120
+script = ExtResource("1")
+
+; The screen behind, dimmed: still legible as context, but nothing on it reads
+; as pressable. It takes the mouse, which is what makes the panel modal and
+; what gives a click outside somewhere to land. Its colour is painted from the
+; palette in _ready rather than typed here, so it follows the deck (3.1).
+
+[node name="Dim" type="ColorRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.78)
+
+[node name="Frame" type="PanelContainer" parent="."]
+custom_minimum_size = Vector2(460, 212)
+custom_maximum_size = Vector2(460, 212)
+propagate_maximum_size = true
+clip_contents = true
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -230.0
+offset_top = -106.0
+offset_right = 230.0
+offset_bottom = 106.0
+grow_horizontal = 2
+grow_vertical = 2
+
+; The skin's plate has a glass centre that whatever is behind it shows through,
+; which is right for a HUD sitting over space and wrong for a panel sitting over
+; a screen full of readouts. This is the opaque backing behind the glass. A
+; PanelContainer sizes every child to its content rect, so it fills, and being
+; first in the tree puts it behind. Painted from the palette in _ready.
+
+[node name="Back" type="ColorRect" parent="Frame"]
+layout_mode = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 1)
+
+[node name="V" type="VBoxContainer" parent="Frame"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Head" type="HBoxContainer" parent="Frame/V"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="Frame/V/Head"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 15
+text = "SETTINGS"
+theme_type_variation = &"HeaderLabel"
+text_overrun_behavior = 1
+
+[node name="Close" type="Button" parent="Frame/V/Head"]
+custom_minimum_size = Vector2(44, 34)
+custom_maximum_size = Vector2(44, 34)
+propagate_maximum_size = true
+layout_mode = 2
+focus_mode = 0
+theme_override_font_sizes/font_size = 13
+text = "X"
+
+[node name="Scroll" type="ScrollContainer" parent="Frame/V"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 3
+vertical_scroll_mode = 4
+
+[node name="Body" type="VBoxContainer" parent="Frame/V/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 7
+
+[node name="InstrumentsHead" type="Label" parent="Frame/V/Scroll/Body"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "INSTRUMENTS"
+theme_type_variation = &"HeaderLabel"
+
+[node name="DebugRow" type="HBoxContainer" parent="Frame/V/Scroll/Body"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="Frame/V/Scroll/Body/DebugRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+theme_override_font_sizes/font_size = 14
+text = "Debug overlay"
+
+; One box is one point, and this point is on or off. The same control the
+; reactor allocation and the tractor bid use, at a capacity of one, rather
+; than a switch widget that would exist nowhere else in the game.
+
+[node name="Toggle" parent="Frame/V/Scroll/Body/DebugRow" instance=ExtResource("2")]
+custom_minimum_size = Vector2(22, 22)
+custom_maximum_size = Vector2(22, 22)
+propagate_maximum_size = true
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 4
+
+[node name="State" type="Label" parent="Frame/V/Scroll/Body/DebugRow"]
+custom_minimum_size = Vector2(42, 0)
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_font_sizes/font_size = 12
+text = "OFF"
+
+[node name="SessionHead" type="Label" parent="Frame/V/Scroll/Body"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "SESSION"
+theme_type_variation = &"HeaderLabel"
+
+; Leaving the battle, which only exists while there is one. It is above Quit
+; because it is the smaller of the two exits, and it calls the same code the
+; tactical view's Disengage button calls rather than a second way out.
+
+[node name="LeaveRow" type="HBoxContainer" parent="Frame/V/Scroll/Body"]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="Frame/V/Scroll/Body/LeaveRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+theme_override_font_sizes/font_size = 14
+text = "Leave the battle"
+
+[node name="Leave" type="Button" parent="Frame/V/Scroll/Body/LeaveRow"]
+custom_minimum_size = Vector2(136, 36)
+custom_maximum_size = Vector2(136, 36)
+propagate_maximum_size = true
+layout_mode = 2
+size_flags_vertical = 4
+focus_mode = 0
+theme_override_font_sizes/font_size = 13
+text = "DISENGAGE"
+
+[node name="QuitRow" type="HBoxContainer" parent="Frame/V/Scroll/Body"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="Frame/V/Scroll/Body/QuitRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+theme_override_font_sizes/font_size = 14
+text = "Quit the game"
+
+[node name="Quit" type="Button" parent="Frame/V/Scroll/Body/QuitRow"]
+custom_minimum_size = Vector2(88, 36)
+custom_maximum_size = Vector2(88, 36)
+propagate_maximum_size = true
+layout_mode = 2
+size_flags_vertical = 4
+focus_mode = 0
+theme_override_font_sizes/font_size = 13
+text = "QUIT"

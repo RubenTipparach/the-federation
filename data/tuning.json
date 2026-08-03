@@ -1,12 +1,14 @@
 {
   "_comment": "Gameplay and camera tuning, per CLAUDE.md 5.4: nothing here may be hardcoded in gameplay code. Camera pitch is clamped downward only, 25 to 90 degrees, per docs/01 section 1.",
+  "_reach": "Reaches moved out again, four times, on 2026-08-03. Every falloff band, point defense range and the tractor's range multiplied by four; nothing that measures a speed, a damage, an energy, an angle or a second moved with them. What that buys is a battle fought at a distance: the longest gun now covers a bit over half the arena instead of a seventh of it, so approach and disengagement are decisions rather than formalities, and two hulls ending up on top of each other is a mistake rather than the default resting state. start_separation opened with them so a duel still begins outside everything's envelope. The one exception is written in weapons.json under _seeking.",
   "_scale": "The arena is 600 sim units across. It used to be 60, and the difference is deliberate rather than cosmetic: the map went ten times bigger while speeds, weapon reach, tractor reach and the camera went four times, so the battlefield is about two and a half times larger RELATIVE TO A GUN than it was. That is what buys a real approach, terrain you travel between rather than sit on top of, and room to disengage. Terrain radii scaled with the arena, so a cloud bank is still a cloud bank. Hulls are drawn four times larger too (view.hull_scale), which keeps a ship the same apparent size at the range you fight at. Anything measuring a distance, a speed or an acceleration is on one of those two ladders; anything measuring damage, energy, degrees or seconds is not and did not move.",
   "view": {
     "_comment": "Presentation sizes in sim units. These were consts in ship_rig.gd and combat_screen.gd until the arena grew and they all had to move together; per 5.4 they belong here, where the scale can be read in one place.",
     "hull_scale": 4.0,
     "shield_ring_radius": 13.6,
     "turn_arc_radius": 24.8,
-    "bracket_radius_per_ton": 0.088,
+    "_wedge_note": "How far the sector wedges are drawn, in sim units. Presentation only and deliberately NOT the weapon's reach: since reaches went four times out a true scale wedge is a filled slab most of the width of the arena. The ship's longest reaching sector is drawn at this radius and the others in proportion to it, so the comparison between sectors survives; the absolute figure is the range ring, which is at true scale, and the number in the target readout. Sits outside turn_arc_radius so the two do not read as one ring.",
+    "arc_wedge_radius": 40.0,
     "beam_width": 1.2
   },
   "wreck": {
@@ -38,11 +40,21 @@
   },
   "combat": {
     "arena_half_extent": 300.0,
-    "start_separation": 170.0,
+    "_separation_note": "start_positions places the two hulls at (-sep/2, +0.35 sep) and (+sep/2, -0.35 sep), so the distance between them is 1.22 times this. At 300 that is 366, which is outside the reach of the longest gun in the catalog, so a duel opens with an approach instead of with both sides already firing.",
+    "start_separation": 300.0,
+    "_hull_radius_note": "How big a hull is, in sim units per ton. This is the simulation's number, not the view's: it decides when two ships are touching and how far the AI keeps away, and the target bracket measures its on screen size from the same figure so the ring a player sees is the hull the sim collides.",
+    "hull_radius_per_ton": 0.088,
+    "_ram_note": "What running into another ship costs. Severity is the closing speed as a fraction of ram_speed_ref, floored so a nudge still counts for something, and the pair's tonnage shares it out: equal hulls take ram_damage each, and the share can never exceed twice that however lopsided the pairing. Contact reuses terrain.collision_speed_frac and terrain.collision_cooldown, because a collision is a collision and there is only one of those rules (docs/13 section 3.2).",
+    "ram_damage": 22.0,
+    "ram_speed_ref": 32.0,
+    "ram_speed_floor": 0.3,
     "shield_energy_per_box": 2.0,
     "shield_power_demand": 12.0,
     "battery_charge_per_reserve_unit": 0.02,
     "reinforce_amount": 6.0,
+    "_overload_note": "What an overloaded shot costs, for every weapon that can take one. The battery is the whole reserve, which is what docs/01 section 3 means by a store that pays for one burst: an overload OR a reinforce, never both. The sag is the seconds the shield generators buy nothing afterwards, and the energy the shield sink draws in those seconds is lost rather than banked, or the cost would come straight back.",
+    "overload_battery_cost": 1.0,
+    "overload_shield_sag_sec": 4.0,
     "beam_fade_sec": 0.45,
     "shield_flash_sec": 0.8,
     "engine_power_demand": 10.0,
@@ -82,7 +94,7 @@
   },
   "tractor": {
     "_comment": "docs/13 section 6. The bid is whatever the tractor power sink holds, so there is no separate currency. break_seconds is how long the breaker must stay ahead before the beam snaps, which is what makes the struggle readable instead of a coin flip on one tick.",
-    "range": 48.0,
+    "range": 192.0,
     "min_units": 2.0,
     "break_seconds": 2.5,
     "relatch_cooldown": 4.0,
@@ -130,8 +142,12 @@
     "back_off_throttle": 0.3,
     "weak_facing_frac": 0.3,
     "presenting_offset_deg": 60.0,
-    "fallback_best_range": 32.0,
-    "tractor_break_margin": 1.5
+    "fallback_best_range": 128.0,
+    "tractor_break_margin": 1.5,
+    "_standoff_note": "The opponent does not ram and does not let itself be rammed. keep_out is a multiple of the two hulls' radii added together, so a battlecruiser keeps further off than a frigate without a second table; inside it the AI breaks away outright. Outside it, a predicted closest approach inside avoid_lookahead seconds makes the AI sheer 90 degrees off the bearing instead, which opens the range without throwing away every arc and is quick enough to execute at any turn rate. avoid_lookahead is measured rather than guessed: against a heavy cruiser charging at full throttle and never touching its guns' preferred range, 4 seconds of warning gives the opponent no room and it is rammed eight times, 8 seconds cuts that to two, and 12 seconds makes it so shy that two evenly matched hulls stop resolving at all. A ship faster than the opponent can always force some contact, which is the point: ramming is now a decision with a price rather than the default resting state.",
+    "standoff_radii": 4.0,
+    "avoid_lookahead": 8.0,
+    "avoid_margin": 1.6
   },
   "fitting_demo": {
     "volleys": [

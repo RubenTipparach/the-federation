@@ -53,6 +53,9 @@ func _ready() -> void:
 		$V/Fix.pressed.connect(_on_fix)
 		for f in range(Sectors.FACING_COUNT):
 			var b: Button = $V/Picker.get_node("P%d" % f)
+			# The mark comes from Sectors rather than the scene, so the six
+			# buttons cannot drift from the six bands on the ring beside them.
+			b.text = Sectors.facing_mark(f)
 			b.pressed.connect(_on_pick.bind(f))
 		$V/Cmds/Latch.pressed.connect(_on_latch)
 		$V/Cmds/Hold.pressed.connect(_on_mode.bind(Tractor.MODE_HOLD))
@@ -164,7 +167,7 @@ func _render_shields() -> void:
 	for f in range(Sectors.FACING_COUNT):
 		var cur: int = int(_ship.shields[f])
 		var top: int = int(_ship.shield_max)
-		_paint_row(f, "#%d" % (f + 1), cur, top, "%d/%d" % [cur, top],
+		_paint_row(f, Sectors.facing_mark(f), cur, top, "%d/%d" % [cur, top],
 			Palette.shield_color(float(cur) / maxf(1.0, float(top))))
 	var reinf: int = 1 if _ship.battery >= 1.0 else 0
 	_paint_row(6, "REINF", reinf, 1, "%d PT" % reinf, Palette.BLUE)
@@ -212,7 +215,7 @@ func _render_repair() -> void:
 		node.get_node("Line/Ord").text = str(i + 1)
 		node.get_node("Line/Code").text = String(sys["code"])
 		node.get_node("Line/Where").text = "core" if int(sys["sector"]) < 0 \
-			else "#%d" % (int(sys["sector"]) + 1)
+			else Sectors.facing_mark(int(sys["sector"]))
 		node.get_node("Line/Cost").text = "%d p" % cost
 		Paint.tint(node.get_node("Line/Cost"), "font_color",
 			Palette.DIM if affordable else Palette.AMBER)
@@ -230,7 +233,9 @@ func _render_repair() -> void:
 				String(sys["family"]), tuning)
 			frac = clampf(_ship.repair_progress / maxf(0.001, needed), 0.0, 1.0)
 		fill.color = Palette.with_alpha(Palette.CYAN, 1.0 if i == 0 else 0.0)
-		fill.anchor_right = maxf(frac, 0.001)
+		var want_fill: float = maxf(frac, 0.001)
+		if not is_equal_approx(fill.anchor_right, want_fill):
+			fill.anchor_right = want_fill
 		Paint.tint(node.get_node("Line/Code"), "font_color",
 			Palette.CYAN if i == 0 else Palette.FG)
 
@@ -357,7 +362,9 @@ func _render_tractor_contest(beam: Tractor, tuning: Dictionary) -> void:
 	var fill: ColorRect = $V/Tug/Strain/Fill
 	track.color = Palette.LINE
 	fill.color = Palette.CRIT if frac > 0.6 else Palette.AMBER
-	fill.anchor_right = maxf(frac, 0.001)
+	var want_fill: float = maxf(frac, 0.001)
+	if not is_equal_approx(fill.anchor_right, want_fill):
+		fill.anchor_right = want_fill
 	var seconds_left: float = maxf(0.0,
 		float(tuning["tractor"]["break_seconds"]) - beam.strain)
 	if frac <= 0.0:

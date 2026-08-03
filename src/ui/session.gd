@@ -14,6 +14,15 @@ var enemy_hull_id: String = "bloodletter"
 var map_id: String = "open"
 
 
+## Which navy's console the interface wears: the one that built the hull the
+## player is flying. Nothing here decides it. A skin belongs to a faction in
+## data/palette.json and a faction belongs to a hull in data/ships.json, so
+## flying a captured Kthaari cruiser puts you behind a Kthaari console without
+## a line of code knowing that is what happened.
+func faction() -> String:
+	return String(Catalog.hull(fit.hull_id)["faction"])
+
+
 static func create() -> Session:
 	var s: Session = Session.new()
 	s.fit = ShipFit.create_default("wayfarer")

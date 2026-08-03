@@ -7,6 +7,10 @@ extends HBoxContainer
 ## real battle uses.
 
 signal design_changed
+## A saved design was loaded. Reported rather than applied, because it replaces
+## the hull as well as the loadout and main owns the session and the three other
+## screens that have to repaint (CLAUDE.md 4.2).
+signal design_chosen(fit: ShipFit)
 
 const SELECT_CARD := preload("res://scenes/ui/select_card.tscn")
 const SECTOR_PANEL := preload("res://scenes/ui/sector_panel.tscn")
@@ -21,6 +25,11 @@ var session: Session
 var _demo: ShipState
 var _wired: bool = false
 var _panels: Array = []  # six facings then the hull core, index is the sector
+## The saved design the display is currently showing, or empty when the fit was
+## built from a hull rather than loaded from disk. Only that one can be
+## discarded, and only while its file is still there and still names the hull
+## on screen, which is what _validate_loaded checks.
+var _loaded_path: String = ""
 
 
 ## Safe to call again when the session's fit is replaced from another screen:
@@ -40,11 +49,74 @@ func bind_session(p_session: Session) -> void:
 		buttons[i].pressed.connect(_on_fire.bind(dmg))
 	$Center/V/Controls/Reset.pressed.connect(_reset_demo)
 	$Center/V/Ring.resized.connect(_layout_plate)
+	$Left/DesignsPanel/V/Save.pressed.connect(_on_save_design)
+	$Center/V/Head/Discard.pressed.connect(_on_discard_design)
 
 
 func refresh_from_session() -> void:
+	_validate_loaded()
 	_build_hull_list()
+	_build_design_list()
 	_rebuild_all()
+
+
+## Forget the loaded design when it stops being the one on screen. Checked
+## against the file rather than tracked through every path that could change
+## the fit, because those paths are in four screens and one of them will be
+## added without this being remembered.
+func _validate_loaded() -> void:
+	if not _loaded_path.is_empty():
+		var saved: ShipFit = DesignStore.read(_loaded_path)
+		if saved == null or saved.hull_id != session.fit.hull_id:
+			_loaded_path = ""
+	# Outside the branch on purpose: this also runs after a discard, when the
+	# path has just been cleared and the button has to go dark with it.
+	$Center/V/Head/Discard.disabled = _loaded_path.is_empty()
+
+
+## Every saved design, newest first. Choosing one loads it and marks it, which
+## is what arms the discard button on the display. The store is DesignStore,
+## which a headless tool can read the same files through.
+func _build_design_list() -> void:
+	var list: VBoxContainer = $Left/DesignsPanel/V/Scroll/DesignList
+	for child in list.get_children():
+		child.queue_free()
+	var shown: int = 0
+	for path in DesignStore.list_paths():
+		var fit: ShipFit = DesignStore.read(path)
+		if fit == null:
+			continue
+		var card: Button = SELECT_CARD.instantiate()
+		list.add_child(card)
+		card.setup(path, String(fit.hull()["name"]), DesignStore.describe(fit),
+			Palette.AMBER)
+		card.button_pressed = path == _loaded_path
+		card.chosen.connect(_on_design_card.bind(path, fit))
+		shown += 1
+	$Left/DesignsPanel/V/Empty.visible = shown == 0
+
+
+## Loading a design is also what puts it under the discard button, so the
+## button always throws away the thing the display is showing.
+func _on_design_card(_id: String, path: String, fit: ShipFit) -> void:
+	_loaded_path = path
+	design_chosen.emit(fit)
+
+
+func _on_save_design() -> void:
+	_loaded_path = DesignStore.save(session.fit,
+		int(Time.get_unix_time_from_system()))
+	_validate_loaded()
+	_build_design_list()
+
+
+func _on_discard_design() -> void:
+	if _loaded_path.is_empty():
+		return
+	DesignStore.remove(_loaded_path)
+	_loaded_path = ""
+	_validate_loaded()
+	_build_design_list()
 
 
 func _build_hull_list() -> void:
@@ -106,7 +178,7 @@ func _rebuild_internals() -> void:
 		panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
 		var key: int = ShipState.CORE if is_core else sector
 		panel.build(
-			"CORE" if is_core else str(sector + 1),
+			"CORE" if is_core else Sectors.facing_mark(sector),
 			"Hull core" if is_core else Sectors.facing_name(sector),
 			"no shield" if is_core else Sectors.facing_arc_label(sector),
 			_demo.systems_in(key))
@@ -126,9 +198,10 @@ func _layout_plate() -> void:
 	var centre: Vector2 = ring.centre()
 	var r: float = ring.inner_radius()
 	var hull_view: Control = ring.get_node("HullView")
-	# The ship fills the space inside the shields.
-	hull_view.size = Vector2(r * 2.0, r * 2.0)
-	hull_view.position = centre - hull_view.size * 0.5
+	# The ship fills the space inside the shields. The ring places it, because
+	# the ring is what knows where its shields are.
+	ring.fit_inside(hull_view)
+	hull_view.request_frame()
 	for sector in range(_panels.size()):
 		var panel: Control = _panels[sector]
 		panel.size = panel.get_combined_minimum_size()
@@ -150,7 +223,7 @@ func _refresh_state_views() -> void:
 		var is_core: bool = sector == Sectors.FACING_COUNT
 		_panels[sector].refresh(
 			0.0 if is_core else _demo.shields[sector], _demo.shield_max, not is_core)
-	$Center/V/Head.text = "SHIP SYSTEM DISPLAY  %s" % String(
+	$Center/V/Head/Title.text = "SHIP SYSTEM DISPLAY  %s" % String(
 		session.fit.hull()["name"]).to_upper()
 
 

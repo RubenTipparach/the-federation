@@ -86,6 +86,10 @@ GLYPHS = {
     ",": "00000 00000 00000 00000 00100 00100 01000",
     "-": "00000 00000 00000 01110 00000 00000 00000",
     ".": "00000 00000 00000 00000 00000 00100 00100",
+    # The ellipsis, keyed by escape so this file stays plain ASCII. Without it
+    # every text_overrun_behavior TRIM_ELLIPSIS in the project falls back to a
+    # hard cut, which is the silent truncation CLAUDE.md 6.4 says not to ship.
+    "\u2026": "00000 00000 00000 00000 00000 10101 10101",
     "/": "00001 00001 00010 00100 01000 10000 10000",
     "\\": "10000 10000 01000 00100 00010 00001 00001",
     ":": "00000 00100 00000 00000 00000 00100 00000",

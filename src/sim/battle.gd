@@ -138,6 +138,7 @@ func step(dt: float) -> Array[Dictionary]:
 		s.step(dt, tuning)
 	_step_seekers(dt, tuning)
 	_step_terrain(dt)
+	_step_contacts()
 
 	_keep_in_arena(tuning)
 
@@ -354,16 +355,61 @@ func _apply_collision(ship: ShipState) -> void:
 	var hit: Dictionary = terrain.collision_at(ship.pos)
 	if hit.is_empty():
 		return
+	_collide(ship, Vector2(hit["pos"]), String(hit["kind"]), float(hit["damage"]))
+
+
+## Two hulls occupying the same space. The price is the same shape as running
+## into a rock, and it is paid through the same code, because there is one
+## collision rule and forking it would let a ship survive a battlecruiser it
+## could not survive an asteroid (CLAUDE.md 4.1).
+##
+## What is different is that a rock does not care and another ship does, so the
+## damage is shared out by tonnage: the light hull comes off worse, which is
+## why ramming a frigate is a tactic and ramming a battlecruiser is suicide.
+## Closing speed sets the severity, so drifting together at rest is a scrape
+## and meeting head on at full throttle is not.
+func _step_contacts() -> void:
+	var combat: Dictionary = Catalog.tuning()["combat"]
+	for i in range(ships.size()):
+		for j in range(i + 1, ships.size()):
+			var a: ShipState = ships[i]
+			var b: ShipState = ships[j]
+			if not a.alive or not b.alive:
+				continue
+			if not a.touching(b):
+				continue
+			# Both grace timers, or the pair would trade damage every tick for
+			# as long as they stayed overlapped.
+			if a.collision_grace > 0.0 or b.collision_grace > 0.0:
+				continue
+			var closing: float = maxf(0.0,
+				(a.velocity() - b.velocity()).length())
+			var severity: float = clampf(closing / float(combat["ram_speed_ref"]),
+				float(combat["ram_speed_floor"]), 1.0)
+			var base: float = float(combat["ram_damage"]) * severity
+			var mass_a: float = maxf(1.0, float(a.fit.hull()["tonnage"]))
+			var mass_b: float = maxf(1.0, float(b.fit.hull()["tonnage"]))
+			var total: float = mass_a + mass_b
+			# Each share is the OTHER hull's fraction of the pair, doubled so
+			# that two equal ships take ram_damage each rather than half of it.
+			# The shares sum to 2, so neither can ever exceed twice the base.
+			var pos_a: Vector2 = a.pos
+			_collide(a, b.pos, "ship", base * 2.0 * mass_b / total)
+			_collide(b, pos_a, "ship", base * 2.0 * mass_a / total)
+
+
+## Pay for one collision: the grace, the speed lost, the damage from the
+## bearing it arrived on, and the line the comm log prints.
+func _collide(ship: ShipState, with_pos: Vector2, kind: String, amount: float) -> void:
 	var terrain_tuning: Dictionary = Catalog.tuning()["terrain"]
 	ship.collision_grace = float(terrain_tuning["collision_cooldown"])
 	ship.speed *= float(terrain_tuning["collision_speed_frac"])
-	var amount: float = float(hit["damage"])
 	var result: Dictionary = ship.apply_damage(
-		Sectors.bearing_between(ship.pos, hit["pos"]), amount)
+		Sectors.bearing_between(ship.pos, with_pos), amount)
 	var lines: Array[String] = result["log"]
-	lines.insert(0, "COLLISION, %s, %d damage" % [String(hit["kind"]), int(amount)])
+	lines.insert(0, "COLLISION, %s, %d damage" % [kind, int(amount)])
 	_events.append({
-		"type": "hazard", "hazard": String(hit["kind"]), "damage": amount,
+		"type": "hazard", "hazard": kind, "damage": amount,
 		"facing": int(result["facing"]), "target_player": ship == player(),
 		"at": ship.pos, "log": lines,
 	})
@@ -399,6 +445,8 @@ func apply_command(actor: int, kind: String, args: Array, record: bool = true) -
 		"shield_bias":
 			ship.shield_bias = int(args[0])
 			ok = true
+		"overload":
+			ok = ship.set_overload(int(args[0]), bool(args[1]))
 		"repair_queue":
 			ok = ship.queue_repair(int(args[0]), Catalog.tuning())
 		"repair_drop":

@@ -1,7 +1,12 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=5 format=3]
 
-; The ship systems display: the six facing shield ring, the hull integrity in
-; the middle of it, and the subsystem slots beside it. One component, used for
+; The ship systems display: the six facing shield ring, the ship inside it as a
+; wireframe, and the subsystem slots beside it.
+;
+; No hull integrity reading. There was one in the middle of the ring, and it was
+; the same number the tactical view already prints as BOXES for the player in
+; the left column and for the target in the panel above this one. Three copies
+; of one number, and the one in here was in the way of the ship. One component, used for
 ; the player's own ship and for the target, and it will be used again in the
 ; fleet roster and the post battle report (CLAUDE.md 6.1). What varies between
 ; those is parameters, never a second scene: whether the slots take clicks,
@@ -14,35 +19,35 @@
 [ext_resource type="Script" path="res://src/ui/ship_display.gd" id="1"]
 [ext_resource type="Script" path="res://src/ui/ssd_control.gd" id="2"]
 [ext_resource type="PackedScene" path="res://scenes/ui/sys_line.tscn" id="3"]
+[ext_resource type="PackedScene" path="res://scenes/ui/hull_view.tscn" id="4"]
 
 [node name="ShipDisplay" type="HBoxContainer"]
-theme_override_constants/separation = 6
+theme_override_constants/separation = 7
 script = ExtResource("1")
 
 [node name="Ring" type="Control" parent="."]
-custom_minimum_size = Vector2(124, 124)
+custom_minimum_size = Vector2(149, 149)
 layout_mode = 2
 script = ExtResource("2")
 
-[node name="Hull" type="Label" parent="Ring"]
-layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-grow_horizontal = 2
-grow_vertical = 2
+; The ship itself, as a wireframe, inside the shield ring. First child so it
+; paints under the integrity reading rather than over it, and placed by the
+; ring in code because only the ring knows where its shields are.
+;
+; A line drawing rather than the painted hull the shipyard shows: this one is
+; an instrument, and a photograph of a ship competes with the damage state
+; drawn around it.
+
+[node name="Wire" parent="Ring" instance=ExtResource("4")]
+modulate = Color(1, 1, 1, 1)
+layout_mode = 0
 mouse_filter = 2
-horizontal_alignment = 1
-vertical_alignment = 1
-theme_override_font_sizes/font_size = 16
-text = "100%"
+
 
 [node name="Side" type="VBoxContainer" parent="."]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 3
+theme_override_constants/separation = 4
 
 [node name="Slots" type="GridContainer" parent="Side"]
 layout_mode = 2
@@ -104,20 +109,20 @@ theme_override_constants/separation = 2
 
 [node name="F0" type="Label" parent="Side/Families"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 10
+theme_override_font_sizes/font_size = 12
 text = "WEAPON"
 
 [node name="F1" type="Label" parent="Side/Families"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 10
+theme_override_font_sizes/font_size = 12
 text = "POWER"
 
 [node name="F2" type="Label" parent="Side/Families"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 10
+theme_override_font_sizes/font_size = 12
 text = "CONTROL"
 
 [node name="F3" type="Label" parent="Side/Families"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 10
+theme_override_font_sizes/font_size = 12
 text = "HULL"

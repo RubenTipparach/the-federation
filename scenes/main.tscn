@@ -1,12 +1,14 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://src/ui/main.gd" id="1"]
-[ext_resource type="Theme" path="res://assets/ui/skin_theme.tres" id="2"]
+[ext_resource type="Theme" path="res://assets/ui/skin_theme_federation.tres" id="2"]
 [ext_resource type="PackedScene" path="res://scenes/fitting.tscn" id="3"]
 [ext_resource type="PackedScene" path="res://scenes/arcs.tscn" id="4"]
 [ext_resource type="PackedScene" path="res://scenes/skirmish.tscn" id="5"]
 [ext_resource type="PackedScene" path="res://scenes/combat.tscn" id="6"]
 [ext_resource type="PackedScene" path="res://scenes/ui/debug_panel.tscn" id="7"]
+[ext_resource type="PackedScene" path="res://scenes/ui/settings_panel.tscn" id="8"]
+[ext_resource type="Texture2D" path="res://assets/icons/gear.png" id="9"]
 
 [node name="Main" type="Control"]
 layout_mode = 3
@@ -28,24 +30,24 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 16.0
-offset_top = 12.0
-offset_right = -16.0
-offset_bottom = -12.0
-theme_override_constants/separation = 10
+offset_left = 19
+offset_top = 14
+offset_right = -19
+offset_bottom = -14
+theme_override_constants/separation = 12
 
 [node name="TopBar" type="HBoxContainer" parent="Root"]
 layout_mode = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 10
 
 [node name="Title" type="Label" parent="Root/TopBar"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 18
+theme_override_font_sizes/font_size = 22
 text = "THE FEDERATION"
 
 [node name="Spacer" type="Control" parent="Root/TopBar"]
 layout_mode = 2
-custom_minimum_size = Vector2(24, 0)
+custom_minimum_size = Vector2(29, 0)
 
 [node name="TabFitting" type="Button" parent="Root/TopBar"]
 layout_mode = 2
@@ -68,10 +70,37 @@ size_flags_horizontal = 3
 
 [node name="Version" type="Label" parent="Root/TopBar"]
 layout_mode = 2
-mouse_filter = 0
-theme_override_font_sizes/font_size = 10
+theme_override_font_sizes/font_size = 12
 text = "prototype"
-tooltip_text = "Tap three times for the debug overlay."
+
+; The gear. Right end of the bar, past the tabs, because it is the least used
+; thing on the bar.
+;
+; It carries the word as well as the glyph. The mockup had it icon only, on the
+; grounds that an icon beside three words would not read as a fourth screen,
+; and that was wrong in the way the old DEBUG button was wrong: a small dim
+; thing in a corner is a thing nobody finds. The gap before it is what keeps it
+; from reading as a tab, not the absence of a label.
+;
+; icon_max_width is 24 against a 48 pixel mask, which is an exact halving. The
+; project filters canvas textures with nearest for the pixel art, so any other
+; ratio drops rows out of the glyph and eats the teeth. This was 20, and it
+; looked like a smudge.
+;
+; Fixed size per CLAUDE.md 6.4.
+
+[node name="Settings" type="Button" parent="Root/TopBar"]
+custom_minimum_size = Vector2(184, 40)
+custom_maximum_size = Vector2(184, 40)
+propagate_maximum_size = true
+layout_mode = 2
+focus_mode = 0
+clip_text = true
+icon = ExtResource("9")
+text = "Settings"
+tooltip_text = "Settings"
+theme_override_constants/icon_max_width = 24
+theme_override_constants/h_separation = 8
 
 [node name="Content" type="Control" parent="Root"]
 layout_mode = 2
@@ -91,5 +120,7 @@ layout_mode = 1
 [node name="Combat" parent="Root/Content" instance=ExtResource("6")]
 visible = false
 layout_mode = 1
+
+[node name="Settings" parent="." instance=ExtResource("8")]
 
 [node name="DebugPanel" parent="." instance=ExtResource("7")]

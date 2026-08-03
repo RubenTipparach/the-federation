@@ -87,13 +87,13 @@ func _initialize() -> void:
 	_time("SSD, target", ROUNDS,
 		func() -> void: c.get_node("Right/TargetDisplayPanel/V/Display").refresh())
 	_time("FightTabs.refresh (6 tabs)", ROUNDS,
-		func() -> void: c.get_node("Right/FightTabs").refresh(me.systems, me.repair_queue))
+		func() -> void: c.get_node("Right/FightStation/FightTabs").refresh(me.systems, me.repair_queue))
 	_time("KeepTabs.refresh (4 tabs)", ROUNDS,
-		func() -> void: c.get_node("Left/KeepTabs").refresh(me.systems, me.repair_queue))
+		func() -> void: c.get_node("Left/KeepStation/KeepTabs").refresh(me.systems, me.repair_queue))
 	_time("FightPanel.refresh (open station)", ROUNDS,
-		func() -> void: c.get_node("Right/FightPanel").refresh())
+		func() -> void: c.get_node("Right/FightStation/FightPanel").refresh())
 	_time("KeepPanel.refresh (open station)", ROUNDS,
-		func() -> void: c.get_node("Left/KeepPanel").refresh())
+		func() -> void: c.get_node("Left/KeepStation/KeepPanel").refresh())
 
 	print("")
 	print("THE REST OF THE PER FRAME PATH")

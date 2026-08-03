@@ -1,8 +1,16 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=4 format=3]
 
 ; The debug overlay. Its own CanvasLayer above every screen, hidden until it is
 ; summoned, because it is an instrument and not part of the game (CLAUDE.md 6.2,
 ; and see the header of src/ui/debug_panel.gd).
+;
+; The overlay is summoned from the settings panel behind the gear on the top
+; bar, or with F3, or with three fingers. It has no button of its own: one
+; parked in the corner of every screen sat on top of the skirmish screen's
+; tonnage readout, and settings is where an instrument switch belongs.
+;
+; Once up it stays up across a screen change, which is what makes it usable
+; during a battle even though the gear that opened it is not.
 ;
 ; Twelve authored button slots, configured from data/debug.json and hidden when
 ; there are fewer flags than slots, which is the same pattern the subsystem tab
@@ -31,62 +39,24 @@ content_margin_top = 6.0
 content_margin_right = 8.0
 content_margin_bottom = 8.0
 
-[sub_resource type="StyleBoxFlat" id="summon"]
-bg_color = Color(0.043, 0.063, 0.086, 1)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(0.984, 0.788, 0.263, 1)
-content_margin_left = 8.0
-content_margin_top = 6.0
-content_margin_right = 8.0
-content_margin_bottom = 6.0
-
 [node name="DebugPanel" type="CanvasLayer"]
 layer = 128
 script = ExtResource("1")
-
-; The summon button. Always on screen, including during a battle, because the
-; machine this instrument exists for is a phone and a phone has no F3 key. It
-; sits bottom left: a landscape grip puts a thumb there, the overlay itself
-; opens on the right so the two never collide, and it is the one corner of the
-; tactical view that carries no control a player reaches for under fire.
-;
-; Full contrast on its own opaque plate: a dim button in a corner of a dark screen
-; is a button nobody finds, which was the first attempt and it did not work.
-
-[node name="Summon" type="Button" parent="."]
-anchors_preset = 2
-anchor_top = 1.0
-anchor_bottom = 1.0
-offset_left = 6.0
-offset_top = -58.0
-offset_right = 144.0
-offset_bottom = -6.0
-grow_vertical = 0
-focus_mode = 0
-theme_override_font_sizes/font_size = 18
-theme_override_colors/font_color = Color(0.984, 0.788, 0.263, 1)
-theme_override_styles/normal = SubResource("summon")
-theme_override_styles/hover = SubResource("summon")
-theme_override_styles/pressed = SubResource("summon")
-text = "DEBUG"
 
 [node name="Panel" type="PanelContainer" parent="."]
 anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -232.0
-offset_top = 8.0
-offset_right = -8.0
-offset_bottom = 700.0
+offset_left = -278
+offset_top = 10
+offset_right = -10
+offset_bottom = 840
 grow_horizontal = 0
 theme_override_styles/panel = SubResource("back")
 
 [node name="V" type="VBoxContainer" parent="Panel"]
 layout_mode = 2
-theme_override_constants/separation = 5
+theme_override_constants/separation = 6
 
 [node name="Head" type="HBoxContainer" parent="Panel/V"]
 layout_mode = 2
@@ -94,146 +64,146 @@ layout_mode = 2
 [node name="Title" type="Label" parent="Panel/V/Head"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 13
 text = "DEBUG"
 theme_type_variation = &"HeaderLabel"
 
 [node name="Measure" type="Button" parent="Panel/V/Head"]
-custom_minimum_size = Vector2(64, 26)
+custom_minimum_size = Vector2(77, 31)
 layout_mode = 2
 focus_mode = 0
-theme_override_font_sizes/font_size = 10
+theme_override_font_sizes/font_size = 12
 text = "MEASURE"
 
 [node name="Reset" type="Button" parent="Panel/V/Head"]
-custom_minimum_size = Vector2(52, 26)
+custom_minimum_size = Vector2(62, 31)
 layout_mode = 2
 focus_mode = 0
-theme_override_font_sizes/font_size = 10
+theme_override_font_sizes/font_size = 12
 text = "RESET"
 
 [node name="Close" type="Button" parent="Panel/V/Head"]
-custom_minimum_size = Vector2(34, 26)
+custom_minimum_size = Vector2(41, 31)
 layout_mode = 2
 focus_mode = 0
-theme_override_font_sizes/font_size = 10
+theme_override_font_sizes/font_size = 12
 text = "X"
 
 [node name="Counters" type="Label" parent="Panel/V"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/font_size = 14
 text = "measuring"
 
 [node name="Graph" type="Control" parent="Panel/V"]
-custom_minimum_size = Vector2(200, 56)
+custom_minimum_size = Vector2(240, 67)
 layout_mode = 2
 mouse_filter = 2
 script = ExtResource("2")
 
 [node name="GraphNote" type="Label" parent="Panel/V"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 9
+theme_override_font_sizes/font_size = 11
 text = "200 frames, lines at 60 and 30 fps, top of scale 50 ms"
 autowrap_mode = 2
 
 [node name="Flags" type="VBoxContainer" parent="Panel/V"]
 layout_mode = 2
-theme_override_constants/separation = 3
+theme_override_constants/separation = 4
 
 [node name="F0" type="Button" parent="Panel/V/Flags"]
-custom_minimum_size = Vector2(0, 34)
+custom_minimum_size = Vector2(0, 41)
 layout_mode = 2
 focus_mode = 0
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 13
 text = "FLAG"
 
 [node name="F1" type="Button" parent="Panel/V/Flags"]
-custom_minimum_size = Vector2(0, 34)
+custom_minimum_size = Vector2(0, 41)
 layout_mode = 2
 focus_mode = 0
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 13
 text = "FLAG"
 
 [node name="F2" type="Button" parent="Panel/V/Flags"]
-custom_minimum_size = Vector2(0, 34)
+custom_minimum_size = Vector2(0, 41)
 layout_mode = 2
 focus_mode = 0
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 13
 text = "FLAG"
 
 [node name="F3" type="Button" parent="Panel/V/Flags"]
-custom_minimum_size = Vector2(0, 34)
+custom_minimum_size = Vector2(0, 41)
 layout_mode = 2
 focus_mode = 0
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 13
 text = "FLAG"
 
 [node name="F4" type="Button" parent="Panel/V/Flags"]
-custom_minimum_size = Vector2(0, 34)
+custom_minimum_size = Vector2(0, 41)
 layout_mode = 2
 focus_mode = 0
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 13
 text = "FLAG"
 
 [node name="F5" type="Button" parent="Panel/V/Flags"]
-custom_minimum_size = Vector2(0, 34)
+custom_minimum_size = Vector2(0, 41)
 layout_mode = 2
 focus_mode = 0
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 13
 text = "FLAG"
 
 [node name="F6" type="Button" parent="Panel/V/Flags"]
-custom_minimum_size = Vector2(0, 34)
+custom_minimum_size = Vector2(0, 41)
 layout_mode = 2
 focus_mode = 0
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 13
 text = "FLAG"
 
 [node name="F7" type="Button" parent="Panel/V/Flags"]
-custom_minimum_size = Vector2(0, 34)
+custom_minimum_size = Vector2(0, 41)
 layout_mode = 2
 focus_mode = 0
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 13
 text = "FLAG"
 
 [node name="F8" type="Button" parent="Panel/V/Flags"]
-custom_minimum_size = Vector2(0, 34)
+custom_minimum_size = Vector2(0, 41)
 layout_mode = 2
 focus_mode = 0
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 13
 text = "FLAG"
 
 [node name="F9" type="Button" parent="Panel/V/Flags"]
-custom_minimum_size = Vector2(0, 34)
+custom_minimum_size = Vector2(0, 41)
 layout_mode = 2
 focus_mode = 0
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 13
 text = "FLAG"
 
 [node name="F10" type="Button" parent="Panel/V/Flags"]
-custom_minimum_size = Vector2(0, 34)
+custom_minimum_size = Vector2(0, 41)
 layout_mode = 2
 focus_mode = 0
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 13
 text = "FLAG"
 
 [node name="F11" type="Button" parent="Panel/V/Flags"]
-custom_minimum_size = Vector2(0, 34)
+custom_minimum_size = Vector2(0, 41)
 layout_mode = 2
 focus_mode = 0
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 13
 text = "FLAG"
 
 [node name="F12" type="Button" parent="Panel/V/Flags"]
-custom_minimum_size = Vector2(0, 34)
+custom_minimum_size = Vector2(0, 41)
 layout_mode = 2
 focus_mode = 0
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 13
 text = "FLAG"
 
 [node name="F13" type="Button" parent="Panel/V/Flags"]
-custom_minimum_size = Vector2(0, 34)
+custom_minimum_size = Vector2(0, 41)
 layout_mode = 2
 focus_mode = 0
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 13
 text = "FLAG"

@@ -125,6 +125,26 @@ contact. Ships are big and slow and this is a game about arcs.
 A collision has a cooldown of `collision_cooldown` seconds per ship so that sitting on
 a rock does not deal damage every tick.
 
+### 3.3 So do two ships
+
+Two hulls closer than the sum of their radii are touching, and the price is paid through
+the same code, because there is one collision rule and forking it would let a ship
+survive a battlecruiser it could not survive an asteroid. A hull's radius is
+`tonnage * combat.hull_radius_per_ton`, and it is the simulation's number rather than the
+view's: the target bracket measures its on screen size from the same figure, so the ring
+a player sees around a contact is the circle that contact collides with.
+
+What is different from a rock is that the other party is a ship, so the damage is shared
+out rather than fixed. Severity is the closing speed as a fraction of `ram_speed_ref`,
+floored at `ram_speed_floor` so a nudge still counts, and the pair's tonnage divides
+`ram_damage` between them: two equal hulls take it each, and neither side's share can
+exceed twice that however lopsided the pairing. Ramming a frigate is a tactic. Ramming a
+battlecruiser is not.
+
+The opponent does not want any part of this, and steers to avoid it. See
+[01-tactical-combat.md](01-tactical-combat.md) section 2, "Two ships cannot occupy the
+same space".
+
 ---
 
 ## 4. Planets

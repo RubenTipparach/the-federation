@@ -29,8 +29,8 @@ var shields: Array[float] = []
 ## Flat list of internal systems: {code, family, boxes_max, boxes, mount_id, row}.
 var systems: Array[Dictionary] = []
 
-## Runtime per mount: {mount, weapon, charge 0..1}. Index-aligned with
-## fit.mounts() so UI rows and fire commands share indices.
+## Runtime per mount: {mount, weapon, charge 0..1, overload}. Index-aligned
+## with fit.mounts() so UI rows and fire commands share indices.
 var weapons_rt: Array[Dictionary] = []
 
 ## Power split as fractions of output summing to 1 (see PowerModel).
@@ -74,6 +74,12 @@ var shield_bias: int = -1
 ## arrives when this reaches the price; nothing arrives if the sink is empty,
 ## because under 3C7 nothing comes back unbought.
 var shield_credit: float = 0.0
+
+## Seconds the shield generators are still recovering from an overloaded shot.
+## While this is running they buy nothing, which is the "your shields sag for
+## four seconds" of docs/GDD P3. Counted down in step, so a paused battle does
+## not recover and a replay recovers at exactly the same ticks.
+var shield_sag: float = 0.0
 
 ## Spare parts still aboard, and the stock the hull sailed with. Repair spends
 ## this and nothing refills it in flight: restocking happens at a base.
@@ -126,6 +132,7 @@ static func create(p_fit: ShipFit, p_rng: RandomNumberGenerator, ai_ship: bool =
 			"mount": m,
 			"weapon": p_fit.weapon_in(String(m["id"])),
 			"charge": 0.0,
+			"overload": false,
 		})
 	s.split = PowerModel.default_split(ai_ship)
 	s.parts_max = int(h.get("spare_parts", 0))
@@ -160,6 +167,28 @@ func max_speed() -> float:
 
 func turn_rate() -> float:
 	return float(fit.hull()["turn_rate_deg"]) * engine_integrity()
+
+
+## How much room the hull takes up, in sim units. Tonnage is the only size a
+## ship has, so this is that, scaled.
+##
+## One number, three readers, and that is the point: the contact test, the
+## opponent's keep out distance, and the target bracket a player sees all
+## measure the same hull (CLAUDE.md 4.1). The bracket used to work it out from
+## its own key in the view block, which meant the ring on screen and the
+## circle the simulation collided were two numbers that only happened to agree.
+func radius() -> float:
+	return float(fit.hull()["tonnage"]) \
+		* float(Catalog.tuning()["combat"]["hull_radius_per_ton"])
+
+
+## How close two hulls get before they are touching.
+func contact_distance(other: ShipState) -> float:
+	return radius() + other.radius()
+
+
+func touching(other: ShipState) -> bool:
+	return pos.distance_to(other.pos) <= contact_distance(other)
 
 
 func total_boxes() -> int:
@@ -266,6 +295,7 @@ func step(dt: float, tuning: Dictionary) -> void:
 		var reload: float = float(w["weapon"]["reload"])
 		w["charge"] = minf(1.0, float(w["charge"]) + dt / reload * wpn_factor)
 
+	shield_sag = maxf(0.0, shield_sag - dt)
 	_step_shield_regen(dt, combat)
 	_step_repair(dt, tuning)
 
@@ -332,6 +362,13 @@ func can_see(target_pos: Vector2) -> bool:
 ## spends nothing on shields gets nothing back. The old version handed out a
 ## free trickle, which the rule does not allow.
 func _step_shield_regen(dt: float, combat: Dictionary) -> void:
+	if shield_sag > 0.0:
+		# An overload just took the generators offline. The energy the shields
+		# sink draws in these seconds buys nothing and is not banked: handing
+		# it back a moment later would make the overload free, which is the
+		# opposite of a cost.
+		shield_credit = 0.0
+		return
 	shield_credit += alloc_units("shields") * dt
 	var price: float = maxf(0.001, float(combat["shield_energy_per_box"])
 		* float(combat["shield_power_demand"]))
@@ -420,6 +457,44 @@ func drop_repair(index: int) -> bool:
 
 # ---- firing ------------------------------------------------------------------
 
+## What an overloaded shot costs, for every weapon that can take one.
+##
+## Read from the catalog rather than passed in, which is a deliberate exception
+## to this file's habit of taking tuning as an argument. fire_check runs from
+## the HUD refresh and from the AI, neither of which holds tuning, and threading
+## it through four signatures for one number would buy nothing. Catalog is a
+## static cache with no scene tree behind it, so the sim still runs headless.
+func _overload_tuning() -> Dictionary:
+	return Catalog.tuning()["combat"]
+
+
+## Whether this mount could be armed to overload at all: a property of what is
+## fitted, not of what the ship can currently afford.
+func can_overload(index: int) -> bool:
+	if index < 0 or index >= weapons_rt.size():
+		return false
+	return WeaponModel.can_overload(weapons_rt[index]["weapon"])
+
+
+func overloaded(index: int) -> bool:
+	if index < 0 or index >= weapons_rt.size():
+		return false
+	return bool(weapons_rt[index].get("overload", false))
+
+
+## Arm or disarm one mount. Returns false when nothing changed, so the battle
+## does not write a no op into the log and a replay does not replay one.
+func set_overload(index: int, on: bool) -> bool:
+	if index < 0 or index >= weapons_rt.size():
+		return false
+	if on and not can_overload(index):
+		return false
+	if overloaded(index) == on:
+		return false
+	weapons_rt[index]["overload"] = on
+	return true
+
+
 ## Why a weapon can or cannot fire right now. Reasons match the mockup chips.
 func fire_check(index: int, target_pos: Vector2) -> Dictionary:
 	var w: Dictionary = weapons_rt[index]
@@ -429,9 +504,14 @@ func fire_check(index: int, target_pos: Vector2) -> Dictionary:
 		return { "ok": false, "reason": "destroyed" }
 	if float(w["charge"]) < 1.0:
 		return { "ok": false, "reason": "charging" }
+	var ovl: bool = overloaded(index)
+	# Checked before the lock and the range, because it is the one reason a
+	# captain can do something about without moving the ship.
+	if ovl and battery < float(_overload_tuning()["overload_battery_cost"]):
+		return { "ok": false, "reason": "battery" }
 	if not can_see(target_pos):
 		return { "ok": false, "reason": "no lock" }
-	if apparent_range_to(target_pos) > WeaponModel.max_range(w["weapon"]):
+	if apparent_range_to(target_pos) > WeaponModel.max_range(w["weapon"], ovl):
 		return { "ok": false, "reason": "range" }
 	var rel: float = Sectors.relative_bearing(Sectors.bearing_between(pos, target_pos), heading)
 	if not fit.effective_field(w["mount"]).has(Sectors.sector_of_bearing(rel)):
@@ -443,13 +523,23 @@ func fire_check(index: int, target_pos: Vector2) -> Dictionary:
 func fire_at(index: int, target: ShipState) -> Dictionary:
 	var w: Dictionary = weapons_rt[index]
 	w["charge"] = 0.0
+	# The reserve pays before the shot resolves, and the switch springs back:
+	# an overload is one burst (docs/01 section 3), not a mode the mount stays
+	# in. Leaving it armed would empty the battery again on the next reload
+	# without the captain having asked twice.
+	var ovl: bool = overloaded(index)
+	if ovl:
+		var combat: Dictionary = _overload_tuning()
+		battery = maxf(0.0, battery - float(combat["overload_battery_cost"]))
+		shield_sag = float(combat["overload_shield_sag_sec"])
+		w["overload"] = false
 	var distance: float = pos.distance_to(target.pos)
 	# Range decides both whether the shot connects and what it scores, so a
 	# weapon fired at its extreme edge is worth less than the same weapon
 	# fired point blank (WeaponModel). Cloud between the two hulls counts as
 	# extra range, which is the whole of the nebula's effect on gunnery.
 	var damage: int = WeaponModel.roll_damage(
-		w["weapon"], apparent_range_to(target.pos), rng)
+		w["weapon"], apparent_range_to(target.pos), rng, ovl)
 	var arrive_bearing: float = Sectors.bearing_between(target.pos, pos)
 	var log_lines: Array[String] = []
 	# -1 means nothing was struck, so a miss cannot light a shield up.
@@ -460,11 +550,14 @@ func fire_at(index: int, target: ShipState) -> Dictionary:
 		var result: Dictionary = target.apply_damage(arrive_bearing, float(damage))
 		log_lines = result["log"]
 		facing = int(result["facing"])
+	if ovl:
+		log_lines.insert(0, "%s OVERLOAD, shields off line" % [String(w["weapon"]["short"])])
 	return {
 		"type": "shot",
 		"weapon": String(w["weapon"]["short"]),
 		"damage": damage,
 		"hit": damage > 0,
+		"overload": ovl,
 		"facing": facing,
 		"range": distance,
 		"from_pos": pos,
@@ -494,11 +587,12 @@ func apply_damage(world_bearing: float, amount: float) -> Dictionary:
 		absorbed = minf(shields[facing], remaining)
 		shields[facing] -= absorbed
 		remaining -= absorbed
-		lines.append("Shield #%d absorbs %d, at %d" % [facing + 1, int(absorbed), int(shields[facing])])
+		lines.append("Shield %s absorbs %d, at %d" % [Sectors.facing_mark(facing),
+			int(absorbed), int(shields[facing])])
 		if shields[facing] <= 0.0:
-			lines.append("SHIELD #%d DOWN, internals exposed" % [facing + 1])
+			lines.append("SHIELD %s DOWN, internals exposed" % [Sectors.facing_mark(facing)])
 	else:
-		lines.append("Facing #%d already down" % [facing + 1])
+		lines.append("Facing %s already down" % [Sectors.facing_mark(facing)])
 	if remaining > 0.0:
 		lines.append_array(apply_internal(remaining, facing))
 	return { "facing": facing, "absorbed": absorbed, "log": lines }
@@ -550,7 +644,7 @@ func apply_internal(amount: float, facing: int = 0) -> Array[String]:
 		if int(pick["boxes"]) <= 0:
 			lines.append("%s DESTROYED" % [String(pick["code"])])
 			if source == facing and boxes_in(facing) <= 0:
-				lines.append("SECTOR #%d STRIPPED, the hull core is exposed" % [facing + 1])
+				lines.append("SECTOR %s STRIPPED, the hull core is exposed" % [Sectors.facing_mark(facing)])
 		else:
 			lines.append("%s takes %d, %d left" % [String(pick["code"]), take, int(pick["boxes"])])
 	if total_boxes() <= 0:

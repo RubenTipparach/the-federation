@@ -52,8 +52,10 @@ func _initialize() -> void:
 	test_damage()
 	test_sector_damage()
 	test_falloff()
+	test_overload()
 	test_movement_and_weapons()
 	test_battle_and_ai()
+	test_contacts()
 	test_seekers()
 	test_shields()
 	test_repairs()
@@ -67,6 +69,93 @@ func _initialize() -> void:
 	else:
 		print("%d OF %d CHECKS FAILED" % [failures, checks])
 	quit(0 if failures == 0 else 1)
+
+
+## Everything a hull's size decides: when two of them are touching, what that
+## costs, and the distance the opponent will not come inside.
+func test_contacts() -> void:
+	print("\n== ships in contact ==")
+	var combat: Dictionary = CatalogLib.tuning()["combat"]
+	var AiLib = preload("res://src/sim/ai.gd")
+
+	var big = _fresh_ship("ironhold")
+	var small = _fresh_ship("talon")
+	ok(big.radius() > small.radius(), "a heavier hull is a bigger hull")
+	near(big.radius(), float(CatalogLib.hull("ironhold")["tonnage"])
+		* float(combat["hull_radius_per_ton"]), "and its size comes from the tuning file")
+	near(big.contact_distance(small), small.contact_distance(big),
+		"contact distance reads the same from either side")
+
+	small.pos = Vector2.ZERO
+	big.pos = Vector2(0.0, small.contact_distance(big) * 0.9)
+	ok(small.touching(big), "hulls closer than that are touching")
+	big.pos = Vector2(0.0, small.contact_distance(big) * 1.1)
+	ok(not small.touching(big), "and further apart are not")
+
+	# A real contact in a real battle. Capacitors start empty and a single
+	# thirtieth of a second charges nothing, so the only damage either hull can
+	# take over the next two steps is the collision.
+	var duel = BattleLib.create_duel(FitLib.create_default("talon"), "ironhold", 5)
+	var light = duel.player()
+	var heavy = duel.enemy()
+	light.pos = Vector2.ZERO
+	heavy.pos = Vector2(0.0, light.contact_distance(heavy) * 0.5)
+	var rams: int = 0
+	for e in duel.step(1.0 / 30.0):
+		if String(e.get("hazard", "")) == "ship":
+			rams += 1
+	eq(rams, 2, "contact bills both hulls, not only the one that moved")
+	var light_hurt: float = _hurt(light)
+	var heavy_hurt: float = _hurt(heavy)
+	ok(light_hurt > 0.0 and heavy_hurt > 0.0, "both of them pay for it")
+	ok(light_hurt > heavy_hurt, "and the lighter hull pays more")
+	ok(light.collision_grace > 0.0 and heavy.collision_grace > 0.0,
+		"both are given a moment before it can happen again")
+
+	var again: int = 0
+	for e in duel.step(1.0 / 30.0):
+		if String(e.get("hazard", "")) == "ship":
+			again += 1
+	eq(again, 0, "so resting in contact is not billed every tick")
+
+	# The keep out distance. Put the opponent well inside it and it stops
+	# fighting and runs, whatever its guns or its shields would prefer.
+	var keep = BattleLib.create_duel(FitLib.create_default("wayfarer"), "bloodletter", 31)
+	var idle = keep.player()
+	var foe = keep.enemy()
+	idle.pos = Vector2.ZERO
+	foe.pos = Vector2(0.0, foe.contact_distance(idle) * 2.0)
+	var away: float = SectorsLib.bearing_between(idle.pos, foe.pos)
+	AiLib.act(foe, idle, keep)
+	near(SectorsLib.turn_delta(away, foe.ordered_heading), 0.0,
+		"inside the keep out the ai steers straight away from the player", 0.5)
+	near(foe.ordered_throttle, 1.0, "and gives it everything")
+
+	# And over a whole battle it never gets there in the first place. The
+	# player is left at rest, so every closing decision in this run is the
+	# opponent's own.
+	var run = BattleLib.create_duel(FitLib.create_default("wayfarer"), "bloodletter", 77)
+	var closest: float = 1.0e9
+	for i in range(3000):
+		if run.over:
+			break
+		run.step(1.0 / 30.0)
+		closest = minf(closest, run.player().pos.distance_to(run.enemy().pos))
+	ok(closest > run.player().contact_distance(run.enemy()),
+		"a captain who never touches the helm is never rammed by the ai")
+	ok(closest > run.player().contact_distance(run.enemy())
+		* float(CatalogLib.tuning()["ai"]["standoff_radii"]) * 0.5,
+		"and the ai keeps a real distance rather than shaving it")
+
+
+## Damage a ship is carrying, shields and boxes together, as one number to
+## compare two hulls with.
+func _hurt(ship: Variant) -> float:
+	var standing: float = 0.0
+	for v in ship.shields:
+		standing += float(v)
+	return float(ship.shield_max) * float(ship.shields.size()) - standing \
+		+ float(ship.total_boxes_max() - ship.total_boxes())
 
 
 func test_seekers() -> void:
@@ -117,7 +206,9 @@ func test_seekers() -> void:
 	var guard = defended.player()
 	guard.pos = Vector2.ZERO
 	near(guard.point_defense_dps(Vector2(0.0, 2.0)), 1.6, "a PH-3 defends at close range")
-	near(guard.point_defense_dps(Vector2(0.0, 40.0)), 0.0, "and not across the arena")
+	var pd_reach: float = float(CatalogLib.weapon("ph3")["pd_range"])
+	near(guard.point_defense_dps(Vector2(0.0, pd_reach * 1.5)), 0.0,
+		"and not across the arena")
 	for sys in guard.systems:
 		if String(sys["mount_id"]) == "M5":
 			sys["boxes"] = 0
@@ -373,16 +464,23 @@ func test_shipyard() -> void:
 ## is what a replay has to reproduce exactly.
 func _scripted_battle(record: bool) -> Variant:
 	var fit = FitLib.create_default("wayfarer")
+	# M2 carries a disruptor rather than the default beam, so the script can
+	# exercise an overload. A replay that never overloads would not prove the
+	# order replays, and the overloaded shot is the one whose damage depends on
+	# a flag rather than on the geometry.
+	fit.set_slot("M2", "disruptor")
 	var battle = BattleLib.create_duel(fit, "bloodletter", 4242)
 	if record:
 		battle.log = LogLib.create(fit, "bloodletter", 4242, 1.0 / 30.0)
 	var script: Dictionary = {
-		0: [[0, "order", [45.0, 1.0]], [0, "power", ["weapons", 16.0]]],
+		0: [[0, "order", [45.0, 1.0]], [0, "power", ["weapons", 16.0]],
+			[0, "power", ["reserve", 20.0]]],
 		20: [[0, "fire_family", ["beam"]]],
 		48: [[0, "order", [180.0, 0.6]], [0, "shield_bias", [3]]],
 		90: [[0, "fire_family", ["heavy"]], [0, "reinforce", [0]]],
 		140: [[0, "transfer_shield", [1, 2]], [0, "fire_family", ["beam"]]],
-		210: [[0, "order", [300.0, 1.0]]],
+		210: [[0, "order", [300.0, 1.0]], [0, "overload", [1, true]]],
+		240: [[0, "fire_family", ["disruptor"]]],
 	}
 	for i in range(420):
 		if script.has(battle.tick):
@@ -826,7 +924,7 @@ func test_replay() -> void:
 	# Only the orders that took effect are recorded, so this is fewer than the
 	# script issued: a fire order with nothing bearing changed nothing.
 	ok(log.commands.size() >= 5, "the orders that took effect are written down")
-	ok(log.commands.size() <= 11, "and the ones that did nothing are not")
+	ok(log.commands.size() <= 15, "and the ones that did nothing are not")
 	eq(int(log.commands[0][0]), 0, "commands carry the tick they were given on")
 	eq(String(log.commands[0][2]), "order", "and the kind")
 
@@ -1254,8 +1352,165 @@ func test_falloff() -> void:
 	var fit: Variant = shooter.fit
 	near(fit.expected_into(0, 0.0), float(fit.alpha_into(0)),
 		"expected damage at point blank equals the projected alpha")
-	ok(fit.expected_into(0, 9.0) < float(fit.alpha_into(0)),
+	# Past the first band edge of the shortest weapon covering that sector, so
+	# at least one gun in the broadside has dropped a band. Derived rather than
+	# written down: a literal 9 was inside the first band the moment reaches
+	# moved out, and the check silently stopped meaning anything.
+	ok(fit.expected_into(0, ph1_band * 1.5) < float(fit.alpha_into(0)),
 		"the same broadside is worth less at range")
+
+
+## Overload: reach traded for weight, paid for out of the battery and out of
+## the shields (docs/01 sections 3 and 5.1). Every number below is read from
+## the catalog, so retuning the disruptor retunes the test with it.
+func test_overload() -> void:
+	print("\n== overload ==")
+	var tuning: Dictionary = CatalogLib.tuning()
+	var combat: Dictionary = tuning["combat"]
+	var disr: Dictionary = CatalogLib.weapon("disruptor")
+	var ph1: Dictionary = CatalogLib.weapon("ph1")
+
+	ok(WeaponLib.can_overload(disr), "the disruptor bank can overload")
+	ok(not WeaponLib.can_overload(ph1), "the beam cannot")
+	ok(not WeaponLib.can_overload({}), "and neither can an empty mount")
+
+	var reach: float = WeaponLib.max_range(disr)
+	var over_reach: float = WeaponLib.max_range(disr, true)
+	var range_scale: float = float(disr["overload"]["range"])
+	var damage_scale: float = float(disr["overload"]["damage"])
+	near(over_reach, reach * range_scale, "an overload trades reach away")
+	eq(WeaponLib.max_damage(disr, true),
+		roundi(float(WeaponLib.max_damage(disr)) * damage_scale),
+		"and buys weight with it")
+
+	# The compressed range is the whole rule: an overloaded shot reads the band
+	# it would need to be range_scale as close for, accuracy included.
+	var half: float = over_reach * 0.5
+	eq(WeaponLib.damage_at(disr, half, true),
+		roundi(float(WeaponLib.damage_at(disr, half / range_scale)) * damage_scale),
+		"an overloaded shot reads the band from its compressed range")
+	near(WeaponLib.hit_chance_at(disr, half, true),
+		WeaponLib.hit_chance_at(disr, half / range_scale),
+		"and takes that band's accuracy with it")
+	eq(WeaponLib.damage_at(disr, over_reach * 1.05, true), 0,
+		"past the shortened reach it scores nothing")
+	ok(WeaponLib.damage_at(disr, over_reach * 1.05) > 0,
+		"where the same weapon unarmed still reaches")
+
+	# The same monotonic guarantee test_falloff makes for every weapon, made
+	# again for the armed profile: a compressed band table could invert it.
+	var monotonic: bool = true
+	var prev: float = WeaponLib.expected_damage_at(disr, 0.0, true)
+	var d: float = 0.0
+	while d <= over_reach:
+		var cur: float = WeaponLib.expected_damage_at(disr, d, true)
+		if cur > prev + 0.0001:
+			monotonic = false
+		prev = cur
+		d += over_reach / 40.0
+	ok(monotonic, "an overloaded disruptor never scores more at a longer range")
+
+	# Arming is a property of what is fitted. The kestrel carries disruptors on
+	# M1 and M2 and a light beam on M3.
+	var ship = _fresh_ship("kestrel")
+	ok(ship.can_overload(0), "a fitted disruptor can be armed")
+	ok(not ship.can_overload(2), "a fitted beam cannot")
+	ok(ship.set_overload(0, true), "arming reports the change")
+	ok(not ship.set_overload(0, true), "arming again reports nothing, so nothing is logged")
+	ok(ship.overloaded(0), "the mount is armed")
+	ok(not ship.set_overload(2, true), "a beam refuses to arm")
+	ok(ship.set_overload(0, false), "and it disarms")
+
+	# The battery gate. Charged, in arc, in range, and still refused because the
+	# reserve cannot pay for it.
+	var target_pos: Vector2 = ship.pos + Vector2(0.0, 4.0)
+	ship.set_order(0.0, 0.0)
+	for i in range(200):
+		ship.step(1.0 / 15.0, tuning)
+	eq(String(ship.fire_check(0, target_pos)["reason"]), "bears",
+		"an unarmed disruptor bears")
+	ship.battery = 0.0
+	ship.set_overload(0, true)
+	eq(String(ship.fire_check(0, target_pos)["reason"]), "battery",
+		"an armed mount with a flat battery says so")
+	ship.battery = float(combat["overload_battery_cost"])
+	eq(String(ship.fire_check(0, target_pos)["reason"]), "bears",
+		"and bears once the reserve can pay")
+
+	# Armed, the same mount cannot reach what it could reach unarmed.
+	var far_pos: Vector2 = ship.pos + Vector2(0.0, over_reach * 1.1)
+	eq(String(ship.fire_check(0, far_pos)["reason"]), "range",
+		"an armed mount loses the far half of its envelope")
+	ship.set_overload(0, false)
+	eq(String(ship.fire_check(0, far_pos)["reason"]), "bears",
+		"which it had unarmed")
+	ship.set_overload(0, true)
+
+	# The shot itself, at a range inside the compressed first band so the roll
+	# cannot miss and the damage is exactly what the model projects.
+	var foe = _fresh_ship("kestrel", 11)
+	foe.pos = target_pos
+	var shot: Dictionary = ship.fire_at(0, foe)
+	ok(bool(shot["overload"]), "the shot is marked as an overload")
+	eq(int(shot["damage"]), WeaponLib.damage_at(disr, 4.0, true),
+		"and scores what the model projects for an armed shot")
+	ok(int(shot["damage"]) > WeaponLib.damage_at(disr, 4.0),
+		"which is more than the same mount unarmed")
+	near(ship.battery, 0.0, "the reserve is spent")
+	near(ship.shield_sag, float(combat["overload_shield_sag_sec"]),
+		"the generators go off line for the stated seconds")
+	ok(not ship.overloaded(0),
+		"and the switch springs back, so one order is one shot")
+
+	# The sag is the real cost: nothing is bought while it runs, and the energy
+	# drawn in those seconds is not handed back afterwards.
+	ship.shields[0] = 0.0
+	var sag_ticks: int = int(float(combat["overload_shield_sag_sec"]) * 30.0) - 3
+	for i in range(sag_ticks):
+		ship.step(1.0 / 30.0, tuning)
+	near(ship.shields[0], 0.0, "no shield box is bought while the generators sag")
+	near(ship.shield_credit, 0.0, "and the energy drawn meanwhile is not banked")
+	for i in range(1800):
+		ship.step(1.0 / 30.0, tuning)
+	ok(ship.shields[0] > 0.0, "once recovered they buy boxes again")
+
+	# The same thing as an order, which is the path a battle and a replay take.
+	# Two identical duels, nose to nose inside the compressed first band so the
+	# roll cannot miss, one armed and one not.
+	var scored: Array = []
+	for armed in [false, true]:
+		var duel = BattleLib.create_duel(FitLib.create_default("kestrel"), "talon", 77)
+		duel.log = LogLib.create(duel.player().fit, "talon", 77, 1.0 / 30.0)
+		var me = duel.player()
+		me.pos = Vector2.ZERO
+		me.heading = 0.0
+		me.battery = float(combat["overload_battery_cost"])
+		me.weapons_rt[0]["charge"] = 1.0
+		duel.enemy().pos = Vector2(0.0, 4.0)
+		if bool(armed):
+			ok(duel.apply_command(0, "overload", [0, true]), "the arming order is accepted")
+			eq(String(duel.log.commands[0][2]), "overload", "and written down for the replay")
+		ok(duel.apply_command(0, "fire", [0]), "the mount fires on order")
+		# The player's shot is appended before the step runs, so it is the
+		# first one drained. Anything the opponent fires back comes after.
+		var found: bool = false
+		for e in duel.step(1.0 / 30.0):
+			if found or String(e.get("type", "")) != "shot":
+				continue
+			found = true
+			scored.append(int(e["damage"]))
+			eq(bool(e["overload"]), bool(armed), "the event says whether it was overloaded")
+	eq(scored.size(), 2, "both duels produced a shot")
+	eq(int(scored[1]), roundi(float(scored[0]) * damage_scale),
+		"and the armed one landed the heavier hit")
+
+	# A weapon with no overload block is untouched by any of it: same reach,
+	# same damage, armed or not, which is what keeps the flag from leaking into
+	# the seven weapons that do not have one.
+	near(WeaponLib.max_range(ph1, true), WeaponLib.max_range(ph1),
+		"a weapon without an overload keeps its reach")
+	eq(WeaponLib.damage_at(ph1, 4.0, true), WeaponLib.damage_at(ph1, 4.0),
+		"and its damage")
 
 
 func test_movement_and_weapons() -> void:
@@ -1354,7 +1609,10 @@ func test_battle_and_ai() -> void:
 	var ai_ship = rot.enemy()
 	ai_ship.pos = Vector2.ZERO
 	ai_ship.heading = 0.0
-	rot.player().pos = Vector2(0, 10)
+	# Well outside the AI's keep out distance, or it would break away rather
+	# than present anything, which is the correct behaviour and not the one
+	# this check is about.
+	rot.player().pos = Vector2(0, 160)
 	rot.player().heading = 180.0
 	ai_ship.shields[0] = 0.5           # exposed fore facing is nearly gone
 	ai_ship.shields[1] = ai_ship.shield_max

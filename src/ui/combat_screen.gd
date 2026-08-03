@@ -5,6 +5,10 @@ extends HBoxContainer
 ## render the same World3D, so there is one battle display, seen twice.
 
 signal battle_ended
+## The gear at the foot of the fight strip. The screen does not open the
+## settings panel itself: main owns that layer, and a screen that reached up
+## to a sibling would be the coupling CLAUDE.md 4.2 exists to prevent.
+signal settings_requested
 
 const WEAPON_ROW := preload("res://scenes/ui/weapon_row.tscn")
 
@@ -19,10 +23,10 @@ const BRACKET_COUNT := 2
 ## Hull radius in sim units per ton, so a bracket is sized by the ship it is
 ## drawn around rather than by a single number for every hull. It lives in
 ## data/tuning.json with the other sizes it has to move with (CLAUDE.md 5.4).
-const BRACKET_MIN_PX := 16.0
-const BRACKET_MAX_PX := 120.0
+const BRACKET_MIN_PX := 19.0
+const BRACKET_MAX_PX := 144.0
 ## Extra pixels around a ship that still count as pointing at it.
-const BRACKET_PICK_SLACK := 10.0
+const BRACKET_PICK_SLACK := 12.0
 ## Off screen by more than any real pointer position, so "no pointer" needs no
 ## second boolean that could disagree with the position beside it.
 const NO_POINTER := Vector2(-1e9, -1e9)
@@ -124,13 +128,17 @@ func bind_session(p_session: Session) -> void:
 	# and the ship's business sits on the left beside the log, where the comm
 	# log had room to spare. Three columns on the right, two on the left, so
 	# neither needs a second row of tabs.
-	$Right/FightTabs.setup("fight", 3)
-	$Left/KeepTabs.setup("keep", 2)
-	$Right/FightTabs.tab_selected.connect(_on_station_selected.bind($Right/FightPanel))
-	$Left/KeepTabs.tab_selected.connect(_on_station_selected.bind($Left/KeepPanel))
-	$Right/FightTabs.repair_requested.connect(_on_repair_requested)
-	$Left/KeepTabs.repair_requested.connect(_on_repair_requested)
-	for panel in [$Right/FightPanel, $Left/KeepPanel]:
+	# The gear rides the fight strip, which is the only chrome the tactical view
+	# keeps, and is therefore the only place a menu can be reached under fire.
+	$Right/FightStation/FightTabs.setup("fight", true)
+	$Left/KeepStation/KeepTabs.setup("keep")
+	$Right/FightStation/FightTabs.tab_selected.connect(_on_station_selected.bind($Right/FightStation/FightPanel))
+	$Left/KeepStation/KeepTabs.tab_selected.connect(_on_station_selected.bind($Left/KeepStation/KeepPanel))
+	$Right/FightStation/FightTabs.repair_requested.connect(_on_repair_requested)
+	$Left/KeepStation/KeepTabs.repair_requested.connect(_on_repair_requested)
+	$Right/FightStation/FightTabs.settings_requested.connect(
+		func() -> void: settings_requested.emit())
+	for panel in [$Right/FightStation/FightPanel, $Left/KeepStation/KeepPanel]:
 		panel.repair_requested.connect(_on_repair_requested)
 		panel.repair_dropped.connect(_on_repair_dropped)
 		panel.regen_facing_picked.connect(_on_regen_facing_picked)
@@ -245,10 +253,10 @@ func _bind_displays() -> void:
 	$Right/TargetDisplayPanel/V/Display.bind_ship(battle.target_for(me), false, false)
 	# A tractor beam is a relationship between two ships, so the panel that draws
 	# it needs the battle. Everything else it draws comes from the one ship.
-	$Right/FightPanel.battle = battle
-	$Left/KeepPanel.battle = battle
-	$Right/FightPanel.show_station($Right/FightTabs.selected(), me)
-	$Left/KeepPanel.show_station($Left/KeepTabs.selected(), me)
+	$Right/FightStation/FightPanel.battle = battle
+	$Left/KeepStation/KeepPanel.battle = battle
+	$Right/FightStation/FightPanel.show_station($Right/FightStation/FightTabs.selected(), me)
+	$Left/KeepStation/KeepPanel.show_station($Left/KeepStation/KeepTabs.selected(), me)
 
 
 func _build_weapon_rows() -> void:
@@ -259,7 +267,21 @@ func _build_weapon_rows() -> void:
 	for i in range(battle.player().weapons_rt.size()):
 		var row: HBoxContainer = WEAPON_ROW.instantiate()
 		list.add_child(row)
+		row.overload_toggled.connect(_on_overload_toggled.bind(i))
 		_weapon_rows.append(row)
+
+
+## Arming a mount is an order like any other: it goes through the battle, so it
+## is written into the log and a replay fires the same heavy shot (docs/11).
+## The switch is then set from what the ship believes rather than from what was
+## clicked, because a refused order must not leave the panel showing it as
+## taken, and a refusal moves nothing the HUD's dirty check would notice.
+func _on_overload_toggled(on: bool, index: int) -> void:
+	if battle == null:
+		return
+	if _can_command():
+		battle.apply_command(0, "overload", [index, on])
+	_weapon_rows[index].set_armed(battle.player().overloaded(index))
 
 
 ## Keep the plan inset looking straight down at the midpoint between the two
@@ -592,7 +614,7 @@ func _on_regen_facing_picked(facing: int) -> void:
 		return
 	var want: int = -1 if battle.player().shield_bias == facing else facing
 	if battle.apply_command(0, "shield_bias", [want]):
-		_note("Shields: hold #%d" % (facing + 1) if want >= 0 else "Shields: even")
+		_note("Shields: hold %s" % Sectors.facing_mark(facing) if want >= 0 else "Shields: even")
 
 
 ## Right click on a subsystem: what losing it costs. It goes to the comm log
@@ -604,7 +626,7 @@ func _on_system_detail(index: int) -> void:
 	var sys: Dictionary = battle.player().systems[index]
 	var tuning: Dictionary = Catalog.tuning()
 	var where: String = "core" if int(sys["sector"]) < 0 \
-		else "#%d" % (int(sys["sector"]) + 1)
+		else Sectors.facing_mark(int(sys["sector"]))
 	if RepairModel.repairable(sys, tuning):
 		_note("%s %s: %d/%d, %d parts to fix" % [String(sys["code"]), where,
 			int(sys["boxes"]), int(sys["boxes_max"]),
@@ -684,7 +706,7 @@ func _reinforce() -> void:
 	var me: ShipState = battle.player()
 	var facing: int = me.weakest_facing()
 	if battle.apply_command(0, "reinforce", [facing]):
-		_note("Reinforced shield #%d from the battery" % (facing + 1))
+		_note("Reinforced shield %s from the battery" % Sectors.facing_mark(facing))
 	else:
 		_note("Battery not charged")
 
@@ -705,9 +727,35 @@ func _set_replay_speed(speed: float) -> void:
 
 
 func _toggle_pause() -> void:
-	paused = not paused
+	set_paused(not paused)
+
+
+## Pause or resume, and say whether it actually changed anything. The return is
+## what lets the settings panel put the battle back exactly as it found it: it
+## pauses on open and resumes on close, but only if it was the one that paused.
+## A battle the player had already paused stays paused when the panel shuts.
+func set_paused(on: bool) -> bool:
+	if paused == on:
+		return false
+	paused = on
 	$Mid/Actions/Pause.text = "Resume" if paused else "Pause"
 	$Mid/ReplayBar/Play.text = "Play" if paused else "Pause"
+	return true
+
+
+## Whether a battle is running here. The settings panel asks, because what it
+## offers differs: you cannot refit a ship under fire, and leaving is only a
+## thing you can do when there is something to leave.
+func in_battle() -> bool:
+	return battle != null and not battle.over
+
+
+## Leave the battle now. The same ending Disengage gives, through the same
+## call, because two ways out that both claim to be a disengagement is exactly
+## the divergence CLAUDE.md 4.1 is about.
+func leave_battle() -> void:
+	set_paused(false)
+	_end_battle("Disengaged")
 
 
 func _end_battle(reason: String) -> void:
@@ -878,15 +926,15 @@ func _refresh_hud() -> void:
 	if DebugFlags.on("fight") and _feed.moved(
 			[HudFeed.SYSTEMS, HudFeed.SHIELDS, HudFeed.QUEUE, HudFeed.POWER]):
 		t = HudProfile.open("fight")
-		$Right/FightTabs.refresh(me.systems, me.repair_queue)
-		$Right/FightPanel.refresh()
+		$Right/FightStation/FightTabs.refresh(me.systems, me.repair_queue)
+		$Right/FightStation/FightPanel.refresh()
 		HudProfile.close("fight", t)
 
 	if DebugFlags.on("keep") and _feed.moved(
 			[HudFeed.SYSTEMS, HudFeed.QUEUE, HudFeed.POWER]):
 		t = HudProfile.open("keep")
-		$Left/KeepTabs.refresh(me.systems, me.repair_queue)
-		$Left/KeepPanel.refresh()
+		$Left/KeepStation/KeepTabs.refresh(me.systems, me.repair_queue)
+		$Left/KeepStation/KeepPanel.refresh()
 		HudProfile.close("keep", t)
 
 	# SHIELDS as well as WEAPONS, because this panel prints the battery and the
@@ -899,11 +947,19 @@ func _refresh_hud() -> void:
 		for i in range(_weapon_rows.size()):
 			var w: Dictionary = me.weapons_rt[i]
 			if w["weapon"].is_empty():
-				_weapon_rows[i].paint("%s (empty)" % String(w["mount"]["id"]), "empty", 0.0)
+				# The mount id alone. The chip beside it already says EMPTY, and
+				# a row that says it twice is spending the column on nothing.
+				_weapon_rows[i].paint(String(w["mount"]["id"]), "empty", 0.0)
 				continue
 			var check: Dictionary = me.fire_check(i, foe.pos)
+			# The four letter code rather than the full name. The column is 118
+			# pixels and the face advances 12 to a character, so the name was
+			# being cut to "M2 Disruptor Ba" long before the arming switch
+			# arrived; the code is the same one the rest of the game prints and
+			# it is never cut (CLAUDE.md 6.4).
 			_weapon_rows[i].paint("%s %s" % [String(w["mount"]["id"]),
-				String(w["weapon"]["name"])], String(check["reason"]), float(w["charge"]))
+				String(w["weapon"]["short"])], String(check["reason"]),
+				float(w["charge"]), me.can_overload(i), me.overloaded(i))
 		$Right/WeaponsPanel/V/Battery.text = "BATTERY %d%%" % int(me.battery * 100.0)
 		Paint.tint($Right/WeaponsPanel/V/Battery, "font_color",
 			Palette.OK if me.battery >= 1.0 else Palette.DIM)
@@ -977,22 +1033,22 @@ func _position_ship_labels_body() -> void:
 	var foe: ShipState = battle.enemy()
 	# Screen space offsets: world space label lifts collapse at plan pitch.
 	var p: Vector2 = world.screen_pos(me.pos)
-	stack.get_node("PlayerLabel").position = p + Vector2(-30, -46)
+	stack.get_node("PlayerLabel").position = p + Vector2(-36, -55)
 	stack.get_node("PlayerLabel").text = String(me.fit.hull()["name"]).to_upper()
 	Paint.tint(stack.get_node("PlayerLabel"), "font_color", Palette.CYAN)
 	# Which shields are down is a sensor reading like any other, so it goes with
 	# the lock rather than surviving it.
 	var seen: bool = me.can_see(foe.pos)
 	var q: Vector2 = world.screen_pos(foe.pos)
-	stack.get_node("EnemyLabel").position = q + Vector2(-34, -58)
+	stack.get_node("EnemyLabel").position = q + Vector2(-41, -70)
 	stack.get_node("EnemyLabel").text = String(foe.fit.hull()["name"]).to_upper()
 	Paint.tint(stack.get_node("EnemyLabel"), "font_color", Palette.MAGENTA)
 	var status: Label = stack.get_node("EnemyStatus")
 	var downs: Array[String] = []
 	for f in range(6):
 		if foe.shields[f] <= 0.0:
-			downs.append("#%d" % (f + 1))
-	status.position = q + Vector2(-40, -42)
+			downs.append(Sectors.facing_mark(f))
+	status.position = q + Vector2(-48, -50)
 	status.text = "" if downs.is_empty() or not seen else "SHIELD %s DOWN" % " ".join(downs)
 	Paint.tint(status, "font_color", Palette.AMBER)
 	_refresh_brackets(world, stack)
@@ -1043,9 +1099,11 @@ func _refresh_brackets(world: Node3D, stack: Control) -> void:
 ## radius to its side. Doing it from the projection rather than from a constant
 ## means the bracket tracks zoom and perspective without a second scale factor
 ## to keep in step with the camera.
+##
+## The radius is the simulation's (ShipState.radius), so the ring drawn around a
+## contact is the circle the contact actually collides with.
 func _ship_screen_radius(world: Node3D, ship: ShipState) -> float:
-	var r: float = float(ship.fit.hull()["tonnage"]) \
-		* float(Catalog.tuning()["view"]["bracket_radius_per_ton"])
+	var r: float = ship.radius()
 	var centre: Vector2 = world.screen_pos(ship.pos)
 	var edge: Vector2 = world.screen_pos(ship.pos + Vector2(r, 0.0))
 	return clampf(centre.distance_to(edge), BRACKET_MIN_PX, BRACKET_MAX_PX)

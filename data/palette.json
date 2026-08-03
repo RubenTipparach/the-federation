@@ -78,16 +78,23 @@
     "checks ship art against that block and an emissive must never be paintable",
     "onto a hull. Ship art stays strictly Waldgeist; only lit UI may use these.",
     "",
-    "TO SWAP THE SKIN, change ui_skin below and run scripts/gen-skin.sh. That",
-    "repaints the plate textures and rewrites the theme, both of which are build",
-    "products of this file. Nothing else in the project names a colour: the",
-    "generators ask for roles like 'face' and 'accent', src/ui/palette.gd reads",
-    "the lit map, and the theme is generated rather than hand edited. This is",
-    "what CLAUDE.md 3.1 means by a palette swap being a one file change.",
+    "A SKIN BELONGS TO A FACTION, not to the build. ui_factions below says which",
+    "skin each side's deck wears, and a ship's hull says which side built it, so",
+    "the console a player is looking at is the console their own navy fits. The",
+    "Federation flies steel and the Kthaari fly verdant. ui_default_faction is",
+    "what the interface wears outside a battle, where no ship has named a side.",
+    "",
+    "TO CHANGE A DECK, edit ui_factions below and run scripts/gen-skin.sh. That",
+    "repaints the plate textures and rewrites the theme for every faction named",
+    "there, both of which are build products of this file. Nothing else in the",
+    "project names a colour: the generators ask for roles like 'face' and",
+    "'accent', src/ui/palette.gd reads the lit map, and the theme is generated",
+    "rather than hand edited. This is what CLAUDE.md 3.1 means by a palette swap",
+    "being a one file change.",
     "",
     "Each skin gives the same two role maps. 'chassis' is what the plate painter",
     "asks for and must name entries from 'colors'. 'lit' is what palette.gd asks",
-    "for and may name either pool."
+    "for and may name either pool. A skin no faction names is simply not built."
   ],
   "ui_colors": {
     "phos_hi": "#a8d79a",
@@ -103,10 +110,14 @@
     "alert": "#cf6a53",
     "alert_hi": "#eb8b6d"
   },
-  "ui_skin": "verdant",
+  "ui_factions": {
+    "federation": "steel",
+    "kthaari": "verdant"
+  },
+  "ui_default_faction": "federation",
   "ui_skins": {
     "verdant": {
-      "note": "Green phosphor on oxidised bronze. The approved skin.",
+      "note": "The Kthaari deck: green phosphor on oxidised bronze.",
       "chassis": {
         "face": "bronze",
         "fleck_a": "clay_deep",
@@ -150,7 +161,7 @@
       }
     },
     "steel": {
-      "note": "Colder deck: blue readouts on gunmetal.",
+      "note": "The Federation deck: blue readouts on gunmetal.",
       "chassis": {
         "face": "gunmetal",
         "fleck_a": "char",
@@ -194,7 +205,7 @@
       }
     },
     "rose": {
-      "note": "Kthaari flavour: rose frame on plum. Not the player's deck; kept for the day enemy screens exist.",
+      "note": "Unassigned. No faction names it, so gen-skin.sh does not build it. Kept because a third navy will want a deck, and because its face and its panel are the same entry, which is a good reminder that a role map can be internally valid and still lose every panel frame.",
       "chassis": {
         "face": "plum",
         "fleck_a": "wine",

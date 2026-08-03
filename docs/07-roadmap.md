@@ -36,6 +36,13 @@ playable 1v1 3D combat against the AI. Not yet done from the M1 list: terrain, p
 torpedo seeking behavior, overload, tactical pause polish beyond a pause button, shield
 bias, and the external playtest gates, which remain the exit criteria.
 
+**Status note (2026-08-03):** most of that list has since landed. Terrain and tractor
+beams are in the sim and drawn in the arena (docs/13), seeking weapons fly and are shot
+at by point defense, shield bias picks the facing regeneration buys for, and disruptor
+overload trades reach for weight against the battery and the shield generators
+(section 5.1 of docs/01). What is still open from M1 is tactical pause polish and the
+external playtest gates, which are the exit criteria rather than features.
+
 **Exit criteria, hard gates:**
 - A fight between two evenly matched ships lasts 6-12 minutes and is *tense throughout*.
 - Arc and facing state is readable from the 3D view at the default camera pitch, and

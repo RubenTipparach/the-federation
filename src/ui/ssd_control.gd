@@ -22,8 +22,14 @@ var _shield_max: float = 1.0
 
 
 func show_state(shields: Array[float], shield_max: float) -> void:
+	# Compared before the copy, because duplicating a six element array every
+	# tick to hand it to a repaint that will draw exactly what is already on
+	# screen is two wastes rather than one.
+	var top: float = maxf(shield_max, 0.001)
+	if _shield_max == top and _shields == shields:
+		return
 	_shields = shields.duplicate()
-	_shield_max = maxf(shield_max, 0.001)
+	_shield_max = top
 	queue_redraw()
 
 
@@ -40,6 +46,18 @@ func inner_radius() -> float:
 
 func centre() -> Vector2:
 	return size * 0.5
+
+
+## Fill the space inside the shields with a child control. The ring owns its
+## own geometry, so the shipyard's painted hull and the combat readout's
+## wireframe both ask it rather than each keeping a copy of the same two lines
+## (CLAUDE.md 4.1).
+##
+## `frac` is how much of that space to take, for a caller that has to leave
+## room for something else in the ring. Both current callers fill it.
+func fit_inside(node: Control, frac: float = 1.0) -> void:
+	node.size = Vector2.ONE * inner_radius() * 2.0 * frac
+	node.position = centre() - node.size * 0.5
 
 
 func _draw() -> void:
@@ -74,7 +92,7 @@ func _draw() -> void:
 
 		var mid: float = deg_to_rad(f * 60.0)
 		var label_pos: Vector2 = center + Vector2(sin(mid), -cos(mid)) * ((r_out + r_in) * 0.5)
-		draw_string(font, label_pos + Vector2(-10, 4), "#%d" % (f + 1),
+		draw_string(font, label_pos + Vector2(-10, 4), Sectors.facing_mark(f),
 			HORIZONTAL_ALIGNMENT_CENTER, 22, 9 if compact else 12,
 			Palette.CRIT if _shields[f] <= 0.0 else Palette.FG)
 		if compact:

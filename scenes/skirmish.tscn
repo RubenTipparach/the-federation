@@ -6,7 +6,7 @@
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-theme_override_constants/separation = 14
+theme_override_constants/separation = 17
 script = ExtResource("1")
 
 [node name="Yours" type="PanelContainer" parent="."]
@@ -15,57 +15,57 @@ size_flags_horizontal = 3
 
 [node name="V" type="VBoxContainer" parent="Yours"]
 layout_mode = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 10
 
 [node name="Head" type="Label" parent="Yours/V"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 13
 text = "YOUR SQUADRON / YOUR DESIGNS"
 theme_type_variation = &"HeaderLabel"
 
 [node name="List" type="VBoxContainer" parent="Yours/V"]
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_constants/separation = 8
+theme_override_constants/separation = 10
 
 [node name="Tonnage" type="Label" parent="Yours/V"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 13
 text = "COMMAND TONNAGE  0 / 240"
 
 [node name="Mid" type="VBoxContainer" parent="."]
 layout_mode = 2
-custom_minimum_size = Vector2(320, 0)
+custom_minimum_size = Vector2(384, 0)
 alignment = 1
-theme_override_constants/separation = 10
+theme_override_constants/separation = 12
 
 [node name="Vs" type="Label" parent="Mid"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 26
+theme_override_font_sizes/font_size = 31
 horizontal_alignment = 1
 text = "VS"
 
 [node name="Kind" type="Label" parent="Mid"]
 layout_mode = 2
 autowrap_mode = 2
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 13
 horizontal_alignment = 1
 text = "FLEET ACTION / DEEP SPACE"
 
 [node name="WhereHead" type="Label" parent="Mid"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 13
 text = "WHERE"
 theme_type_variation = &"HeaderLabel"
 
 [node name="Maps" type="HBoxContainer" parent="Mid"]
 layout_mode = 2
-theme_override_constants/separation = 5
+theme_override_constants/separation = 6
 
 [node name="MapBlurb" type="Label" parent="Mid"]
 layout_mode = 2
-custom_minimum_size = Vector2(0, 30)
-theme_override_font_sizes/font_size = 10
+custom_minimum_size = Vector2(0, 36)
+theme_override_font_sizes/font_size = 12
 autowrap_mode = 2
 text = ""
 
@@ -75,19 +75,19 @@ text = "Begin skirmish"
 
 [node name="ReplayHead" type="Label" parent="Mid"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 13
 text = "RECORDED BATTLES"
 theme_type_variation = &"HeaderLabel"
 
 [node name="ReplayScroll" type="ScrollContainer" parent="Mid"]
 layout_mode = 2
 size_flags_vertical = 3
-custom_minimum_size = Vector2(0, 190)
+custom_minimum_size = Vector2(0, 228)
 
 [node name="ReplayList" type="VBoxContainer" parent="Mid/ReplayScroll"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 4
+theme_override_constants/separation = 5
 
 [node name="Foes" type="PanelContainer" parent="."]
 layout_mode = 2
@@ -95,20 +95,20 @@ size_flags_horizontal = 3
 
 [node name="V" type="VBoxContainer" parent="Foes"]
 layout_mode = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 10
 
 [node name="Head" type="Label" parent="Foes/V"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 13
 text = "OPPOSITION / PREDEFINED AI"
 theme_type_variation = &"HeaderLabel"
 
 [node name="List" type="VBoxContainer" parent="Foes/V"]
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_constants/separation = 8
+theme_override_constants/separation = 10
 
 [node name="Tonnage" type="Label" parent="Foes/V"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 13
 text = "ENEMY TONNAGE  0"

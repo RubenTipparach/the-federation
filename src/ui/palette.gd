@@ -6,10 +6,16 @@ extends RefCounted
 ## single colour authority. That file says which palette entry plays "accent"
 ## or "warn"; this file only gives those roles names GDScript can use.
 ##
-## Which roles apply is chosen by `ui_skin`, so the whole interface repaints
-## from one key in that file. Only the LIT half is read here; the chassis half
-## is baked into the plate textures by tools/gen_ui_plates.py and wired by the
-## generated theme, and scripts/gen-skin.sh keeps the two in step.
+## Which roles apply is chosen by the FACTION whose deck is being flown, looked
+## up in `ui_factions`, so the whole interface repaints from one call. Only the
+## LIT half is read here; the chassis half is baked into the plate textures by
+## tools/gen_ui_plates.py and wired by the generated theme, and
+## scripts/gen-skin.sh keeps the two in step.
+##
+## The two halves swap together or not at all. `theme_path()` below names the
+## theme built from the same skin as the roles this file is currently serving,
+## so a caller that changes the faction and loads that path cannot end up with
+## Federation gunmetal plates behind Kthaari phosphor readouts.
 ##
 ## Two pools back the roles. The chassis draws from `colors`, the Waldgeist
 ## palette, verbatim, because plates and bezels are committed art. The lit
@@ -22,24 +28,28 @@ extends RefCounted
 ## rather than in data/tuning.json. Gameplay numbers must never appear here.
 
 const PALETTE_PATH: String = "res://data/palette.json"
+const THEME_FORMAT: String = "res://assets/ui/skin_theme_%s.tres"
 
 static var _roles: Dictionary = {}
+## Empty until somebody asks, at which point it is the palette file's default.
+## Not initialised at declaration because that would read the file at class
+## load, and a headless sim test must be able to run without one.
+static var _faction: String = ""
 
 
-## Resolve the role map once. Roles name a colour, colours name a hex, and a
-## missing role is a hard failure rather than a silent fallback: a role that
-## quietly paints black because someone typoed it is worse than one that stops.
+## Resolve the role map once per faction. Roles name a colour, colours name a
+## hex, and a missing role is a hard failure rather than a silent fallback: a
+## role that quietly paints black because someone typoed it is worse than one
+## that stops.
 static func _role(name: String) -> Color:
 	if _roles.is_empty():
-		var f: FileAccess = FileAccess.open(PALETTE_PATH, FileAccess.READ)
-		assert(f != null, "missing palette: " + PALETTE_PATH)
-		var data: Dictionary = JSON.parse_string(f.get_as_text())
+		var data: Dictionary = _palette_file()
 		var pool: Dictionary = {}
 		pool.merge(data["colors"])
 		pool.merge(data["ui_colors"])
-		var skin_name: String = String(data["ui_skin"])
+		var skin_name: String = String(data["ui_factions"][faction()])
 		assert(data["ui_skins"].has(skin_name),
-			"ui_skin names unknown skin: " + skin_name)
+			"faction deck names unknown skin: " + skin_name)
 		var lit: Dictionary = data["ui_skins"][skin_name]["lit"]
 		for key in lit:
 			var entry: String = String(lit[key])
@@ -62,6 +72,35 @@ static func _palette_file() -> Dictionary:
 		assert(f != null, "missing palette: " + PALETTE_PATH)
 		_file = JSON.parse_string(f.get_as_text())
 	return _file
+
+
+## Whose deck the interface is currently wearing. Outside a battle that is the
+## palette file's default, because no ship has named a side yet.
+static func faction() -> String:
+	if _faction.is_empty():
+		_faction = String(_palette_file()["ui_default_faction"])
+	return _faction
+
+
+## Fly a different navy's console. Dropping the cache is the whole swap: every
+## role is a property that re-resolves on next read, so no widget has to be
+## told and none of them hold a colour of their own.
+##
+## This changes the LIT half only. The caller has to load theme_path() as well,
+## which is why that lives here beside this: the two are one decision.
+static func use_faction(id: String) -> void:
+	assert(_palette_file()["ui_factions"].has(id), "no deck for faction: " + id)
+	if id == faction():
+		return
+	_faction = id
+	_roles.clear()
+
+
+## The generated theme carrying the chassis half of the current deck, or of a
+## named one. Built by tools/gen_theme.py from the same skin this file reads
+## its roles from.
+static func theme_path(id: String = "") -> String:
+	return THEME_FORMAT % (id if not id.is_empty() else faction())
 
 
 ## A palette entry by its own name, rather than by the role it happens to play.

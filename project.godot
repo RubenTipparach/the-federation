@@ -21,8 +21,8 @@ config/features=PackedStringArray("4.7", "GL Compatibility")
 
 [display]
 
-window/size/viewport_width=1600
-window/size/viewport_height=900
+window/size/viewport_width=1920
+window/size/viewport_height=1080
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 ; Mobile is a testing surface for this prototype, not the primary one. Landscape
@@ -35,3 +35,14 @@ window/handheld/orientation="sensor_landscape"
 ; Web build is a project priority. Also the safest desktop default.
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
+
+; Nearest, because every texture in this game is pixel art and Godot's default
+; is Linear. The skin plates are between 24x20 and 48x22 and are nine patched
+; across panels hundreds of pixels wide, so linear filtering was interpolating
+; a two pixel bevel into a soft gradient and turning single pixel details into
+; blurry smudges. The bitmap font is the same story at a smaller scale.
+;
+; This is the canvas default, so it covers every Control and Sprite2D without
+; each one setting texture_filter for itself, which is section 5.4: one place
+; rather than a property on forty nodes that a forty first will forget.
+rendering/textures/canvas_textures/default_texture_filter=0

@@ -18,22 +18,31 @@ The battle layer. This is the part that must be fun before anything else is buil
 - **Sides:** up to 6 capital ships per player squadron; instance target cap 24 capital
   hulls plus fighters/drones/platforms.
 
-### The arena is 600 units across, and that number is designed
+### The arena is 600 units across, and the guns now cross most of it
 
-The battlefield is a 600 by 600 square on the plane, with the two sides starting 170
-apart. A heavy cruiser's longest weapon reaches about 80, so the arena is roughly seven
-weapon ranges wide.
+The battlefield is a 600 by 600 square on the plane, with the two sides starting 366
+apart. A heavy cruiser's longest weapon reaches 320, so the arena is under two weapon
+ranges wide.
 
-That ratio is the point of the number. It was three for a while, and at three there was
-nowhere to go: no approach worth the name, no room to break contact, and terrain
-features that filled a quarter of the map each. At seven there is a real closing phase,
-somewhere to run to, and terrain you travel between rather than sit on top of.
+It was seven for a while. Reaches moved four times out on 2026-08-03 and the map did
+not move with them, which is a deliberate reversal of the ratio rather than a drift in
+it. What it buys is that the range you fight at is a decision: at seven ranges wide,
+two ships that wanted to shoot each other had to be nearly touching, and the resting
+state of every engagement was both hulls on top of one another trading point blank
+fire. At under two, opening the range is a real option and closing it is a real
+commitment.
 
-Everything that measures a distance, a speed or an acceleration is pinned to that
-ratio, and `data/tuning.json` says so in its `_scale` note. Anything measuring damage,
-energy, degrees or seconds is not: turn rates in degrees per second did not move when
-the map grew, which is exactly what keeps a battlecruiser feeling like a
-battlecruiser.
+What it costs is the closing phase the old ratio was chosen for, which is now short,
+and terrain, which is easier to shoot over than to use. If those turn out to matter
+more than the range decision does, the fix is to grow the map rather than to shorten
+the guns back: the ratio is what is being tuned, and it can be reached from either
+side.
+
+Everything that measures a distance is pinned to that ratio, and `data/tuning.json`
+says so in its `_reach` and `_scale` notes. Anything measuring damage, energy, degrees
+or seconds is not: turn rates in degrees per second did not move when the map grew and
+did not move when the guns did, which is exactly what keeps a battlecruiser feeling
+like a battlecruiser.
 
 ### A destroyed ship comes apart
 
@@ -128,6 +137,31 @@ engine power allow. There is no reverse: you turn, or you don't get there.
 
 Terrain is a primary reason to fight *here* instead of *there*, which gives the strategic
 layer real texture. See [04-galaxy-and-territory.md](04-galaxy-and-territory.md).
+
+### Two ships cannot occupy the same space
+
+Hulls have a size, and two of them touching costs both of them. The rule and its price
+are in [13-terrain-and-tractors.md](13-terrain-and-tractors.md) section 3.3, alongside
+the rocks, because they are the same rule.
+
+The opponent knows this and will not be rammed if it can help it. Two thresholds, both
+in `data/tuning.json` under `ai`:
+
+- **`standoff_radii`** sets a keep out distance from the two hulls' radii added
+  together, so a battlecruiser keeps further off than a frigate without a second table.
+  Inside it the AI stops fighting and runs: a shield it would like to present and a
+  range its guns would like to hold are not worth trading a hull for.
+- **`avoid_lookahead`** is how far ahead it checks for a collision it is not yet in.
+  The closest approach of two ships on straight courses is a closed form, so this is
+  arithmetic rather than a simulated future, and it is measured against the same
+  contact distance the simulation collides on. On a course that ends in contact the AI
+  sheers 90 degrees off the bearing rather than turning about, which opens the range,
+  is quick enough to execute at any turn rate, and leaves the enemy on a beam facing
+  where the arcs still bear.
+
+A ship faster than the opponent can still force contact, and that is the point:
+ramming is a decision with a price on both sides rather than the shape every fight
+settles into.
 
 ---
 
@@ -234,7 +268,48 @@ unchanged.
 | Family | Behavior |
 |---|---|
 | **Beam batteries** | Instant hit, damage falls off with range, wide arcs, cheap power. The reliable baseline. |
-| **Disruptor banks** | Punchy at medium range, narrow arc, higher power draw, can **overload** for ~2× damage at half range and a heavy capacitor cost. |
+| **Disruptor banks** | Punchy at medium range, narrow arc, higher power draw, can **overload** for double damage at half range and a heavy capacitor cost. |
+
+**Overload is the falloff table read at a different scale.** A weapon that can be armed
+carries an `overload` block in `data/weapons.json` with two multipliers: what happens to
+its reach and what happens to its damage. `weapon_model.gd` divides the shot's distance by
+the range multiplier before it looks the band up and multiplies the band's damage on the
+way out, so an armed disruptor at 6 units is reading the band it would otherwise have to
+be at 12 for. Accuracy comes along with the compressed range rather than being a third
+number to tune, and the same functions answer for the fitting screen and for a live shot.
+
+What it costs is not a property of the weapon, because it is the same whatever is firing,
+so it lives in `data/tuning.json` under `combat`:
+
+- **The whole battery.** One burst, per section 3 rule 3: an overload or a reinforce,
+  never both. An armed mount whose reserve cannot pay reports `battery` in the readiness
+  chip rather than silently firing a normal shot.
+- **Four seconds of sagging shields.** The generators buy no boxes for
+  `overload_shield_sag_sec` afterwards, and the energy the shield sink draws meanwhile is
+  lost rather than banked, or the cost would come straight back.
+
+Arming is one shot, not a mode: the switch springs back when the weapon fires, so emptying
+the reserve twice takes two decisions.
+
+**The control is one switch per weapon row**, at the right hand end of the weapons panel,
+in three states: dark where the mount has no overload at all, raised where it can be
+armed, and lit where it is. That first state is information rather than decoration,
+because which of the fitted weapons can take an overload is something a captain wants to
+know before the moment they need it. A click, not a drag, and the state is legible without
+reading a number, which is what `CLAUDE.md` section 6.2 asks of anything on this screen.
+An armed mount that is otherwise ready says `ARMED` in the readiness chip rather than
+`RDY`, because a ready overload is not an ordinary shot.
+
+The switch reports a click and decides nothing: arming goes through
+`Battle.apply_command` like every other order, so it is written into the battle log and a
+replay fires the same heavy shot. The panel then sets the switch from what the ship
+believes rather than from what was clicked, because an order the battle refused must not
+leave the screen showing it as taken.
+
+The row is 336 pixels wide and the face advances 12 to a character, so the switch is paid
+for out of the name column, which now prints the four letter code the rest of the game
+already uses. Nothing reads shorter than it did: at the old width the column was already
+cutting `M2 Disruptor Bank` down to `M2 Disruptor Ba`.
 
 **Range falloff is a table, not a curve.** Every weapon in `data/weapons.json` carries a
 `falloff` list: bands from point blank outward, each with the damage a hit scores and the

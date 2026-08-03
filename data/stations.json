@@ -1,49 +1,49 @@
 {
-  "_comment": "The subsystem stations of the tactical view, one per tab. side is which strip the tab belongs to: 'fight' is the right hand strip beside the target, for the things a player reaches for while under fire, and 'keep' is the left hand strip beside the log, for the condition of the ship and its stores. That split is CLAUDE.md 6.2's test made into a layout. icon names a committed mask in assets/icons. code is the box the station speaks for, so the tab can go dark when its hardware does; an empty code means the station answers to no single box and can never be knocked out, which is true of the shield ring and of the repair parties themselves. live is false for a station that is drawn but not yet wired, which is deliberate: the layout has to be settled before the wiring, or every one of them is a relayout later. survives_box is the one exception to a dark console being unusable: the tractor's emitter is what LATCHES a ship, and shoving against a beam already on you is done with the engines, so its tab stays reachable with the box shot out (docs/13 section 6.2).",
+  "_comment": "The subsystem stations of the tactical view, one per tab. side is which strip the tab belongs to: 'fight' is the right hand strip beside the target, for the things a player reaches for while under fire, and 'keep' is the left hand strip beside the log, for the condition of the ship and its stores. That split is CLAUDE.md 6.2's test made into a layout. icon names a committed mask in assets/icons. label is the station's name and is what its tooltip says; mark is the short stencil the tab itself wears, because the strip is sixty pixels wide and a name does not fit in one. code is the box the station speaks for, so the tab can go dark when its hardware does; an empty code means the station answers to no single box and can never be knocked out, which is true of the shield ring and of the repair parties themselves. live is false for a station that is drawn but not yet wired, which is deliberate: the layout has to be settled before the wiring, or every one of them is a relayout later. survives_box is the one exception to a dark console being unusable: the tractor's emitter is what LATCHES a ship, and shoving against a beam already on you is done with the engines, so its tab stays reachable with the box shot out (docs/13 section 6.2).",
   "order": [
     "shields", "reactor", "sensors", "tractor", "marines", "shuttle",
     "repair", "life", "cargo", "science"
   ],
   "stations": {
     "shields": {
-      "label": "Shields", "icon": "shld", "code": "", "side": "fight", "live": true,
+      "label": "Shields", "mark": "SHLD", "icon": "shld", "code": "", "side": "fight", "live": true,
       "blurb": "Boxes are bought, not handed back: two energy each, into the facing picked here (3C7)."
     },
     "reactor": {
-      "label": "Reactor", "icon": "warp", "code": "WARP", "side": "fight", "live": true,
+      "label": "Reactor", "mark": "RCTR", "icon": "warp", "code": "WARP", "side": "fight", "live": true,
       "blurb": "Output is what every other station spends. Fuel, coolant and overload are not wired yet."
     },
     "sensors": {
-      "label": "Sensors", "icon": "sens", "code": "", "side": "fight", "live": false,
+      "label": "Sensors", "mark": "SENS", "icon": "sens", "code": "", "side": "fight", "live": false,
       "blurb": "Discrete points between jamming and seeing through it, and the lock that decides what you may read."
     },
     "tractor": {
-      "label": "Tractor", "icon": "trac", "code": "TRAC", "side": "fight", "live": true,
+      "label": "Tractor", "mark": "TRAC", "icon": "trac", "code": "TRAC", "side": "fight", "live": true,
       "survives_box": true,
       "blurb": "A standing bid out of the reactor, weighted by tonnage. Both sides pay for every second of it."
     },
     "marines": {
-      "label": "Marines", "icon": "mrne", "code": "MRNE", "side": "fight", "live": false,
+      "label": "Marines", "mark": "MRNE", "icon": "mrne", "code": "MRNE", "side": "fight", "live": false,
       "blurb": "Boarding needs a shield down on the facing you transport through."
     },
     "shuttle": {
-      "label": "Shuttle", "icon": "shtl", "code": "SHTL", "side": "fight", "live": false,
+      "label": "Shuttle", "mark": "SHTL", "icon": "shtl", "code": "SHTL", "side": "fight", "live": false,
       "blurb": "Shuttles launch from here, and so do mines: not fired, left behind."
     },
     "repair": {
-      "label": "Repair", "icon": "rpr", "code": "", "side": "keep", "live": true,
+      "label": "Repair", "mark": "RPR", "icon": "rpr", "code": "", "side": "keep", "live": true,
       "blurb": "One job at a time, priced per box, not per system (5G4). Parts are a stock, not an income."
     },
     "life": {
-      "label": "Life", "icon": "life", "code": "BRDG", "side": "keep", "live": true,
+      "label": "Life", "mark": "LIFE", "icon": "life", "code": "BRDG", "side": "keep", "live": true,
       "blurb": "Crew aboard and sections still sealed. Officer casualties are not wired yet."
     },
     "cargo": {
-      "label": "Cargo", "icon": "cargo", "code": "", "side": "keep", "live": false,
+      "label": "Cargo", "mark": "CRGO", "icon": "cargo", "code": "", "side": "keep", "live": false,
       "blurb": "In a fight this throws mass overboard and counts the spare parts aboard."
     },
     "science": {
-      "label": "Lab", "icon": "lab", "code": "LAB", "side": "keep", "live": false,
+      "label": "Lab", "mark": "LAB", "icon": "lab", "code": "LAB", "side": "keep", "live": false,
       "blurb": "A probe fired mid fight is how you learn a hull you have never seen."
     }
   }

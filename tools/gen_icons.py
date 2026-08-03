@@ -292,12 +292,42 @@ def cargo(c):    # cargo: a crate, banded
     c.bar(29, 24, 29, 39, 3)
 
 
+def trsh(c):     # discard: a bin with its lid lifted clear of the body
+    c.bar(8, 13, 40, 13, 4)
+    c.bar(20, 7, 28, 7, 4)
+    _outline(c, [(13, 19), (35, 19), (32, 44), (16, 44)], 4)
+    c.bar(21, 24, 20, 40, 3)
+    c.bar(27, 24, 28, 40, 3)
+
+
+# The only glyph here that is not a ship system. Settings is chrome rather
+# than hardware, but it is drawn by the same generator and shipped as the same
+# white mask, because a second way of making an icon is a second thing to keep
+# in step (CLAUDE.md 4.1).
+
+
+def gear(c):     # settings: an eight tooth gear with an open hub
+    # Eight, because six reads as a flower and twelve turns to mush at the 18
+    # pixels the top bar draws it at.
+    c.disc(24, 24, 14, 7)
+    for i in range(8):
+        a = math.radians(i * 45)
+        # 19 rather than 21: a bar is drawn with its thickness centred on the
+        # end point, so a tooth reaching 21 puts its tip at 24.5 from centre
+        # and the four axis aligned ones get flattened against the edge of a
+        # 48 pixel canvas.
+        c.bar(24 + 12 * math.sin(a), 24 - 12 * math.cos(a),
+              24 + 19 * math.sin(a), 24 - 19 * math.cos(a), 7)
+
+
 ICONS = {
     "PH-1": ph1, "PH-3": ph3, "PHOT": phot, "DISR": disr, "LNCE": lnce,
     "DRN": drn, "BRDG": brdg, "WARP": warp, "IMP": imp, "AUXP": auxp,
     "BTTY": btty, "SHTL": shtl, "TRAN": tran, "TRAC": trac, "PRB": prb,
     "LAB": lab, "MRNE": mrne, "HULL": hull, "ARMR": armr,
     "SHLD": shld, "SENS": sens, "RPR": rpr, "LIFE": life, "CARGO": cargo,
+    "TRSH": trsh,
+    "GEAR": gear,
 }
 
 

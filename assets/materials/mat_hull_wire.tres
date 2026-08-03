@@ -1,0 +1,13 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3]
+
+; The wireframe hull in a ship systems display. Unshaded, because a readout is
+; information rather than a lit surface, and the tint is set per instance from
+; the palette by src/ui/hull_view.gd so the outline follows the deck and tells
+; a friendly hull from a hostile one. The colour here is only what it looks
+; like before anybody configures it.
+
+[ext_resource type="Shader" path="res://assets/shaders/tint.gdshader" id="1"]
+
+[resource]
+shader = ExtResource("1")
+shader_parameter/tint = Color(0.435, 0.702, 0.643, 1)
