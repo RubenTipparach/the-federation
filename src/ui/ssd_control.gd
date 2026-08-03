@@ -52,9 +52,9 @@ func centre() -> Vector2:
 ## own geometry, so the shipyard's painted hull and the combat readout's
 ## wireframe both ask it rather than each keeping a copy of the same two lines
 ## (CLAUDE.md 4.1).
-## `frac` is how much of that space to take, for the callers that have to leave
-## room for something else in the ring. The shipyard fills it; the combat
-## readout keeps a strip at the bottom for the hull integrity.
+##
+## `frac` is how much of that space to take, for a caller that has to leave
+## room for something else in the ring. Both current callers fill it.
 func fit_inside(node: Control, frac: float = 1.0) -> void:
 	node.size = Vector2.ONE * inner_radius() * 2.0 * frac
 	node.position = centre() - node.size * 0.5
@@ -92,7 +92,7 @@ func _draw() -> void:
 
 		var mid: float = deg_to_rad(f * 60.0)
 		var label_pos: Vector2 = center + Vector2(sin(mid), -cos(mid)) * ((r_out + r_in) * 0.5)
-		draw_string(font, label_pos + Vector2(-10, 4), "#%d" % (f + 1),
+		draw_string(font, label_pos + Vector2(-10, 4), Sectors.facing_mark(f),
 			HORIZONTAL_ALIGNMENT_CENTER, 22, 9 if compact else 12,
 			Palette.CRIT if _shields[f] <= 0.0 else Palette.FG)
 		if compact:

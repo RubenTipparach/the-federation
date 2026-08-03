@@ -53,6 +53,9 @@ func _ready() -> void:
 		$V/Fix.pressed.connect(_on_fix)
 		for f in range(Sectors.FACING_COUNT):
 			var b: Button = $V/Picker.get_node("P%d" % f)
+			# The mark comes from Sectors rather than the scene, so the six
+			# buttons cannot drift from the six bands on the ring beside them.
+			b.text = Sectors.facing_mark(f)
 			b.pressed.connect(_on_pick.bind(f))
 		$V/Cmds/Latch.pressed.connect(_on_latch)
 		$V/Cmds/Hold.pressed.connect(_on_mode.bind(Tractor.MODE_HOLD))
@@ -164,7 +167,7 @@ func _render_shields() -> void:
 	for f in range(Sectors.FACING_COUNT):
 		var cur: int = int(_ship.shields[f])
 		var top: int = int(_ship.shield_max)
-		_paint_row(f, "#%d" % (f + 1), cur, top, "%d/%d" % [cur, top],
+		_paint_row(f, Sectors.facing_mark(f), cur, top, "%d/%d" % [cur, top],
 			Palette.shield_color(float(cur) / maxf(1.0, float(top))))
 	var reinf: int = 1 if _ship.battery >= 1.0 else 0
 	_paint_row(6, "REINF", reinf, 1, "%d PT" % reinf, Palette.BLUE)
@@ -212,7 +215,7 @@ func _render_repair() -> void:
 		node.get_node("Line/Ord").text = str(i + 1)
 		node.get_node("Line/Code").text = String(sys["code"])
 		node.get_node("Line/Where").text = "core" if int(sys["sector"]) < 0 \
-			else "#%d" % (int(sys["sector"]) + 1)
+			else Sectors.facing_mark(int(sys["sector"]))
 		node.get_node("Line/Cost").text = "%d p" % cost
 		Paint.tint(node.get_node("Line/Cost"), "font_color",
 			Palette.DIM if affordable else Palette.AMBER)

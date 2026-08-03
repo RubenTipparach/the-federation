@@ -104,6 +104,22 @@ static func facing_name(facing: int) -> String:
 	return FACING_NAMES[posmod(facing, FACING_COUNT)]
 
 
+## The short mark for a facing: A at the bow, then B to F clockwise.
+##
+## Letters rather than numbers, and the reason is that a tactical screen is
+## full of numbers already. Shield strength, box counts, bearings, ranges and
+## power are all numbers a captain reads and compares, and a facing is none of
+## those: it is a name for a place on the ship. "Shield 4 at 19 of 24" makes
+## the reader work out which of those three numbers is an identifier. "Shield D
+## at 19 of 24" does not.
+##
+## One function, every screen. The ring, the arc wheel, the shield bars, the
+## damage report and the comm log all label a facing the same way or a player
+## cannot carry a reading from one to another.
+static func facing_mark(facing: int) -> String:
+	return String.chr("A".unicode_at(0) + posmod(facing, FACING_COUNT))
+
+
 ## The bearing arc a facing covers, as the plate prints it.
 static func facing_arc_label(facing: int) -> String:
 	var f: int = posmod(facing, FACING_COUNT)

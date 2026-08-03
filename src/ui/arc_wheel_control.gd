@@ -75,7 +75,7 @@ func _draw() -> void:
 		draw_arc(center, r_max + 22.0, a0, a1, 16, Palette.CYAN_DIM, 4.0)
 		var mid: Vector2 = _dir(f * 60.0)
 		draw_string(font, center + mid * (r_max + 36.0) + Vector2(-10, 4),
-			"#%d" % (f + 1), HORIZONTAL_ALIGNMENT_CENTER, 22, 11, Palette.CYAN)
+			Sectors.facing_mark(f), HORIZONTAL_ALIGNMENT_CENTER, 22, 11, Palette.CYAN)
 
 	# Blind bearings, hatched critical.
 	var blind: Array[int] = _fit.blind_sectors()

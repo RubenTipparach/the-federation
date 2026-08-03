@@ -494,11 +494,12 @@ func apply_damage(world_bearing: float, amount: float) -> Dictionary:
 		absorbed = minf(shields[facing], remaining)
 		shields[facing] -= absorbed
 		remaining -= absorbed
-		lines.append("Shield #%d absorbs %d, at %d" % [facing + 1, int(absorbed), int(shields[facing])])
+		lines.append("Shield %s absorbs %d, at %d" % [Sectors.facing_mark(facing),
+			int(absorbed), int(shields[facing])])
 		if shields[facing] <= 0.0:
-			lines.append("SHIELD #%d DOWN, internals exposed" % [facing + 1])
+			lines.append("SHIELD %s DOWN, internals exposed" % [Sectors.facing_mark(facing)])
 	else:
-		lines.append("Facing #%d already down" % [facing + 1])
+		lines.append("Facing %s already down" % [Sectors.facing_mark(facing)])
 	if remaining > 0.0:
 		lines.append_array(apply_internal(remaining, facing))
 	return { "facing": facing, "absorbed": absorbed, "log": lines }
@@ -550,7 +551,7 @@ func apply_internal(amount: float, facing: int = 0) -> Array[String]:
 		if int(pick["boxes"]) <= 0:
 			lines.append("%s DESTROYED" % [String(pick["code"])])
 			if source == facing and boxes_in(facing) <= 0:
-				lines.append("SECTOR #%d STRIPPED, the hull core is exposed" % [facing + 1])
+				lines.append("SECTOR %s STRIPPED, the hull core is exposed" % [Sectors.facing_mark(facing)])
 		else:
 			lines.append("%s takes %d, %d left" % [String(pick["code"]), take, int(pick["boxes"])])
 	if total_boxes() <= 0:

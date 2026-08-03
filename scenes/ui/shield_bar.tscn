@@ -11,7 +11,7 @@ script = ExtResource("1")
 layout_mode = 2
 custom_minimum_size = Vector2(29, 0)
 theme_override_font_sizes/font_size = 13
-text = "#1"
+text = "A"
 
 [node name="Track" type="ColorRect" parent="."]
 layout_mode = 2

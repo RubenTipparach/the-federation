@@ -178,7 +178,7 @@ func _rebuild_internals() -> void:
 		panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
 		var key: int = ShipState.CORE if is_core else sector
 		panel.build(
-			"CORE" if is_core else str(sector + 1),
+			"CORE" if is_core else Sectors.facing_mark(sector),
 			"Hull core" if is_core else Sectors.facing_name(sector),
 			"no shield" if is_core else Sectors.facing_arc_label(sector),
 			_demo.systems_in(key))

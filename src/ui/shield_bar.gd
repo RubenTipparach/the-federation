@@ -5,7 +5,7 @@ extends HBoxContainer
 
 
 func paint(facing: int, value: float, max_value: float) -> void:
-	$Idx.text = "#%d" % (facing + 1)
+	$Idx.text = Sectors.facing_mark(facing)
 	Paint.tint($Idx, "font_color", Palette.DIM)
 	var frac: float = 0.0 if max_value <= 0.0 else value / max_value
 	var hue: Color = Palette.shield_color(frac)

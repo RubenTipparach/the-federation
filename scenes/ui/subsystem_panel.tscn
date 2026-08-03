@@ -173,7 +173,7 @@ size_flags_horizontal = 3
 toggle_mode = true
 focus_mode = 0
 theme_override_font_sizes/font_size = 12
-text = "#1"
+text = "A"
 
 [node name="P1" type="Button" parent="V/Picker"]
 layout_mode = 2
@@ -181,7 +181,7 @@ size_flags_horizontal = 3
 toggle_mode = true
 focus_mode = 0
 theme_override_font_sizes/font_size = 12
-text = "#2"
+text = "B"
 
 [node name="P2" type="Button" parent="V/Picker"]
 layout_mode = 2
@@ -189,7 +189,7 @@ size_flags_horizontal = 3
 toggle_mode = true
 focus_mode = 0
 theme_override_font_sizes/font_size = 12
-text = "#3"
+text = "C"
 
 [node name="P3" type="Button" parent="V/Picker"]
 layout_mode = 2
@@ -197,7 +197,7 @@ size_flags_horizontal = 3
 toggle_mode = true
 focus_mode = 0
 theme_override_font_sizes/font_size = 12
-text = "#4"
+text = "D"
 
 [node name="P4" type="Button" parent="V/Picker"]
 layout_mode = 2
@@ -205,7 +205,7 @@ size_flags_horizontal = 3
 toggle_mode = true
 focus_mode = 0
 theme_override_font_sizes/font_size = 12
-text = "#5"
+text = "E"
 
 [node name="P5" type="Button" parent="V/Picker"]
 layout_mode = 2
@@ -213,7 +213,7 @@ size_flags_horizontal = 3
 toggle_mode = true
 focus_mode = 0
 theme_override_font_sizes/font_size = 12
-text = "#6"
+text = "F"
 
 [node name="Queue" type="VBoxContainer" parent="V"]
 layout_mode = 2

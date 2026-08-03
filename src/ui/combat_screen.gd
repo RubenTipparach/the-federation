@@ -600,7 +600,7 @@ func _on_regen_facing_picked(facing: int) -> void:
 		return
 	var want: int = -1 if battle.player().shield_bias == facing else facing
 	if battle.apply_command(0, "shield_bias", [want]):
-		_note("Shields: hold #%d" % (facing + 1) if want >= 0 else "Shields: even")
+		_note("Shields: hold %s" % Sectors.facing_mark(facing) if want >= 0 else "Shields: even")
 
 
 ## Right click on a subsystem: what losing it costs. It goes to the comm log
@@ -612,7 +612,7 @@ func _on_system_detail(index: int) -> void:
 	var sys: Dictionary = battle.player().systems[index]
 	var tuning: Dictionary = Catalog.tuning()
 	var where: String = "core" if int(sys["sector"]) < 0 \
-		else "#%d" % (int(sys["sector"]) + 1)
+		else Sectors.facing_mark(int(sys["sector"]))
 	if RepairModel.repairable(sys, tuning):
 		_note("%s %s: %d/%d, %d parts to fix" % [String(sys["code"]), where,
 			int(sys["boxes"]), int(sys["boxes_max"]),
@@ -692,7 +692,7 @@ func _reinforce() -> void:
 	var me: ShipState = battle.player()
 	var facing: int = me.weakest_facing()
 	if battle.apply_command(0, "reinforce", [facing]):
-		_note("Reinforced shield #%d from the battery" % (facing + 1))
+		_note("Reinforced shield %s from the battery" % Sectors.facing_mark(facing))
 	else:
 		_note("Battery not charged")
 
@@ -1025,7 +1025,7 @@ func _position_ship_labels_body() -> void:
 	var downs: Array[String] = []
 	for f in range(6):
 		if foe.shields[f] <= 0.0:
-			downs.append("#%d" % (f + 1))
+			downs.append(Sectors.facing_mark(f))
 	status.position = q + Vector2(-48, -50)
 	status.text = "" if downs.is_empty() or not seen else "SHIELD %s DOWN" % " ".join(downs)
 	Paint.tint(status, "font_color", Palette.AMBER)
