@@ -292,6 +292,14 @@ def cargo(c):    # cargo: a crate, banded
     c.bar(29, 24, 29, 39, 3)
 
 
+def trsh(c):     # discard: a bin with its lid lifted clear of the body
+    c.bar(8, 13, 40, 13, 4)
+    c.bar(20, 7, 28, 7, 4)
+    _outline(c, [(13, 19), (35, 19), (32, 44), (16, 44)], 4)
+    c.bar(21, 24, 20, 40, 3)
+    c.bar(27, 24, 28, 40, 3)
+
+
 # The only glyph here that is not a ship system. Settings is chrome rather
 # than hardware, but it is drawn by the same generator and shipped as the same
 # white mask, because a second way of making an icon is a second thing to keep
@@ -318,6 +326,7 @@ ICONS = {
     "BTTY": btty, "SHTL": shtl, "TRAN": tran, "TRAC": trac, "PRB": prb,
     "LAB": lab, "MRNE": mrne, "HULL": hull, "ARMR": armr,
     "SHLD": shld, "SENS": sens, "RPR": rpr, "LIFE": life, "CARGO": cargo,
+    "TRSH": trsh,
     "GEAR": gear,
 }
 
