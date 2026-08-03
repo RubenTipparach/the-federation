@@ -77,7 +77,7 @@ func bind_ship(ship: ShipState, detail: bool, editable: bool) -> void:
 func _fit_wire() -> void:
 	# Not the whole space: the hull integrity sits at the foot of the ring and
 	# the ship is nudged up off it.
-	$Ring.fit_inside($Ring/Wire, 0.74)
+	$Ring.fit_inside($Ring/Wire)
 	$Ring/Wire.position.y -= inner_gap()
 	$Ring/Wire.request_frame()
 
