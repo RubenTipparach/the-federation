@@ -219,6 +219,20 @@ def debris():
                 "Wreck plate %d, extruded irregular polygon, scaled in code" % index)
 
 
+def ordnance():
+    """A round of ordnance in flight: a small spindle lying along +Z.
+
+    One mesh for both the torpedo bolt and the drone, because they are the
+    same object at two scales and in two colours, and a second mesh would be
+    a second thing to keep in step (CLAUDE.md 4.1). Unit length nose to tail,
+    so the view scales it to whatever a drone or a bolt should be.
+    """
+    o = Obj()
+    spindle(o, 0.0, 0.5, 0.5, 0.28, 0.0, segs=8, taper=0.2)
+    o.write("ordnance.obj",
+            "Unit ordnance body, nose at +Z, scaled by the view")
+
+
 def beam():
     o = Obj()
     n = o.normal(0, 1, 0)
@@ -346,6 +360,7 @@ def main():
     sphere()
     debris()
     beam()
+    ordnance()
     hull()
 
 

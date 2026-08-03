@@ -29,6 +29,16 @@ window/stretch/aspect="expand"
 ; only, because the tactical layout is wide and unusable in portrait.
 window/handheld/orientation="sensor_landscape"
 
+[gui]
+
+; Tooltips appear at once. Godot's default is half a second, which is a fine
+; delay for a text editor and the wrong one for a cockpit: this interface puts
+; the station's full label in a tooltip behind a four letter mark, so waiting
+; is waiting to find out what a control IS. A captain under fire will not spend
+; half a second per button, and the whole point of the vertical strip is that
+; the mark is glanceable and the name is one hover away.
+timers/tooltip_delay_sec=0.0
+
 [rendering]
 
 ; gl_compatibility, not forward_plus: Vulkan does not run in a browser, and the

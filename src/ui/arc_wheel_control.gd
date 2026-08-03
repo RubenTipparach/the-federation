@@ -6,6 +6,11 @@ extends Control
 ## drawn here is read from a ShipFit through the one fitting implementation;
 ## this control computes nothing about arcs itself.
 
+## How many range rings to rule the wheel with. A drawing decision like the
+## step count of an arc, not a tuning value: WHERE they fall is read from the
+## catalog, which is the part that has to stay honest.
+const RANGE_RINGS: int = 4
+
 var _fit: ShipFit
 var _isolated_mount: String = ""
 var _range_max: float = WeaponModel.longest_range()
@@ -52,8 +57,17 @@ func _draw() -> void:
 	var r0: float = r_max * 0.16
 	var font: Font = get_theme_default_font()
 
-	# Range rings.
-	for rng in [5.0, 10.0, 15.0, 20.0]:
+	# Range rings, at even fractions of the longest reach in the catalog.
+	#
+	# These were the literals 5, 10, 15 and 20, which is the hardcoded tuning
+	# CLAUDE.md 5.4 forbids, and it had already stopped meaning anything: the
+	# wheel's outer edge is the longest weapon in the catalog, so once that was
+	# 88 the four rings were all inside the innermost quarter, and once it was
+	# 352 they were a squashed stack of digits over the hub. A grid drawn from
+	# the same number the wheel is scaled to cannot go out of step with it
+	# again, whatever the reaches are retuned to.
+	for step in range(1, RANGE_RINGS + 1):
+		var rng: float = _range_max * float(step) / float(RANGE_RINGS)
 		var rr: float = _radius_for_range(rng, r0, r_max)
 		draw_arc(center, rr, 0.0, TAU, 64, Palette.LINE, 1.0)
 		draw_string(font, center + Vector2(4, -rr + 12), str(int(rng)),

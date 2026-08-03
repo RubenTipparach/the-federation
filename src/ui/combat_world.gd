@@ -6,7 +6,10 @@ extends Node3D
 ## caller clamping is how one path drifts and allows an illegal camera.
 
 const MAT_BEAM := preload("res://assets/materials/mat_beam.tres")
+const MAT_TORPEDO := preload("res://assets/materials/mat_ordnance_torpedo.tres")
+const MAT_DRONE := preload("res://assets/materials/mat_ordnance_drone.tres")
 const WRECK := preload("res://scenes/wreck.tscn")
+const ORDNANCE := preload("res://scenes/ordnance.tscn")
 
 var _az_deg: float = 0.0
 var _pitch_deg: float = 55.0
@@ -14,6 +17,18 @@ var _distance: float = 46.0
 var _beam_ttl: Array[float] = [0.0, 0.0, 0.0]
 var _next_beam: int = 0
 var _battle: Battle
+
+## One drawn round per drone the simulation is flying, keyed on the Seeker
+## itself. The sim owns where they are and when they die; this is a mirror of
+## that list, so a drone cannot be on screen after it has been shot down.
+var _drones: Dictionary = {}
+
+## Torpedo bolts crossing the plane. Presentation only, and that is worth
+## being clear about: a torpedo is direct fire, so the shot was resolved the
+## moment it was fired and nothing about the battle waits for the bolt to
+## arrive. What the bolt carries is the shield flash, held back until it lands
+## so the two halves of the depiction agree with each other.
+var _bolts: Array = []
 
 
 func _ready() -> void:
@@ -36,6 +51,13 @@ func bind_battle(battle: Battle) -> void:
 	for old_wreck in $Wrecks.get_children():
 		$Wrecks.remove_child(old_wreck)
 		old_wreck.queue_free()
+	# Ordnance from the last battle is not in flight in this one, and the drone
+	# table holds Seekers from a battle that has stopped existing.
+	for round_in_flight in $Ordnance.get_children():
+		$Ordnance.remove_child(round_in_flight)
+		round_in_flight.queue_free()
+	_drones.clear()
+	_bolts.clear()
 	for rig_name in ["PlayerRig", "EnemyRig"]:
 		for child in get_node(rig_name).get_children():
 			(child as Node3D).visible = true
@@ -130,21 +152,34 @@ func follow_pivot(delta: float = 0.0) -> void:
 				rig.update_bank(delta)
 
 
-func update_visuals(delta: float, events: Array[Dictionary]) -> void:
+## Two deltas, and the difference between them matters. `delta` is wall time,
+## which is what a beam fade and a shield flare run on: those are afterimages
+## and they should finish even if the battle is stopped. `sim_delta` is how
+## much battle the last frame actually advanced, zero while paused, which is
+## what ordnance in flight runs on, because a torpedo frozen in mid air is the
+## only honest thing to draw over a frozen battle.
+func update_visuals(delta: float, sim_delta: float,
+		events: Array[Dictionary]) -> void:
 	$PlayerRig.refresh()
 	$EnemyRig.refresh()
 	for e in events:
 		if String(e["type"]) == "destroyed":
 			_break_up(int(e["ship"]), e["at"])
 		if String(e["type"]) == "shot":
-			_flash_beam(e["from_pos"], e["to_pos"])
-			# Light the shield that took it. Which facing and whose ship both
-			# come from the event, so the view never re-derives what the damage
-			# model already decided.
+			# Which facing was struck and whose ship it was both come from the
+			# event, so the view never re-derives what the damage model already
+			# decided. What differs between a beam and a torpedo is only WHEN
+			# the shield lights: at once for a beam, on arrival for a bolt.
 			var facing: int = int(e.get("facing", -1))
-			if facing >= 0:
-				var rig: Node = $PlayerRig if bool(e.get("target_player", false)) else $EnemyRig
-				rig.flash_shield(facing)
+			var on_player: bool = bool(e.get("target_player", false))
+			if String(e.get("family", "")) == "torpedo":
+				_launch_bolt(e["from_pos"], e["to_pos"], facing, on_player)
+			else:
+				_flash_beam(e["from_pos"], e["to_pos"])
+				if facing >= 0:
+					_rig_of(on_player).flash_shield(facing)
+	_step_bolts(sim_delta)
+	_sync_drones()
 	$PlayerRig.update_flares(delta)
 	$EnemyRig.update_flares(delta)
 	var fade: float = float(Catalog.tuning()["combat"]["beam_fade_sec"])
@@ -172,6 +207,87 @@ func _break_up(index: int, at: Vector2) -> void:
 	rig.stand_down()
 
 
+
+
+## Which rig belongs to which side. One place, because "player rig or enemy
+## rig" was being decided at three call sites and a fourth would have got it
+## backwards eventually.
+func _rig_of(player_side: bool) -> Node:
+	return $PlayerRig if player_side else $EnemyRig
+
+
+## The height ordnance and fire fly at: the deck line of a hull, which the
+## beams already use. Ordnance sharing it is what makes a bolt read as being
+## in the same world as the beam it flew beside.
+func _deck_line() -> float:
+	return float(Catalog.tuning()["view"]["beam_width"]) * 2.0
+
+
+## Send a torpedo bolt across the plane. It carries the shield flash rather
+## than the damage: the damage happened when the trigger was pulled.
+func _launch_bolt(from_pos: Vector2, to_pos: Vector2, facing: int,
+		on_player: bool) -> void:
+	var view: Dictionary = Catalog.tuning()["view"]
+	var node: Node3D = ORDNANCE.instantiate()
+	$Ordnance.add_child(node)
+	node.wear(MAT_TORPEDO, float(view["ordnance_bolt_length"]))
+	var bearing: float = Sectors.bearing_between(from_pos, to_pos)
+	node.fly(from_pos, bearing, _deck_line())
+	_bolts.append({
+		"node": node, "from": from_pos, "to": to_pos, "bearing": bearing,
+		"travelled": 0.0, "facing": facing, "on_player": on_player,
+	})
+
+
+func _step_bolts(delta: float) -> void:
+	if _bolts.is_empty():
+		return
+	var speed: float = float(Catalog.tuning()["view"]["ordnance_bolt_speed"])
+	var height: float = _deck_line()
+	var flying: Array = []
+	for bolt in _bolts:
+		bolt["travelled"] = float(bolt["travelled"]) + speed * delta
+		var span: float = Vector2(bolt["from"]).distance_to(Vector2(bolt["to"]))
+		if float(bolt["travelled"]) >= span:
+			# Arrived. Light the shield it struck, then it is gone: there is no
+			# impact object, because the impact is already in the damage model.
+			var facing: int = int(bolt["facing"])
+			if facing >= 0:
+				_rig_of(bool(bolt["on_player"])).flash_shield(facing)
+			(bolt["node"] as Node3D).queue_free()
+			continue
+		var at: Vector2 = Vector2(bolt["from"]).lerp(Vector2(bolt["to"]),
+			float(bolt["travelled"]) / maxf(span, 0.001))
+		(bolt["node"] as Node3D).fly(at, float(bolt["bearing"]), height)
+		flying.append(bolt)
+	_bolts = flying
+
+
+## One drawn drone per drone the simulation is flying. The sim owns the list,
+## so a drone shot down by point defense leaves the screen because it left the
+## battle, not because the view decided it had (CLAUDE.md 5.2).
+func _sync_drones() -> void:
+	if _battle == null:
+		return
+	var length: float = float(Catalog.tuning()["view"]["ordnance_drone_length"])
+	var height: float = _deck_line()
+	var live: Dictionary = {}
+	for seeker in _battle.seekers:
+		if not seeker.alive():
+			continue
+		live[seeker] = true
+		var node: Node3D = _drones.get(seeker)
+		if node == null:
+			node = ORDNANCE.instantiate()
+			$Ordnance.add_child(node)
+			node.wear(MAT_DRONE, length)
+			_drones[seeker] = node
+		node.fly(seeker.pos, seeker.heading, height)
+	for seeker in _drones.keys():
+		if live.has(seeker):
+			continue
+		(_drones[seeker] as Node3D).queue_free()
+		_drones.erase(seeker)
 
 
 func _flash_beam(from_pos: Vector2, to_pos: Vector2) -> void:

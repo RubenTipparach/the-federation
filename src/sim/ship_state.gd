@@ -555,6 +555,10 @@ func fire_at(index: int, target: ShipState) -> Dictionary:
 	return {
 		"type": "shot",
 		"weapon": String(w["weapon"]["short"]),
+		# What KIND of shot it was, so the view can fly a torpedo across the
+		# plane and flash a beam instantly without looking the weapon up in the
+		# catalog a second time and deciding for itself.
+		"family": String(w["weapon"]["family"]),
 		"damage": damage,
 		"hit": damage > 0,
 		"overload": ovl,
