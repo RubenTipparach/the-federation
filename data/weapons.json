@@ -1,6 +1,7 @@
 {
   "_comment": "Weapon catalog. All gameplay tuning lives here per CLAUDE.md 5.4. family: beam, disruptor, torpedo, lance, drone, special. size ranks Light < Medium < Heavy < Spinal. reload is seconds at full weapons power. costs feed the four fitting budgets. A weapon with special=true ignores the mount's permitted families and, if override_field is present, replaces the mount's arc field with its own sector list.",
   "_seeking": "A weapon with seeking true is launched rather than fired: Battle spawns a Seeker that flies at seeker_speed and carries seeker_hp before point defense can kill it. A weapon with point_defense true also shoots at seekers within pd_range for pd_dps, without spending its own capacitor, which is what makes a light beam worth its space. See docs/01 section 5.2.",
+  "_overload": "A weapon with an 'overload' block can be armed to fire one heavy shot, read only through src/sim/weapon_model.gd. 'range' multiplies the weapon's reach and 'damage' multiplies what a hit scores, so an overloaded disruptor at half reach is shooting into the band it would otherwise need to be twice as close for: accuracy comes along with the compressed range rather than being a third number. What the shot COSTS is not here, because it is the same cost whatever is firing: combat.overload_battery_cost and combat.overload_shield_sag_sec in data/tuning.json. See docs/01 section 5.1.",
   "_falloff": "Range falloff, read only through src/sim/weapon_model.gd. Bands are ordered by 'to', the inclusive outer edge of the band in sim distance units, and the last 'to' is the weapon's reach. 'damage' is what a hit scores inside that band, 'hit' is the chance the shot connects at all. The three shapes come from Federation Commander, see docs/09: beams hold their accuracy and lose damage, torpedoes hold their damage and lose accuracy, disruptors lose both. The numbers are ours, tuned to our own ranges. The first band is point blank and its damage is what the fitting screen projects as alpha.",
   "weapons": {
     "ph1": {
@@ -42,6 +43,7 @@
     "disruptor": {
       "name": "Disruptor Bank", "short": "DISR", "family": "disruptor", "size": "Medium",
       "price": 1150, "reload": 5.0,
+      "overload": { "damage": 2.0, "range": 0.5 },
       "falloff": [
         { "to": 8, "hit": 1.0, "damage": 10 },
         { "to": 20, "hit": 0.85, "damage": 9 },

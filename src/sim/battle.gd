@@ -399,6 +399,8 @@ func apply_command(actor: int, kind: String, args: Array, record: bool = true) -
 		"shield_bias":
 			ship.shield_bias = int(args[0])
 			ok = true
+		"overload":
+			ok = ship.set_overload(int(args[0]), bool(args[1]))
 		"repair_queue":
 			ok = ship.queue_repair(int(args[0]), Catalog.tuning())
 		"repair_drop":

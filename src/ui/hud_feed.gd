@@ -113,6 +113,10 @@ func sample(me: ShipState, foe: ShipState, seen: bool, target_range: float,
 	var weapons: Array = [now[TARGET], systems]
 	for w in me.weapons_rt:
 		weapons.append(int(float(w["charge"]) * 100.0))
+		# Arming is a click rather than a consequence of the sim, so it moves on
+		# ticks where nothing else does. Sampled here or the row would keep
+		# saying the mount is unarmed until something unrelated changed.
+		weapons.append(bool(w.get("overload", false)))
 	now[WEAPONS] = weapons
 
 	now[LOG] = log_lines

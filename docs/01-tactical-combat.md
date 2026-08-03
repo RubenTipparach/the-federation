@@ -234,7 +234,28 @@ unchanged.
 | Family | Behavior |
 |---|---|
 | **Beam batteries** | Instant hit, damage falls off with range, wide arcs, cheap power. The reliable baseline. |
-| **Disruptor banks** | Punchy at medium range, narrow arc, higher power draw, can **overload** for ~2× damage at half range and a heavy capacitor cost. |
+| **Disruptor banks** | Punchy at medium range, narrow arc, higher power draw, can **overload** for double damage at half range and a heavy capacitor cost. |
+
+**Overload is the falloff table read at a different scale.** A weapon that can be armed
+carries an `overload` block in `data/weapons.json` with two multipliers: what happens to
+its reach and what happens to its damage. `weapon_model.gd` divides the shot's distance by
+the range multiplier before it looks the band up and multiplies the band's damage on the
+way out, so an armed disruptor at 6 units is reading the band it would otherwise have to
+be at 12 for. Accuracy comes along with the compressed range rather than being a third
+number to tune, and the same functions answer for the fitting screen and for a live shot.
+
+What it costs is not a property of the weapon, because it is the same whatever is firing,
+so it lives in `data/tuning.json` under `combat`:
+
+- **The whole battery.** One burst, per section 3 rule 3: an overload or a reinforce,
+  never both. An armed mount whose reserve cannot pay reports `battery` in the readiness
+  chip rather than silently firing a normal shot.
+- **Four seconds of sagging shields.** The generators buy no boxes for
+  `overload_shield_sag_sec` afterwards, and the energy the shield sink draws meanwhile is
+  lost rather than banked, or the cost would come straight back.
+
+Arming is one shot, not a mode: the switch springs back when the weapon fires, so emptying
+the reserve twice takes two decisions.
 
 **Range falloff is a table, not a curve.** Every weapon in `data/weapons.json` carries a
 `falloff` list: bands from point blank outward, each with the damage a hit scores and the

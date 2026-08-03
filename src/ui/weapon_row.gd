@@ -11,7 +11,9 @@ extends HBoxContainer
 static func chip_color(reason: String) -> Color:
 	match reason:
 		"bears": return Palette.OK
-		"charging": return Palette.AMBER
+		# Both mean "wait a moment": one for the capacitor, the other for the
+		# reserve an armed overload has to spend.
+		"charging", "battery": return Palette.AMBER
 		"no arc", "destroyed": return Palette.CRIT
 		"no lock": return Palette.LINE_HOT
 		"empty": return Palette.LINE_HOT
