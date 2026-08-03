@@ -106,11 +106,12 @@
         { "id": "M1", "pos": "Fore port", "size": "Medium", "families": ["disruptor"], "field": [10, 11, 0], "default": "disruptor" },
         { "id": "M2", "pos": "Fore starboard", "size": "Medium", "families": ["disruptor"], "field": [0, 1, 2], "default": "disruptor" },
         { "id": "M3", "pos": "Dorsal rack", "size": "Light", "families": ["drone"], "field": [9, 10, 11, 0, 1, 2, 3], "default": "drone" },
-        { "id": "M4", "pos": "Aft", "size": "Light", "families": ["beam"], "field": [5, 6], "default": "ph3" }
+        { "id": "M4", "pos": "Aft", "size": "Light", "families": ["beam"], "field": [5, 6], "default": "ph3" },
+        { "id": "M5", "pos": "Fore spinal", "size": "Heavy", "families": ["torpedo", "lance"], "field": [11, 0], "default": "photon" }
       ],
       "internals": {
         "sectors": [
-          [["DRN", 3, "weapon", "M3"], ["BRDG", 2, "control"]],
+          [["DRN", 3, "weapon", "M3"], ["PHOT", 3, "weapon", "M5"], ["BRDG", 2, "control"]],
           [["DISR", 4, "weapon", "M2"]],
           [["WARP", 5, "power"]],
           [["PH-3", 2, "weapon", "M4"], ["IMP", 3, "power"]],

@@ -21,10 +21,10 @@
       "price": 420, "reload": 2.0,
       "point_defense": true, "pd_range": 64, "pd_dps": 1.6,
       "falloff": [
-        { "to": 24, "hit": 1.0, "damage": 4 },
-        { "to": 48, "hit": 1.0, "damage": 3 },
-        { "to": 72, "hit": 1.0, "damage": 2 },
-        { "to": 96, "hit": 1.0, "damage": 1 }
+        { "to": 40, "hit": 1.0, "damage": 4 },
+        { "to": 80, "hit": 1.0, "damage": 3 },
+        { "to": 120, "hit": 1.0, "damage": 2 },
+        { "to": 160, "hit": 1.0, "damage": 1 }
       ],
       "costs": { "space": 3, "mass": 2, "crew": 4, "power_draw": 2 }
     },
@@ -32,11 +32,11 @@
       "name": "Photon Torpedo", "short": "PHOT", "family": "torpedo", "size": "Heavy",
       "price": 2100, "reload": 9.0,
       "falloff": [
-        { "to": 64, "hit": 1.0, "damage": 16 },
-        { "to": 128, "hit": 0.83, "damage": 16 },
-        { "to": 192, "hit": 0.67, "damage": 16 },
-        { "to": 256, "hit": 0.5, "damage": 16 },
-        { "to": 320, "hit": 0.33, "damage": 16 }
+        { "to": 48, "hit": 1.0, "damage": 16 },
+        { "to": 104, "hit": 0.83, "damage": 16 },
+        { "to": 152, "hit": 0.67, "damage": 16 },
+        { "to": 208, "hit": 0.5, "damage": 16 },
+        { "to": 256, "hit": 0.33, "damage": 16 }
       ],
       "costs": { "space": 12, "mass": 10, "crew": 14, "power_draw": 6 }
     },
@@ -56,10 +56,10 @@
       "name": "Lance Battery", "short": "LNCE", "family": "lance", "size": "Heavy",
       "price": 3400, "reload": 12.0,
       "falloff": [
-        { "to": 96, "hit": 1.0, "damage": 20 },
-        { "to": 192, "hit": 0.9, "damage": 18 },
-        { "to": 272, "hit": 0.75, "damage": 15 },
-        { "to": 352, "hit": 0.6, "damage": 12 }
+        { "to": 80, "hit": 1.0, "damage": 20 },
+        { "to": 160, "hit": 0.9, "damage": 18 },
+        { "to": 224, "hit": 0.75, "damage": 15 },
+        { "to": 288, "hit": 0.6, "damage": 12 }
       ],
       "costs": { "space": 16, "mass": 14, "crew": 18, "power_draw": 9 }
     },
@@ -77,9 +77,9 @@
       "special": true, "override_field": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
       "price": 1500, "reload": 3.0,
       "falloff": [
-        { "to": 48, "hit": 1.0, "damage": 5 },
-        { "to": 80, "hit": 1.0, "damage": 4 },
-        { "to": 112, "hit": 1.0, "damage": 3 }
+        { "to": 64, "hit": 1.0, "damage": 5 },
+        { "to": 112, "hit": 1.0, "damage": 4 },
+        { "to": 160, "hit": 1.0, "damage": 3 }
       ],
       "costs": { "space": 5, "mass": 4, "crew": 6, "power_draw": 3 }
     }
