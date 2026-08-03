@@ -7,9 +7,6 @@
 ; It sits BELOW the debug overlay's layer, so an overlay opened from here is
 ; not covered by the panel that opened it.
 ;
-; The dim behind it takes the mouse, which is what makes the panel modal and
-; what gives clicking outside somewhere to land.
-;
 ; Fixed size, per CLAUDE.md 6.4: 520 by 640 in the 1920 by 1080 design space,
 ; clipped, with the one unbounded thing in it (the saved designs, of which
 ; there may be any number) inside an authored ScrollContainer. The horizontal
@@ -112,8 +109,7 @@ theme_override_constants/separation = 5
 [node name="NoDesigns" type="Label" parent="Frame/V/Scroll/Body"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 13
-text = "No saved designs. Saving one keeps the hull, the mounts and the arcs, so a fit you liked survives trying a different one."
-autowrap_mode = 2
+text = "No saved designs."
 
 [node name="SaveRow" type="HBoxContainer" parent="Frame/V/Scroll/Body"]
 layout_mode = 2
@@ -136,21 +132,12 @@ theme_type_variation = &"HeaderLabel"
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="Text" type="VBoxContainer" parent="Frame/V/Scroll/Body/DebugRow"]
+[node name="Title" type="Label" parent="Frame/V/Scroll/Body/DebugRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 2
-
-[node name="Title" type="Label" parent="Frame/V/Scroll/Body/DebugRow/Text"]
-layout_mode = 2
+size_flags_vertical = 4
 theme_override_font_sizes/font_size = 14
 text = "Debug overlay"
-
-[node name="Note" type="Label" parent="Frame/V/Scroll/Body/DebugRow/Text"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 12
-text = "Frame graph, counters and the part switches. F3 also toggles it. It stays up when a battle starts."
-autowrap_mode = 2
 
 ; One box is one point, and this point is on or off. The same control the
 ; reactor allocation and the tractor bid use, at a capacity of one, rather
@@ -186,21 +173,12 @@ visible = false
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="Text" type="VBoxContainer" parent="Frame/V/Scroll/Body/LeaveRow"]
+[node name="Title" type="Label" parent="Frame/V/Scroll/Body/LeaveRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 2
-
-[node name="Title" type="Label" parent="Frame/V/Scroll/Body/LeaveRow/Text"]
-layout_mode = 2
+size_flags_vertical = 4
 theme_override_font_sizes/font_size = 14
 text = "Leave the battle"
-
-[node name="Note" type="Label" parent="Frame/V/Scroll/Body/LeaveRow/Text"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 12
-text = "Counts as a disengagement, and the recording is kept."
-autowrap_mode = 2
 
 [node name="Leave" type="Button" parent="Frame/V/Scroll/Body/LeaveRow"]
 custom_minimum_size = Vector2(136, 36)
@@ -216,21 +194,12 @@ text = "DISENGAGE"
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="Text" type="VBoxContainer" parent="Frame/V/Scroll/Body/QuitRow"]
+[node name="Title" type="Label" parent="Frame/V/Scroll/Body/QuitRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 2
-
-[node name="Title" type="Label" parent="Frame/V/Scroll/Body/QuitRow/Text"]
-layout_mode = 2
+size_flags_vertical = 4
 theme_override_font_sizes/font_size = 14
 text = "Quit the game"
-
-[node name="Note" type="Label" parent="Frame/V/Scroll/Body/QuitRow/Text"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 12
-text = "Your designs and your recordings are already on disk."
-autowrap_mode = 2
 
 [node name="Quit" type="Button" parent="Frame/V/Scroll/Body/QuitRow"]
 custom_minimum_size = Vector2(88, 36)

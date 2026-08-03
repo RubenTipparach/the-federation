@@ -98,7 +98,7 @@ focus_mode = 0
 clip_text = true
 icon = ExtResource("9")
 text = "Settings"
-tooltip_text = "Designs, instruments, and quitting"
+tooltip_text = "Settings"
 theme_override_constants/icon_max_width = 24
 theme_override_constants/h_separation = 8
 

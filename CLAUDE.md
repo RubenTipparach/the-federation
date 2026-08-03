@@ -314,6 +314,47 @@ still reports the UNBOUNDED value once a maximum is set, so assert on `size`, or
 
 ---
 
+### 6.5 Menus name things, they do not explain them
+
+**A menu row is a label and a control. It is not documentation.** Do not write
+explanatory copy into the interface unless the user has asked for it.
+
+The failure this prevents is a settings panel where every row carries a sentence
+underneath it saying what the row above obviously does, plus where the file is
+kept, plus which key also does it. That is written for somebody reading the
+screen once. Everybody else reads it every time they open the panel, forever,
+and it is in their way.
+
+Concretely, and this applies to every screen, not only to settings:
+
+- **A row gets a name.** "Debug overlay". "Quit the game". Not a name and then
+  a sentence about it.
+- **Do not restate the control.** If the button says `DELETE`, no line beside
+  it needs to say that it deletes.
+- **Do not teach the interface from inside the interface.** No keyboard hints,
+  no gesture hints, no "click here to", no telling the player where the game
+  keeps its files or what will happen to the screen next.
+- **Reasons belong in `docs/` and in code comments,** which is where the people
+  who need them are looking. The screen is for playing.
+
+An empty state is allowed one line, because a blank list otherwise reads as
+broken: "No saved designs." is doing work that the absence of rows cannot do on
+its own. Keep it to the fact. It is not a place to explain the feature.
+
+The one thing worth a clause is an outcome the player cannot see coming and
+cannot undo. Say it in a few words on the control itself where possible, not in
+a paragraph beneath it.
+
+The test: **would this line still be worth reading the tenth time this screen is
+opened?** If not, cut it. When in doubt, cut it and wait for somebody to ask.
+
+This is section 6.3 generalised. That one says the game only narrates in combat,
+because outside a fight there is no stream of events to follow. This says the
+game does not lecture anywhere, because a control that needs a paragraph is
+usually a control that needs a better name.
+
+---
+
 ## 7. Documented Exceptions
 
 Exceptions to the rules above live here, with the reason. Nothing may be treated as an
