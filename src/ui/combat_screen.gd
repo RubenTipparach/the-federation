@@ -320,10 +320,16 @@ func _physics_process(delta: float) -> void:
 		return
 	_apply_sticks(delta)
 	var events: Array[Dictionary] = []
+	# How much battle this frame advanced, which is not the frame's own time
+	# once the fight is paused or over. The world draws afterimages on wall
+	# time and ordnance in flight on this.
+	var sim_delta: float = 0.0
 	if replay_log != null:
 		events = _step_replay(delta)
+		sim_delta = delta
 	elif not paused and not battle.over:
 		events = battle.step(delta)
+		sim_delta = delta
 	# The rig update is gated as well as timed. It was timed only, which made
 	# its switch a no op and its measurement noise: the sweep turns a part off
 	# and times the frame, so a flag that removes nothing measures nothing.
@@ -331,7 +337,7 @@ func _physics_process(delta: float) -> void:
 	# battle you cannot see is not a measurement of anything.
 	if DebugFlags.on("world"):
 		var t_world: int = HudProfile.open("world")
-		_world().update_visuals(delta, events)
+		_world().update_visuals(delta, sim_delta, events)
 		HudProfile.close("world", t_world)
 	_world().follow_pivot(delta)
 	_track_plan_camera()

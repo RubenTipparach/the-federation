@@ -10,7 +10,11 @@
     "turn_arc_radius": 24.8,
     "_wedge_note": "How far the sector wedges are drawn, in sim units. Presentation only and deliberately NOT the weapon's reach: since reaches went four times out a true scale wedge is a filled slab most of the width of the arena. The ship's longest reaching sector is drawn at this radius and the others in proportion to it, so the comparison between sectors survives; the absolute figure is the range ring, which is at true scale, and the number in the target readout. Sits outside turn_arc_radius so the two do not read as one ring.",
     "arc_wedge_radius": 40.0,
-    "beam_width": 1.2
+    "beam_width": 1.2,
+    "_ordnance_note": "Rounds that cross the plane instead of arriving instantly. A drone is a simulated object and the view only follows it, so its length here is the only number; a torpedo bolt is presentation alone, because the shot resolved the moment it was fired, and bolt_speed decides how long the depiction takes to catch up with a result that already happened. Fast enough that the delay is not felt, slow enough to read as a round in flight: at 240 the longest torpedo shot in the catalog takes about a second. The shield it struck is lit when the bolt lands rather than when it left, so the two halves of the depiction agree.",
+    "ordnance_drone_length": 8.0,
+    "ordnance_bolt_length": 11.0,
+    "ordnance_bolt_speed": 240.0
   },
   "wreck": {
     "_comment": "What a destroyed ship leaves behind. Every size is in multiples of the dead ship's own radius, so a battlecruiser leaves a bigger wreck than a frigate without a second table. Presentation only: the simulation has already stopped stepping the ship.",

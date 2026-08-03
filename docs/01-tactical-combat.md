@@ -282,6 +282,23 @@ against a hull with different guns is the decision.
 The drone rack is the one weapon outside both groups, at 224, because a seeker's reach is
 how far it can fly rather than how far it can shoot.
 
+**Ordnance crosses the plane.** A drone and a torpedo are both drawn as a round in flight
+with a wake behind it, in different colours, from one committed mesh at two scales
+(`assets/meshes/ordnance.obj`). What they are underneath is not the same thing, and the
+view is careful about the difference:
+
+- **A drone is real.** The simulation flies it, point defense can shoot it down, and the
+  view only follows the `Seeker` the battle already owns. One drawn round per live seeker,
+  so a drone that leaves the screen left the battle first.
+- **A torpedo bolt is a depiction.** A torpedo is direct fire, so the shot was resolved
+  the moment it was fired and nothing waits for the bolt to land. What the bolt carries is
+  the shield flash, held back until arrival so the two halves of the depiction agree with
+  each other rather than the shield lighting a second before the round gets there.
+
+Both stop dead when the battle is paused. The world is handed the frame's wall time and
+the amount of battle that frame advanced as two separate numbers: afterimages like a beam
+fade run on the first, ordnance on the second.
+
 **Overload is the falloff table read at a different scale.** A weapon that can be armed
 carries an `overload` block in `data/weapons.json` with two multipliers: what happens to
 its reach and what happens to its damage. `weapon_model.gd` divides the shot's distance by

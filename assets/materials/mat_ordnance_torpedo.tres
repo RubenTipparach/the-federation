@@ -1,0 +1,13 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3]
+
+; A torpedo bolt in flight. gold_hi from data/palette.json, opaque, so a
+; heavy round reads as a hot object crossing the plane rather than as one
+; more overlay. Unshaded like every other tactical mesh, because the arena's
+; only light is directional and a bolt lit from one side would go dark
+; whenever it flew away from the sun.
+
+[ext_resource type="Shader" path="res://assets/shaders/tint.gdshader" id="1"]
+
+[resource]
+shader = ExtResource("1")
+shader_parameter/tint = Color(0.851, 0.722, 0.4, 1.0)

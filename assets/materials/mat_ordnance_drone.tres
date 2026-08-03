@@ -1,0 +1,11 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3]
+
+; A drone in flight. alert_hi from data/palette.json: warmer and redder than
+; the torpedo bolt, because a drone is a thing to shoot at and a bolt is a
+; thing to brace for, and a player has to tell them apart at a glance.
+
+[ext_resource type="Shader" path="res://assets/shaders/tint.gdshader" id="1"]
+
+[resource]
+shader = ExtResource("1")
+shader_parameter/tint = Color(0.922, 0.545, 0.427, 1.0)

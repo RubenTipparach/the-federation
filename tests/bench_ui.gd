@@ -105,7 +105,7 @@ func _initialize() -> void:
 	var w: Node3D = c._world()
 	var no_events: Array[Dictionary] = []
 	_time("_world().update_visuals", ROUNDS,
-		func() -> void: w.update_visuals(1.0 / 60.0, no_events))
+		func() -> void: w.update_visuals(1.0 / 60.0, 1.0 / 60.0, no_events))
 	_time("_world().follow_pivot", ROUNDS,
 		func() -> void: w.follow_pivot(1.0 / 60.0))
 	_time("_track_plan_camera", ROUNDS, func() -> void: c._track_plan_camera())
