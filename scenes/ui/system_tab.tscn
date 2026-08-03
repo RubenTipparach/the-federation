@@ -7,6 +7,13 @@
 ; The tab is a vertical stencil, the box's committed icon over a short mark,
 ; in a 60 pixel column beside the panel rather than a wide button above it.
 ;
+; 60 by 51, and the icon box is 16. Both numbers are arithmetic rather than
+; taste. Seven of these plus the separations have to fit the height the right
+; column has left over, or the column grows past the screen and everything in
+; it re-sorts. And 48 into 16 is an exact third, which matters because the
+; project filters canvas textures with nearest for the pixel art: any other
+; ratio drops rows out of the middle of a glyph.
+;
 ; The icon and the mark are AUTHORED CHILD NODES rather than the Button's own
 ; icon and text properties, and that is deliberate rather than fussy. A Button
 ; reserves horizontal room for its icon even when vertical_icon_alignment puts
@@ -31,8 +38,8 @@
 [ext_resource type="Texture2D" path="res://assets/icons/rpr.png" id="1"]
 
 [node name="SystemTab" type="Button"]
-custom_minimum_size = Vector2(60, 58)
-custom_maximum_size = Vector2(60, 58)
+custom_minimum_size = Vector2(60, 51)
+custom_maximum_size = Vector2(60, 51)
 propagate_maximum_size = true
 size_flags_horizontal = 0
 toggle_mode = true
@@ -52,7 +59,7 @@ mouse_filter = 2
 theme_override_constants/separation = 1
 
 [node name="Icon" type="TextureRect" parent="Stack"]
-custom_minimum_size = Vector2(0, 22)
+custom_minimum_size = Vector2(0, 16)
 layout_mode = 2
 mouse_filter = 2
 expand_mode = 1
@@ -67,8 +74,8 @@ horizontal_alignment = 1
 clip_text = true
 
 [node name="Fix" type="Button" parent="."]
-custom_minimum_size = Vector2(52, 11)
-custom_maximum_size = Vector2(52, 11)
+custom_minimum_size = Vector2(52, 10)
+custom_maximum_size = Vector2(52, 10)
 propagate_maximum_size = true
 layout_mode = 1
 anchors_preset = 12
@@ -76,7 +83,7 @@ anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 4.0
-offset_top = -15.0
+offset_top = -14.0
 offset_right = -4.0
 offset_bottom = -4.0
 grow_horizontal = 2

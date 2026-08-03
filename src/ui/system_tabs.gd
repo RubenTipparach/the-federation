@@ -26,8 +26,22 @@ signal tab_selected(id: String)
 ## The player asked to repair the hardware behind a tab, from the button the
 ## panel shows when the station is damaged.
 signal repair_requested(system_index: int)
+## The player pressed the gear at the foot of the strip. Not a station: it is
+## the only chrome the tactical view keeps, so it is the only place a menu can
+## be reached from inside a battle (CLAUDE.md 6.2, where the menu button is
+## also how a battle pauses).
+signal settings_requested
 
 const ICON_DIR: String = "res://assets/icons/"
+## The mark on the settings tab. Here rather than in data/stations.json because
+## it is not a station: it opens no panel and speaks for no box, and putting it
+## in that file would mean every reader of it has to know about the exception.
+const SETTINGS_MARK: String = "SET"
+## The gear's node name. Every loop over the strip's children has to step over
+## it, because it is the one child that is not a station, and a loop that
+## forgot would either hide it or ask the catalog about a station called
+## "Settings" and stop.
+const GEAR: String = "Settings"
 
 var _ids: PackedStringArray = PackedStringArray()
 var _selected: String = ""
@@ -38,10 +52,25 @@ var _last_systems: Array[Dictionary] = []
 
 ## Show the stations belonging to one side. Called once per screen: which tabs
 ## a strip carries does not change while a battle runs.
-func setup(side: String) -> void:
+## `with_settings` puts the gear at the foot of the strip. Only one strip in a
+## screen should carry it, and which one is the caller's decision rather than a
+## side name checked in here.
+func setup(side: String, with_settings: bool = false) -> void:
 	_ids = Catalog.station_ids(side)
+	var gear: Button = $Settings
+	gear.visible = with_settings
+	if with_settings:
+		gear.toggle_mode = false
+		gear.get_node("Stack/Mark").text = SETTINGS_MARK
+		var gear_icon: TextureRect = gear.get_node("Stack/Icon")
+		gear_icon.texture = load(ICON_DIR + "gear.png")
+		Paint.stencil(gear_icon, gear.get_node("Stack/Mark"), Palette.DIM)
+		if not gear.pressed.is_connected(_on_settings):
+			gear.pressed.connect(_on_settings)
 	for child in get_children():
 		var id: String = String(child.name)
+		if id == GEAR:
+			continue
 		var wanted: bool = _ids.has(id)
 		child.visible = wanted
 		if not wanted:
@@ -67,6 +96,8 @@ func select(id: String) -> void:
 		return
 	_selected = id
 	for child in get_children():
+		if String(child.name) == GEAR:
+			continue
 		(child as Button).button_pressed = String(child.name) == id
 	tab_selected.emit(id)
 
@@ -84,6 +115,10 @@ func _on_fix(id: String) -> void:
 	var index: int = system_index_for(id, _last_systems)
 	if index >= 0:
 		repair_requested.emit(index)
+
+
+func _on_settings() -> void:
+	settings_requested.emit()
 
 
 func _on_pressed(id: String) -> void:

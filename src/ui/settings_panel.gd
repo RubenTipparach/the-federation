@@ -15,6 +15,13 @@ extends CanvasLayer
 ## be a second place that knows how to do it.
 
 signal design_chosen(fit: ShipFit)
+## The player asked to leave the battle from in here. Reported rather than
+## done, for the same reason loading a design is: main owns the screens, and
+## the combat screen already knows how to end a battle.
+signal leave_requested
+## Shut, by any of the four gestures that shut it. main listens so it can put
+## a battle it paused back the way it found it.
+signal closed
 
 const SELECT_CARD: PackedScene = preload("res://scenes/ui/select_card.tscn")
 
@@ -38,6 +45,7 @@ func _ready() -> void:
 	$Frame/V/Head/Close.pressed.connect(close)
 	$Frame/V/Scroll/Body/SaveRow/Save.pressed.connect(_on_save)
 	$Frame/V/Scroll/Body/QuitRow/Quit.pressed.connect(_on_quit)
+	$Frame/V/Scroll/Body/LeaveRow/Leave.pressed.connect(_on_leave)
 	var toggle: Control = $Frame/V/Scroll/Body/DebugRow/Toggle
 	toggle.setup(Palette.CYAN, true)
 	toggle.level_picked.connect(_on_debug_picked)
@@ -53,14 +61,32 @@ func wear(deck: Theme) -> void:
 	$Frame/Back.color = Palette.BG
 
 
+## What the panel offers differs inside a battle and out of it.
+##
+## Designs go away, because you cannot refit a ship under fire and a Load
+## button that silently did nothing would be worse than no button. Leaving
+## appears, because it is only a thing you can do when there is something to
+## leave. The instruments and the quit stay put in both, so the two shapes are
+## the same panel with one group swapped rather than two panels.
+func set_battle(on: bool) -> void:
+	var body: Node = $Frame/V/Scroll/Body
+	for id in ["DesignsHead", "DesignList", "NoDesigns", "SaveRow"]:
+		body.get_node(id).visible = not on
+	body.get_node("LeaveRow").visible = on
+
+
 func open() -> void:
 	visible = true
-	_fill_designs()
+	if $Frame/V/Scroll/Body/DesignsHead.visible:
+		_fill_designs()
 	_paint_debug()
 
 
 func close() -> void:
+	if not visible:
+		return
 	visible = false
+	closed.emit()
 
 
 func toggle() -> void:
@@ -179,3 +205,8 @@ func _paint_debug() -> void:
 ## whose contents change between builds is a panel nobody can learn.
 func _on_quit() -> void:
 	get_tree().quit()
+
+
+func _on_leave() -> void:
+	close()
+	leave_requested.emit()

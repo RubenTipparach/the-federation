@@ -177,6 +177,41 @@ theme_override_font_sizes/font_size = 12
 text = "SESSION"
 theme_type_variation = &"HeaderLabel"
 
+; Leaving the battle, which only exists while there is one. It is above Quit
+; because it is the smaller of the two exits, and it calls the same code the
+; tactical view's Disengage button calls rather than a second way out.
+
+[node name="LeaveRow" type="HBoxContainer" parent="Frame/V/Scroll/Body"]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Text" type="VBoxContainer" parent="Frame/V/Scroll/Body/LeaveRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 2
+
+[node name="Title" type="Label" parent="Frame/V/Scroll/Body/LeaveRow/Text"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "Leave the battle"
+
+[node name="Note" type="Label" parent="Frame/V/Scroll/Body/LeaveRow/Text"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "Counts as a disengagement, and the recording is kept."
+autowrap_mode = 2
+
+[node name="Leave" type="Button" parent="Frame/V/Scroll/Body/LeaveRow"]
+custom_minimum_size = Vector2(136, 36)
+custom_maximum_size = Vector2(136, 36)
+propagate_maximum_size = true
+layout_mode = 2
+size_flags_vertical = 4
+focus_mode = 0
+theme_override_font_sizes/font_size = 13
+text = "DISENGAGE"
+
 [node name="QuitRow" type="HBoxContainer" parent="Frame/V/Scroll/Body"]
 layout_mode = 2
 theme_override_constants/separation = 10

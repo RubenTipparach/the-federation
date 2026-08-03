@@ -10,6 +10,10 @@ extends Control
 const SMOKE_MARKER := "FEDERATION_SMOKE_OK"
 
 var session: Session
+## Whether opening the settings panel is what paused the battle behind it. A
+## battle the player had already paused has to still be paused when the panel
+## shuts, so this records who did it rather than assuming.
+var _paused_for_settings: bool = false
 
 
 func _ready() -> void:
@@ -38,7 +42,13 @@ func _ready() -> void:
 	$Settings.session = session
 	$Settings.overlay = $DebugPanel
 	$Settings.design_chosen.connect(_on_design_loaded)
-	$Root/TopBar/Settings.pressed.connect($Settings.toggle)
+	$Settings.leave_requested.connect(_on_settings_leave)
+	$Settings.closed.connect(_on_settings_closed)
+	$Root/TopBar/Settings.pressed.connect(_on_topbar_settings)
+	# The gear at the foot of the fight strip. Two buttons, one panel: the top
+	# bar is hidden for the whole engagement, so without this there is no way to
+	# reach a menu once a battle has started.
+	$Root/Content/Combat.settings_requested.connect(_on_combat_settings)
 
 	_wear_deck()
 	show_tab("Fitting")
@@ -64,6 +74,40 @@ func _wear_deck() -> void:
 	# is deliberately not, because an instrument that changed appearance with
 	# the deck would be one more thing to doubt when a reading looks wrong.
 	$Settings.wear(deck)
+
+
+func _on_topbar_settings() -> void:
+	if $Settings.visible:
+		$Settings.close()
+		return
+	$Settings.set_battle(false)
+	$Settings.open()
+
+
+## The gear on the fight strip. CLAUDE.md 6.2: the menu button is how a battle
+## pauses, so opening it does, and shutting it puts the battle back exactly as
+## it was found.
+func _on_combat_settings() -> void:
+	if $Settings.visible:
+		$Settings.close()
+		return
+	_paused_for_settings = $Root/Content/Combat.set_paused(true)
+	$Settings.set_battle($Root/Content/Combat.in_battle())
+	$Settings.open()
+
+
+func _on_settings_closed() -> void:
+	if _paused_for_settings:
+		$Root/Content/Combat.set_paused(false)
+		_paused_for_settings = false
+
+
+## Leaving from the panel is the same ending the tactical view's Disengage
+## gives, through the same call. Two exits that both claim to be a
+## disengagement would be two things to keep in step (CLAUDE.md 4.1).
+func _on_settings_leave() -> void:
+	_paused_for_settings = false
+	$Root/Content/Combat.leave_battle()
 
 
 ## A design loaded from settings replaces the one in the session, which is the

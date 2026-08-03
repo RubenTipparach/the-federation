@@ -5,6 +5,10 @@ extends HBoxContainer
 ## render the same World3D, so there is one battle display, seen twice.
 
 signal battle_ended
+## The gear at the foot of the fight strip. The screen does not open the
+## settings panel itself: main owns that layer, and a screen that reached up
+## to a sibling would be the coupling CLAUDE.md 4.2 exists to prevent.
+signal settings_requested
 
 const WEAPON_ROW := preload("res://scenes/ui/weapon_row.tscn")
 
@@ -124,12 +128,16 @@ func bind_session(p_session: Session) -> void:
 	# and the ship's business sits on the left beside the log, where the comm
 	# log had room to spare. Three columns on the right, two on the left, so
 	# neither needs a second row of tabs.
-	$Right/FightStation/FightTabs.setup("fight")
+	# The gear rides the fight strip, which is the only chrome the tactical view
+	# keeps, and is therefore the only place a menu can be reached under fire.
+	$Right/FightStation/FightTabs.setup("fight", true)
 	$Left/KeepStation/KeepTabs.setup("keep")
 	$Right/FightStation/FightTabs.tab_selected.connect(_on_station_selected.bind($Right/FightStation/FightPanel))
 	$Left/KeepStation/KeepTabs.tab_selected.connect(_on_station_selected.bind($Left/KeepStation/KeepPanel))
 	$Right/FightStation/FightTabs.repair_requested.connect(_on_repair_requested)
 	$Left/KeepStation/KeepTabs.repair_requested.connect(_on_repair_requested)
+	$Right/FightStation/FightTabs.settings_requested.connect(
+		func() -> void: settings_requested.emit())
 	for panel in [$Right/FightStation/FightPanel, $Left/KeepStation/KeepPanel]:
 		panel.repair_requested.connect(_on_repair_requested)
 		panel.repair_dropped.connect(_on_repair_dropped)
@@ -705,9 +713,35 @@ func _set_replay_speed(speed: float) -> void:
 
 
 func _toggle_pause() -> void:
-	paused = not paused
+	set_paused(not paused)
+
+
+## Pause or resume, and say whether it actually changed anything. The return is
+## what lets the settings panel put the battle back exactly as it found it: it
+## pauses on open and resumes on close, but only if it was the one that paused.
+## A battle the player had already paused stays paused when the panel shuts.
+func set_paused(on: bool) -> bool:
+	if paused == on:
+		return false
+	paused = on
 	$Mid/Actions/Pause.text = "Resume" if paused else "Pause"
 	$Mid/ReplayBar/Play.text = "Play" if paused else "Pause"
+	return true
+
+
+## Whether a battle is running here. The settings panel asks, because what it
+## offers differs: you cannot refit a ship under fire, and leaving is only a
+## thing you can do when there is something to leave.
+func in_battle() -> bool:
+	return battle != null and not battle.over
+
+
+## Leave the battle now. The same ending Disengage gives, through the same
+## call, because two ways out that both claim to be a disengagement is exactly
+## the divergence CLAUDE.md 4.1 is about.
+func leave_battle() -> void:
+	set_paused(false)
+	_end_battle("Disengaged")
 
 
 func _end_battle(reason: String) -> void:

@@ -56,3 +56,12 @@ layout_mode = 2
 
 [node name="science" parent="." instance=ExtResource("2")]
 layout_mode = 2
+
+; Not a station: the settings panel, reachable from inside a battle. It is on
+; the strip because the strip is the only chrome the tactical view keeps, and
+; because CLAUDE.md 6.2 says the menu button is how a battle pauses. It is
+; last, below every station, and only the strip that asks for it shows it.
+
+[node name="Settings" parent="." instance=ExtResource("2")]
+visible = false
+layout_mode = 2
