@@ -1,7 +1,12 @@
 [gd_scene load_steps=5 format=3]
 
-; The ship systems display: the six facing shield ring, the hull integrity in
-; the middle of it, and the subsystem slots beside it. One component, used for
+; The ship systems display: the six facing shield ring, the ship inside it as a
+; wireframe, and the subsystem slots beside it.
+;
+; No hull integrity reading. There was one in the middle of the ring, and it was
+; the same number the tactical view already prints as BOXES for the player in
+; the left column and for the target in the panel above this one. Three copies
+; of one number, and the one in here was in the way of the ship. One component, used for
 ; the player's own ship and for the target, and it will be used again in the
 ; fleet roster and the post battle report (CLAUDE.md 6.1). What varies between
 ; those is parameters, never a second scene: whether the slots take clicks,
@@ -38,30 +43,6 @@ modulate = Color(1, 1, 1, 1)
 layout_mode = 0
 mouse_filter = 2
 
-; Hull integrity, at the foot of the ring rather than in the middle of it. The
-; middle belongs to the ship now, and a number printed across a drawing of the
-; ship makes neither readable. It stops short of the very bottom because the
-; ring paints its own #4 label there.
-
-[node name="Hull" type="Label" parent="Ring"]
-layout_mode = 1
-anchors_preset = 7
-anchor_left = 0.5
-anchor_top = 1.0
-anchor_right = 0.5
-anchor_bottom = 1.0
-offset_left = -40.0
-offset_top = -44.0
-offset_right = 40.0
-offset_bottom = -23.0
-grow_horizontal = 2
-grow_vertical = 0
-mouse_filter = 2
-horizontal_alignment = 1
-vertical_alignment = 1
-theme_override_font_sizes/font_size = 15
-text = "100%"
-clip_text = true
 
 [node name="Side" type="VBoxContainer" parent="."]
 layout_mode = 2

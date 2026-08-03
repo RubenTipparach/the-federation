@@ -1,8 +1,8 @@
 extends HBoxContainer
 
 ## The one ship systems display (CLAUDE.md 6.1). It shows what a ship is
-## carrying and what state it is in: the six facing shield ring, hull integrity
-## in the middle of it, and the subsystem slots beside it.
+## carrying and what state it is in: the six facing shield ring, the ship
+## itself inside it as a wireframe, and the subsystem slots beside it.
 ##
 ## Callers configure it, they do not rebuild it. What varies is parameters:
 ##
@@ -74,17 +74,14 @@ func bind_ship(ship: ShipState, detail: bool, editable: bool) -> void:
 ## The ring places the wireframe, and does it again whenever the ring changes
 ## size, because the viewport behind it renders on demand and a resized one
 ## comes back empty otherwise.
+##
+## Centred, and the whole space inside the shields. There is nothing left in
+## there to make room for: the hull percentage that used to sit in the middle
+## is gone, because it was the same number the screen already prints as BOXES
+## in two other panels.
 func _fit_wire() -> void:
-	# Not the whole space: the hull integrity sits at the foot of the ring and
-	# the ship is nudged up off it.
 	$Ring.fit_inside($Ring/Wire)
-	$Ring/Wire.position.y -= inner_gap()
 	$Ring/Wire.request_frame()
-
-
-## How far up the ship rides to clear the integrity reading under it.
-func inner_gap() -> float:
-	return $Ring.inner_radius() * 0.20
 
 
 func _slot(i: int) -> Node:
@@ -97,14 +94,6 @@ func refresh() -> void:
 	if _ship == null:
 		return
 	$Ring.show_state(_ship.shields, _ship.shield_max)
-
-	var boxes: int = _ship.total_boxes()
-	var boxes_max: int = maxi(1, _ship.total_boxes_max())
-	var frac: float = float(boxes) / float(boxes_max)
-	$Ring/Hull.text = "%d%%" % int(round(frac * 100.0))
-	Paint.tint($Ring/Hull, "font_color",
-		Palette.CRIT if frac < 0.4 else (Palette.AMBER if frac < 0.7 else Palette.FG))
-	$Ring/Hull.tooltip_text = "%d of %d boxes" % [boxes, boxes_max]
 
 	if _detail:
 		for i in range(mini(SLOT_COUNT, _ship.systems.size())):
