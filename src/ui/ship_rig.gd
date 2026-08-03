@@ -196,12 +196,12 @@ func refresh() -> void:
 	# at +90 degrees, +Z maps to +X, and bearing 090 is +X.
 	rotation.y = deg_to_rad(_state.heading)
 
-	# Sector wedges: visible where a fitted weapon bears, scaled to the
-	# longest range that covers the sector. The same fit code the shipyard
-	# uses decides this; the rig just poses meshes.
+	# Sector wedges: visible where a fitted weapon bears, and long in proportion
+	# to the reach that covers the sector. The same fit code the shipyard uses
+	# decides which sectors those are; the rig just poses meshes.
+	var reach: PackedFloat32Array = PackedFloat32Array()
 	var ring_range: float = 0.0
 	for i in range(12):
-		var w: MeshInstance3D = $Wedges.get_node("W%d" % i)
 		var r: float = 0.0
 		if _state.alive:
 			for j in range(_state.weapons_rt.size()):
@@ -212,14 +212,31 @@ func refresh() -> void:
 					continue
 				if _state.fit.effective_field(_state.weapons_rt[j]["mount"]).has(i):
 					r = maxf(r, WeaponModel.max_range(weapon))
+		reach.append(r)
+		ring_range = maxf(ring_range, r)
+
+	# The wedges are a rosette, not a map of the envelope. Drawn at true scale
+	# a single sector is a filled slab most of the width of the arena, which is
+	# a colour wash over the battle rather than a readout, so they are drawn to
+	# a fixed radius instead: the ship's longest reaching sector fills it and
+	# the rest are stubbier in proportion, which keeps the comparison between
+	# sectors that a captain actually reads off them.
+	#
+	# How far the guns reach in absolute terms is the range ring's job, and the
+	# ring stays at true scale because it is a thin band rather than a disc: a
+	# big one is a faint circle out at the edge of sight, which is what a
+	# weapons envelope should look like.
+	var rosette: float = _view("arc_wedge_radius")
+	for i in range(12):
+		var w: MeshInstance3D = $Wedges.get_node("W%d" % i)
 		# The arcs and rings are a lot of blended geometry, and the debug
 		# overlay can take them away to see what they were costing. Read here
 		# rather than cached, because this is where visibility is decided and a
 		# flag consulted anywhere else would be fought by this line.
-		w.visible = r > 0.0
-		if r > 0.0:
-			w.scale = Vector3(r, 1, r)
-		ring_range = maxf(ring_range, r)
+		w.visible = reach[i] > 0.0
+		if w.visible:
+			var drawn: float = rosette * reach[i] / ring_range
+			w.scale = Vector3(drawn, 1, drawn)
 
 	$RangeRing.visible = ring_range > 0.0
 	if ring_range > 0.0:

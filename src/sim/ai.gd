@@ -44,12 +44,65 @@ static func act(me: ShipState, foe: ShipState, battle) -> void:
 	elif dist < best_range * float(tuning["back_off_range_frac"]):
 		throttle = float(tuning["back_off_throttle"])
 
+	# Keeping off overrides everything above. A shield the AI would like to
+	# present, or a range its guns would like to hold, is not worth trading a
+	# hull for, and two ships sitting on top of each other is the one shape
+	# this fight should never take.
+	var keep_out: float = me.contact_distance(foe) * float(tuning["standoff_radii"])
+	if dist < keep_out:
+		# Inside the standoff: run, and stop pretending to be doing anything
+		# else. Straight away from the foe is the heading that opens the range
+		# fastest whatever the turn rate.
+		desired = Sectors.bearing_between(foe.pos, me.pos)
+		throttle = 1.0
+	elif _closing_to_contact(me, foe, tuning):
+		# Still outside it, but on a course that ends in contact. Sheer 90
+		# degrees rather than turning about: it opens the range, it is quick
+		# enough to execute at any turn rate, and it leaves the foe on a beam
+		# facing where the arcs still bear.
+		desired = _sheer(me.heading, to_foe)
+
 	me.set_order(desired, throttle)
 	_work_tractor(me, battle)
 
 	# Fire everything that bears. The battle applies the shots.
 	for i in range(me.weapons_rt.size()):
 		battle.try_fire(me, i)
+
+
+## Would the way these two are moving right now put them in contact within the
+## next few seconds?
+##
+## The closest approach of two bodies on straight courses is a closed form, so
+## this is arithmetic rather than a simulation of the future: project the
+## relative position onto the relative velocity to find the time of closest
+## approach, and measure the gap at that time. A negative time means they are
+## already separating, and a time past the horizon is too far off to steer for.
+##
+## The distance it is measured against is ShipState.contact_distance, the same
+## one Battle._step_contacts collides on, so the AI cannot be avoiding a
+## collision the simulation would not have had, or missing one it would.
+static func _closing_to_contact(me: ShipState, foe: ShipState, tuning: Dictionary) -> bool:
+	var rel_pos: Vector2 = foe.pos - me.pos
+	var rel_vel: Vector2 = foe.velocity() - me.velocity()
+	var speed_sq: float = rel_vel.length_squared()
+	if speed_sq < 0.0001:
+		return false
+	var at: float = -rel_pos.dot(rel_vel) / speed_sq
+	if at <= 0.0 or at > float(tuning["avoid_lookahead"]):
+		return false
+	var gap: float = (rel_pos + rel_vel * at).length()
+	return gap < me.contact_distance(foe) * float(tuning["avoid_margin"])
+
+
+## A heading 90 degrees off the bearing to the foe, on whichever side is the
+## shorter turn from where the ship is already pointing.
+static func _sheer(heading: float, to_foe: float) -> float:
+	var left: float = Sectors.wrap_deg(to_foe - 90.0)
+	var right: float = Sectors.wrap_deg(to_foe + 90.0)
+	if absf(Sectors.turn_delta(heading, left)) <= absf(Sectors.turn_delta(heading, right)):
+		return left
+	return right
 
 
 ## The opponent's tractor doctrine, which is one sentence long: if something has

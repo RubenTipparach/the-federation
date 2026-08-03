@@ -1077,9 +1077,11 @@ func _refresh_brackets(world: Node3D, stack: Control) -> void:
 ## radius to its side. Doing it from the projection rather than from a constant
 ## means the bracket tracks zoom and perspective without a second scale factor
 ## to keep in step with the camera.
+##
+## The radius is the simulation's (ShipState.radius), so the ring drawn around a
+## contact is the circle the contact actually collides with.
 func _ship_screen_radius(world: Node3D, ship: ShipState) -> float:
-	var r: float = float(ship.fit.hull()["tonnage"]) \
-		* float(Catalog.tuning()["view"]["bracket_radius_per_ton"])
+	var r: float = ship.radius()
 	var centre: Vector2 = world.screen_pos(ship.pos)
 	var edge: Vector2 = world.screen_pos(ship.pos + Vector2(r, 0.0))
 	return clampf(centre.distance_to(edge), BRACKET_MIN_PX, BRACKET_MAX_PX)

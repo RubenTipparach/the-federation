@@ -18,22 +18,31 @@ The battle layer. This is the part that must be fun before anything else is buil
 - **Sides:** up to 6 capital ships per player squadron; instance target cap 24 capital
   hulls plus fighters/drones/platforms.
 
-### The arena is 600 units across, and that number is designed
+### The arena is 600 units across, and the guns now cross most of it
 
-The battlefield is a 600 by 600 square on the plane, with the two sides starting 170
-apart. A heavy cruiser's longest weapon reaches about 80, so the arena is roughly seven
-weapon ranges wide.
+The battlefield is a 600 by 600 square on the plane, with the two sides starting 366
+apart. A heavy cruiser's longest weapon reaches 320, so the arena is under two weapon
+ranges wide.
 
-That ratio is the point of the number. It was three for a while, and at three there was
-nowhere to go: no approach worth the name, no room to break contact, and terrain
-features that filled a quarter of the map each. At seven there is a real closing phase,
-somewhere to run to, and terrain you travel between rather than sit on top of.
+It was seven for a while. Reaches moved four times out on 2026-08-03 and the map did
+not move with them, which is a deliberate reversal of the ratio rather than a drift in
+it. What it buys is that the range you fight at is a decision: at seven ranges wide,
+two ships that wanted to shoot each other had to be nearly touching, and the resting
+state of every engagement was both hulls on top of one another trading point blank
+fire. At under two, opening the range is a real option and closing it is a real
+commitment.
 
-Everything that measures a distance, a speed or an acceleration is pinned to that
-ratio, and `data/tuning.json` says so in its `_scale` note. Anything measuring damage,
-energy, degrees or seconds is not: turn rates in degrees per second did not move when
-the map grew, which is exactly what keeps a battlecruiser feeling like a
-battlecruiser.
+What it costs is the closing phase the old ratio was chosen for, which is now short,
+and terrain, which is easier to shoot over than to use. If those turn out to matter
+more than the range decision does, the fix is to grow the map rather than to shorten
+the guns back: the ratio is what is being tuned, and it can be reached from either
+side.
+
+Everything that measures a distance is pinned to that ratio, and `data/tuning.json`
+says so in its `_reach` and `_scale` notes. Anything measuring damage, energy, degrees
+or seconds is not: turn rates in degrees per second did not move when the map grew and
+did not move when the guns did, which is exactly what keeps a battlecruiser feeling
+like a battlecruiser.
 
 ### A destroyed ship comes apart
 
@@ -128,6 +137,31 @@ engine power allow. There is no reverse: you turn, or you don't get there.
 
 Terrain is a primary reason to fight *here* instead of *there*, which gives the strategic
 layer real texture. See [04-galaxy-and-territory.md](04-galaxy-and-territory.md).
+
+### Two ships cannot occupy the same space
+
+Hulls have a size, and two of them touching costs both of them. The rule and its price
+are in [13-terrain-and-tractors.md](13-terrain-and-tractors.md) section 3.3, alongside
+the rocks, because they are the same rule.
+
+The opponent knows this and will not be rammed if it can help it. Two thresholds, both
+in `data/tuning.json` under `ai`:
+
+- **`standoff_radii`** sets a keep out distance from the two hulls' radii added
+  together, so a battlecruiser keeps further off than a frigate without a second table.
+  Inside it the AI stops fighting and runs: a shield it would like to present and a
+  range its guns would like to hold are not worth trading a hull for.
+- **`avoid_lookahead`** is how far ahead it checks for a collision it is not yet in.
+  The closest approach of two ships on straight courses is a closed form, so this is
+  arithmetic rather than a simulated future, and it is measured against the same
+  contact distance the simulation collides on. On a course that ends in contact the AI
+  sheers 90 degrees off the bearing rather than turning about, which opens the range,
+  is quick enough to execute at any turn rate, and leaves the enemy on a beam facing
+  where the arcs still bear.
+
+A ship faster than the opponent can still force contact, and that is the point:
+ramming is a decision with a price on both sides rather than the shape every fight
+settles into.
 
 ---
 

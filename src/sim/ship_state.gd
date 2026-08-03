@@ -169,6 +169,28 @@ func turn_rate() -> float:
 	return float(fit.hull()["turn_rate_deg"]) * engine_integrity()
 
 
+## How much room the hull takes up, in sim units. Tonnage is the only size a
+## ship has, so this is that, scaled.
+##
+## One number, three readers, and that is the point: the contact test, the
+## opponent's keep out distance, and the target bracket a player sees all
+## measure the same hull (CLAUDE.md 4.1). The bracket used to work it out from
+## its own key in the view block, which meant the ring on screen and the
+## circle the simulation collided were two numbers that only happened to agree.
+func radius() -> float:
+	return float(fit.hull()["tonnage"]) \
+		* float(Catalog.tuning()["combat"]["hull_radius_per_ton"])
+
+
+## How close two hulls get before they are touching.
+func contact_distance(other: ShipState) -> float:
+	return radius() + other.radius()
+
+
+func touching(other: ShipState) -> bool:
+	return pos.distance_to(other.pos) <= contact_distance(other)
+
+
 func total_boxes() -> int:
 	var n: int = 0
 	for sys in systems:

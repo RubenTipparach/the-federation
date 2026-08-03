@@ -55,6 +55,7 @@ func _initialize() -> void:
 	test_overload()
 	test_movement_and_weapons()
 	test_battle_and_ai()
+	test_contacts()
 	test_seekers()
 	test_shields()
 	test_repairs()
@@ -68,6 +69,93 @@ func _initialize() -> void:
 	else:
 		print("%d OF %d CHECKS FAILED" % [failures, checks])
 	quit(0 if failures == 0 else 1)
+
+
+## Everything a hull's size decides: when two of them are touching, what that
+## costs, and the distance the opponent will not come inside.
+func test_contacts() -> void:
+	print("\n== ships in contact ==")
+	var combat: Dictionary = CatalogLib.tuning()["combat"]
+	var AiLib = preload("res://src/sim/ai.gd")
+
+	var big = _fresh_ship("ironhold")
+	var small = _fresh_ship("talon")
+	ok(big.radius() > small.radius(), "a heavier hull is a bigger hull")
+	near(big.radius(), float(CatalogLib.hull("ironhold")["tonnage"])
+		* float(combat["hull_radius_per_ton"]), "and its size comes from the tuning file")
+	near(big.contact_distance(small), small.contact_distance(big),
+		"contact distance reads the same from either side")
+
+	small.pos = Vector2.ZERO
+	big.pos = Vector2(0.0, small.contact_distance(big) * 0.9)
+	ok(small.touching(big), "hulls closer than that are touching")
+	big.pos = Vector2(0.0, small.contact_distance(big) * 1.1)
+	ok(not small.touching(big), "and further apart are not")
+
+	# A real contact in a real battle. Capacitors start empty and a single
+	# thirtieth of a second charges nothing, so the only damage either hull can
+	# take over the next two steps is the collision.
+	var duel = BattleLib.create_duel(FitLib.create_default("talon"), "ironhold", 5)
+	var light = duel.player()
+	var heavy = duel.enemy()
+	light.pos = Vector2.ZERO
+	heavy.pos = Vector2(0.0, light.contact_distance(heavy) * 0.5)
+	var rams: int = 0
+	for e in duel.step(1.0 / 30.0):
+		if String(e.get("hazard", "")) == "ship":
+			rams += 1
+	eq(rams, 2, "contact bills both hulls, not only the one that moved")
+	var light_hurt: float = _hurt(light)
+	var heavy_hurt: float = _hurt(heavy)
+	ok(light_hurt > 0.0 and heavy_hurt > 0.0, "both of them pay for it")
+	ok(light_hurt > heavy_hurt, "and the lighter hull pays more")
+	ok(light.collision_grace > 0.0 and heavy.collision_grace > 0.0,
+		"both are given a moment before it can happen again")
+
+	var again: int = 0
+	for e in duel.step(1.0 / 30.0):
+		if String(e.get("hazard", "")) == "ship":
+			again += 1
+	eq(again, 0, "so resting in contact is not billed every tick")
+
+	# The keep out distance. Put the opponent well inside it and it stops
+	# fighting and runs, whatever its guns or its shields would prefer.
+	var keep = BattleLib.create_duel(FitLib.create_default("wayfarer"), "bloodletter", 31)
+	var idle = keep.player()
+	var foe = keep.enemy()
+	idle.pos = Vector2.ZERO
+	foe.pos = Vector2(0.0, foe.contact_distance(idle) * 2.0)
+	var away: float = SectorsLib.bearing_between(idle.pos, foe.pos)
+	AiLib.act(foe, idle, keep)
+	near(SectorsLib.turn_delta(away, foe.ordered_heading), 0.0,
+		"inside the keep out the ai steers straight away from the player", 0.5)
+	near(foe.ordered_throttle, 1.0, "and gives it everything")
+
+	# And over a whole battle it never gets there in the first place. The
+	# player is left at rest, so every closing decision in this run is the
+	# opponent's own.
+	var run = BattleLib.create_duel(FitLib.create_default("wayfarer"), "bloodletter", 77)
+	var closest: float = 1.0e9
+	for i in range(3000):
+		if run.over:
+			break
+		run.step(1.0 / 30.0)
+		closest = minf(closest, run.player().pos.distance_to(run.enemy().pos))
+	ok(closest > run.player().contact_distance(run.enemy()),
+		"a captain who never touches the helm is never rammed by the ai")
+	ok(closest > run.player().contact_distance(run.enemy())
+		* float(CatalogLib.tuning()["ai"]["standoff_radii"]) * 0.5,
+		"and the ai keeps a real distance rather than shaving it")
+
+
+## Damage a ship is carrying, shields and boxes together, as one number to
+## compare two hulls with.
+func _hurt(ship: Variant) -> float:
+	var standing: float = 0.0
+	for v in ship.shields:
+		standing += float(v)
+	return float(ship.shield_max) * float(ship.shields.size()) - standing \
+		+ float(ship.total_boxes_max() - ship.total_boxes())
 
 
 func test_seekers() -> void:
@@ -118,7 +206,9 @@ func test_seekers() -> void:
 	var guard = defended.player()
 	guard.pos = Vector2.ZERO
 	near(guard.point_defense_dps(Vector2(0.0, 2.0)), 1.6, "a PH-3 defends at close range")
-	near(guard.point_defense_dps(Vector2(0.0, 40.0)), 0.0, "and not across the arena")
+	var pd_reach: float = float(CatalogLib.weapon("ph3")["pd_range"])
+	near(guard.point_defense_dps(Vector2(0.0, pd_reach * 1.5)), 0.0,
+		"and not across the arena")
 	for sys in guard.systems:
 		if String(sys["mount_id"]) == "M5":
 			sys["boxes"] = 0
@@ -1262,7 +1352,11 @@ func test_falloff() -> void:
 	var fit: Variant = shooter.fit
 	near(fit.expected_into(0, 0.0), float(fit.alpha_into(0)),
 		"expected damage at point blank equals the projected alpha")
-	ok(fit.expected_into(0, 9.0) < float(fit.alpha_into(0)),
+	# Past the first band edge of the shortest weapon covering that sector, so
+	# at least one gun in the broadside has dropped a band. Derived rather than
+	# written down: a literal 9 was inside the first band the moment reaches
+	# moved out, and the check silently stopped meaning anything.
+	ok(fit.expected_into(0, ph1_band * 1.5) < float(fit.alpha_into(0)),
 		"the same broadside is worth less at range")
 
 
@@ -1515,7 +1609,10 @@ func test_battle_and_ai() -> void:
 	var ai_ship = rot.enemy()
 	ai_ship.pos = Vector2.ZERO
 	ai_ship.heading = 0.0
-	rot.player().pos = Vector2(0, 10)
+	# Well outside the AI's keep out distance, or it would break away rather
+	# than present anything, which is the correct behaviour and not the one
+	# this check is about.
+	rot.player().pos = Vector2(0, 160)
 	rot.player().heading = 180.0
 	ai_ship.shields[0] = 0.5           # exposed fore facing is nearly gone
 	ai_ship.shields[1] = ai_ship.shield_max
