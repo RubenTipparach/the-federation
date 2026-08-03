@@ -6,7 +6,6 @@ extends Node3D
 ## caller clamping is how one path drifts and allows an illegal camera.
 
 const MAT_BEAM := preload("res://assets/materials/mat_beam.tres")
-const MAT_TORPEDO := preload("res://assets/materials/mat_ordnance_torpedo.tres")
 const MAT_DRONE := preload("res://assets/materials/mat_ordnance_drone.tres")
 const WRECK := preload("res://scenes/wreck.tscn")
 const ORDNANCE := preload("res://scenes/ordnance.tscn")
@@ -179,7 +178,7 @@ func update_visuals(delta: float, sim_delta: float,
 				if facing >= 0:
 					_rig_of(on_player).flash_shield(facing)
 	_step_bolts(sim_delta)
-	_sync_drones()
+	_sync_drones(sim_delta)
 	$PlayerRig.update_flares(delta)
 	$EnemyRig.update_flares(delta)
 	var fade: float = float(Catalog.tuning()["combat"]["beam_fade_sec"])
@@ -230,9 +229,9 @@ func _launch_bolt(from_pos: Vector2, to_pos: Vector2, facing: int,
 	var view: Dictionary = Catalog.tuning()["view"]
 	var node: Node3D = ORDNANCE.instantiate()
 	$Ordnance.add_child(node)
-	node.wear(MAT_TORPEDO, float(view["ordnance_bolt_length"]))
+	node.wear_torpedo(float(view["ordnance_bolt_length"]))
 	var bearing: float = Sectors.bearing_between(from_pos, to_pos)
-	node.fly(from_pos, bearing, _deck_line())
+	node.fly(from_pos, bearing, _deck_line(), 0.0)
 	_bolts.append({
 		"node": node, "from": from_pos, "to": to_pos, "bearing": bearing,
 		"travelled": 0.0, "facing": facing, "on_player": on_player,
@@ -258,7 +257,7 @@ func _step_bolts(delta: float) -> void:
 			continue
 		var at: Vector2 = Vector2(bolt["from"]).lerp(Vector2(bolt["to"]),
 			float(bolt["travelled"]) / maxf(span, 0.001))
-		(bolt["node"] as Node3D).fly(at, float(bolt["bearing"]), height)
+		(bolt["node"] as Node3D).fly(at, float(bolt["bearing"]), height, delta)
 		flying.append(bolt)
 	_bolts = flying
 
@@ -266,7 +265,7 @@ func _step_bolts(delta: float) -> void:
 ## One drawn drone per drone the simulation is flying. The sim owns the list,
 ## so a drone shot down by point defense leaves the screen because it left the
 ## battle, not because the view decided it had (CLAUDE.md 5.2).
-func _sync_drones() -> void:
+func _sync_drones(sim_delta: float) -> void:
 	if _battle == null:
 		return
 	var length: float = float(Catalog.tuning()["view"]["ordnance_drone_length"])
@@ -280,9 +279,9 @@ func _sync_drones() -> void:
 		if node == null:
 			node = ORDNANCE.instantiate()
 			$Ordnance.add_child(node)
-			node.wear(MAT_DRONE, length)
+			node.wear_drone(MAT_DRONE, length)
 			_drones[seeker] = node
-		node.fly(seeker.pos, seeker.heading, height)
+		node.fly(seeker.pos, seeker.heading, height, sim_delta)
 	for seeker in _drones.keys():
 		if live.has(seeker):
 			continue

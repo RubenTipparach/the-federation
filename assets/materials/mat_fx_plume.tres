@@ -1,0 +1,11 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3]
+
+; One puff of a drone's exhaust, alert_hi. Each puff along the plume gets its own copy with the alpha stepped down, which is how the trail fades.
+; Colour from data/palette.json.
+
+[ext_resource type="Shader" path="res://assets/shaders/fx_billboard.gdshader" id="1"]
+
+[resource]
+shader = ExtResource("1")
+shader_parameter/tint = Color(0.922, 0.545, 0.427, 1.0)
+shader_parameter/spin = 0.0

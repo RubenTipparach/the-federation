@@ -1,0 +1,11 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3]
+
+; The torpedo's inner ray set, alert_hi: the red the user asked for, hot.
+; Colour from data/palette.json.
+
+[ext_resource type="Shader" path="res://assets/shaders/fx_billboard.gdshader" id="1"]
+
+[resource]
+shader = ExtResource("1")
+shader_parameter/tint = Color(0.922, 0.545, 0.427, 0.9)
+shader_parameter/spin = 0.0

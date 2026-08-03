@@ -219,6 +219,46 @@ def debris():
                 "Wreck plate %d, extruded irregular polygon, scaled in code" % index)
 
 
+def star_rays(name="star_rays.obj", spikes=8, waist=0.30, short=0.55):
+    """A flat star on the XY plane facing +Z: spikes alternating long and
+    short, drawn as a fan from the centre.
+
+    On XY rather than XZ because it is billboarded, and a billboard's local X
+    and Y are the camera's right and up. Every other flat mesh in this file is
+    on XZ because it lies on the battle plane; this one never does.
+    """
+    o = Obj()
+    n = o.normal(0, 0, 1)
+    c = o.vert(0, 0, 0)
+    ring = []
+    steps = spikes * 4
+    for i in range(steps):
+        a = 2.0 * math.pi * i / steps
+        # Four vertices per spike: tip, waist, short tip, waist. That gives a
+        # star whose long points read as a cross and whose short ones fill in
+        # between, which is the shape a photon torpedo has in the reference.
+        phase = i % 4
+        r = 0.5 if phase == 0 else (short * 0.5 if phase == 2 else waist * 0.5)
+        ring.append(o.vert(math.cos(a) * r, math.sin(a) * r, 0))
+    for i in range(steps):
+        o.tri(c, ring[i], ring[(i + 1) % steps], n)
+    o.write(name, "Unit star on XY facing +Z, for billboarded weapon effects")
+
+
+def sprite_disc(steps=24):
+    """A filled circle on the XY plane facing +Z, for billboarded puffs."""
+    o = Obj()
+    n = o.normal(0, 0, 1)
+    c = o.vert(0, 0, 0)
+    ring = []
+    for i in range(steps):
+        a = 2.0 * math.pi * i / steps
+        ring.append(o.vert(math.cos(a) * 0.5, math.sin(a) * 0.5, 0))
+    for i in range(steps):
+        o.tri(c, ring[i], ring[(i + 1) % steps], n)
+    o.write("sprite_disc.obj", "Unit disc on XY facing +Z, for billboarded puffs")
+
+
 def ordnance():
     """A round of ordnance in flight: a small spindle lying along +Z.
 
@@ -361,6 +401,8 @@ def main():
     debris()
     beam()
     ordnance()
+    star_rays()
+    sprite_disc()
     hull()
 
 

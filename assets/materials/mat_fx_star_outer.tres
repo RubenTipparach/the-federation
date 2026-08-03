@@ -1,0 +1,11 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3]
+
+; The torpedo's outer ray set, clay: darker red, turning the other way.
+; Colour from data/palette.json.
+
+[ext_resource type="Shader" path="res://assets/shaders/fx_billboard.gdshader" id="1"]
+
+[resource]
+shader = ExtResource("1")
+shader_parameter/tint = Color(0.514, 0.278, 0.239, 0.75)
+shader_parameter/spin = 0.0

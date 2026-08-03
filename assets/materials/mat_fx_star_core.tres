@@ -1,0 +1,11 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3]
+
+; The photon torpedo's core: cream, the brightest thing on the plane.
+; Colour from data/palette.json.
+
+[ext_resource type="Shader" path="res://assets/shaders/fx_billboard.gdshader" id="1"]
+
+[resource]
+shader = ExtResource("1")
+shader_parameter/tint = Color(0.890, 0.867, 0.820, 1.0)
+shader_parameter/spin = 0.0
