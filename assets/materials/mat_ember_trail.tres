@@ -1,0 +1,23 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3]
+
+; One ember in a debris trail: alert at the rim, gold through the heart, a
+; spark rather than a puff of smoke. Colours from data/palette.json.
+;
+; Additive (occlude 0), because an ember is light: the wreckage behind the
+; trail stays visible through it, and two embers crossing brighten rather
+; than mud. src/ui/ember_trail.gd duplicates this per authored puff, because
+; the fade is written into the alpha and a shared resource would fade every
+; trail in the battle on one clock, the bug mat_shield_glow.tres records.
+
+[ext_resource type="Shader" path="res://assets/shaders/fx_billboard.gdshader" id="1"]
+
+[resource]
+shader = ExtResource("1")
+shader_parameter/tint = Color(0.8118, 0.4157, 0.3255, 0.85)
+shader_parameter/hot = Color(0.851, 0.7216, 0.4, 1.0)
+shader_parameter/hot_focus = 2.2
+shader_parameter/spin = 0.0
+shader_parameter/occlude = 0.0
+shader_parameter/soft_power = 2.6
+shader_parameter/softness = 1.0
+shader_parameter/billboard = true

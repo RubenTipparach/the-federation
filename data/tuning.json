@@ -27,6 +27,15 @@
     "ordnance_drone_length": 8.0,
     "ordnance_bolt_length": 11.0,
     "ordnance_bolt_speed": 240.0,
+    "debris_trail": {
+      "_comment": "The embers a flying chunk sheds (src/ui/ember_trail.gd). Sparks are laid every puff_interval_sec of battle time at the chunk's position, jittered by jitter_frac of their own size, and burn out over puff_life_sec, shrinking to burn_down of themselves as they cool. size_frac is a spark's size as a fraction of the dead ship's drawn radius. Keep interval times the ten puffs authored in scenes/ember_trail.tscn past life, or a spark is recycled while it is still bright and the trail cuts off in mid air.",
+      "puff_interval_sec": 0.22,
+      "puff_life_sec": 1.9,
+      "puff_alpha": 0.9,
+      "size_frac": 0.24,
+      "jitter_frac": 0.9,
+      "burn_down": 0.3
+    },
     "fire": {
       "_comment": "What a dead subsystem looks like burning out of a hull (src/ui/subsystem_fire.gd). Every size is a fraction of the ship's own drawn radius, the way the wreck is measured, so a battlecruiser burns bigger than a frigate without a second table. Presentation only: the damage model has already decided which systems are out and which sector each sits in.",
       "hull_radius_frac": 0.46,

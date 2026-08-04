@@ -77,6 +77,8 @@ func burst(at: Vector2, radius: float, hull_material: Material, seed_value: int,
 	$Explosion.burst(radius, seed_value)
 
 	var spread: float = float(view["plate_rise"])
+	var trail_size: float = radius * float(
+		Catalog.tuning()["view"]["debris_trail"]["size_frac"])
 	var real: bool = not fragments.is_empty()
 	var chunks: Node3D = $Chunks
 	_spin = []
@@ -141,6 +143,7 @@ func burst(at: Vector2, radius: float, hull_material: Material, seed_value: int,
 			rng.randf_range(-1.0, 1.0)).normalized() * float(view["plate_spin_deg"]))
 		_lift.append(rng.randf_range(-spread, spread))
 		_turned.append(plate.rotation)
+		$Trails.get_child(i).setup(seed_value + i * 131, trail_size)
 		plate.visible = true
 
 
@@ -161,6 +164,7 @@ func sync_debris(pieces: Array, sim_delta: float, fade_seconds: float) -> void:
 		var plate: MeshInstance3D = chunks.get_child(i)
 		if _ride[i] < 0:
 			continue
+		var trail: Node3D = $Trails.get_child(i)
 		var piece: Debris = null
 		for candidate in pieces:
 			if candidate.bearing == _bearing_key(i):
@@ -168,6 +172,8 @@ func sync_debris(pieces: Array, sim_delta: float, fade_seconds: float) -> void:
 				break
 		if piece == null:
 			plate.visible = false
+			# The chunk is gone; the sparks it already shed finish burning.
+			trail.follow(Vector3.ZERO, false, sim_delta)
 			continue
 		seen += 1
 		plate.visible = true
@@ -186,6 +192,11 @@ func sync_debris(pieces: Array, sim_delta: float, fade_seconds: float) -> void:
 		# flying away; a thing going transparent reads as done.
 		var remaining: float = piece.ttl - piece.age
 		var alpha: float = clampf(remaining / maxf(fade_seconds, 0.001), 0.0, 1.0)
+		# The trail follows the chunk's centre and stops being fed once the
+		# piece begins to fade: embers off something already going transparent
+		# would outshine the thing shedding them.
+		trail.follow(to_global(plate.position + plate.basis * _pivot[i]),
+			alpha >= 1.0, sim_delta)
 		for mat in _mats[i]:
 			var plain: StandardMaterial3D = mat
 			plain.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA \
@@ -247,7 +258,14 @@ func _bearing_key(i: int) -> float:
 ## in a replay the sim stops at the end tick, the pieces never age, and a
 ## wreck that freed itself on a timer would take still frozen debris with it.
 func done() -> bool:
-	return not $Explosion.burning() and _pieces_done
+	if $Explosion.burning() or not _pieces_done:
+		return false
+	# The last sparks finish burning before the node goes: a trail cut off by
+	# its own owner's freeing would pop.
+	for trail in $Trails.get_children():
+		if not trail.idle():
+			return false
+	return true
 
 
 func _process(delta: float) -> void:

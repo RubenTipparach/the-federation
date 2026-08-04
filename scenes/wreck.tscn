@@ -1,4 +1,4 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 ; A destroyed ship: the explosion, and nine hull plates thrown clear of it.
 ;
@@ -17,6 +17,7 @@
 [ext_resource type="ArrayMesh" path="res://assets/meshes/debris_0.obj" id="3"]
 [ext_resource type="ArrayMesh" path="res://assets/meshes/debris_1.obj" id="4"]
 [ext_resource type="ArrayMesh" path="res://assets/meshes/debris_2.obj" id="5"]
+[ext_resource type="PackedScene" path="res://scenes/ember_trail.tscn" id="6"]
 
 [node name="Wreck" type="Node3D"]
 script = ExtResource("1")
@@ -60,3 +61,27 @@ cast_shadow = 0
 [node name="C8" type="MeshInstance3D" parent="Chunks"]
 mesh = ExtResource("5")
 cast_shadow = 0
+
+; One ember trail per plate, index aligned with Chunks: T3 trails C3. The
+; trail component keeps its sparks in world space, so they hang where the
+; chunk passed while it flies on.
+
+[node name="Trails" type="Node3D" parent="."]
+
+[node name="T0" parent="Trails" instance=ExtResource("6")]
+
+[node name="T1" parent="Trails" instance=ExtResource("6")]
+
+[node name="T2" parent="Trails" instance=ExtResource("6")]
+
+[node name="T3" parent="Trails" instance=ExtResource("6")]
+
+[node name="T4" parent="Trails" instance=ExtResource("6")]
+
+[node name="T5" parent="Trails" instance=ExtResource("6")]
+
+[node name="T6" parent="Trails" instance=ExtResource("6")]
+
+[node name="T7" parent="Trails" instance=ExtResource("6")]
+
+[node name="T8" parent="Trails" instance=ExtResource("6")]

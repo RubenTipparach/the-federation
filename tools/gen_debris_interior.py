@@ -36,7 +36,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from shiplib import Px, bayer, load_fx_ramp, ramp_index
+from shiplib import Px, bayer, load_colors, load_fx_ramp, ramp_index
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PALETTE = os.path.join(ROOT, "data", "palette.json")
@@ -132,10 +132,17 @@ def field(size, blobs, lines, rng):
     return heat
 
 
-def paint(size, heat, ramp):
-    """Two maps from one field: the diffuse paints every texel through the
-    ramp down to solid char, and the lights map keeps only what still glows,
-    black elsewhere, because black is the emissive maps' empty value."""
+def paint(size, heat, ramp, black):
+    """Two maps from one field: the diffuse paints the char, and the lights
+    map carries everything that glows.
+
+    UNDER A GLOWING TEXEL THE DIFFUSE IS PALETTE BLACK, not the ramp colour.
+    The material draws albedo shaded and adds emission on top, so a hot spot
+    painted in both maps came out lit twice and dimmed whenever the sun was
+    on the other side, which is backwards: a thing emitting light does not
+    care where the sun is. With the albedo near zero there, the scene's light
+    has nothing to act on and the glow is the emission alone, fully emissive
+    and unlit, exact palette colour at any angle."""
     diffuse = Px(size, background=ramp[-1], height=size)
     lights = Px(size, background=(0, 0, 0), height=size)
     for y in range(size):
@@ -146,9 +153,11 @@ def paint(size, heat, ramp):
             index = ramp_index(near, ramp, float(len(ramp)), d)
             if index >= len(ramp):
                 continue
-            diffuse.put(x, y, ramp[index])
             if v >= GLOW_FLOOR:
+                diffuse.put(x, y, black)
                 lights.put(x, y, ramp[index])
+            else:
+                diffuse.put(x, y, ramp[index])
     return diffuse, lights
 
 
@@ -159,10 +168,11 @@ def verify(px, allowed):
 
 def main():
     ramp = load_fx_ramp(PALETTE, "explosion")
+    black = load_colors(PALETTE)[0]["black"]
     rng = random.Random(SEED)
     heat = field(SIZE, spots(rng), cracks(rng), rng)
-    diffuse, lights = paint(SIZE, heat, ramp)
-    verify(diffuse, set(ramp))
+    diffuse, lights = paint(SIZE, heat, ramp, black)
+    verify(diffuse, set(ramp) | {black})
     verify(lights, set(ramp) | {(0, 0, 0)})
     diffuse.save(OUT_DIFFUSE)
     lights.save(OUT_LIGHTS)
