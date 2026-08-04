@@ -185,6 +185,7 @@ func update_visuals(delta: float, sim_delta: float,
 					_rig_of(on_player).flash_shield(facing)
 	_step_bolts(sim_delta)
 	_sync_drones(sim_delta)
+	_sync_wrecks(sim_delta)
 	$PlayerRig.update_flares(delta)
 	$EnemyRig.update_flares(delta)
 	# Battle time, not wall time. A burning subsystem is a thing in the world,
@@ -214,7 +215,39 @@ func _break_up(index: int, at: Vector2) -> void:
 	wreck.burst(at, rig.hull_radius(), rig.hull_material(),
 		_battle.tick * 7919 + index, rig.hull_fragments(),
 		_battle.ships[index].heading, rig.hull_draw_scale())
+	_wrecks[index] = wreck
 	rig.stand_down()
+
+
+## Which wreck belongs to which dead ship, so each frame's debris can be
+## handed to the plates that ride it.
+var _wrecks: Dictionary = {}
+
+
+## One drawn plate per piece the simulation is flying, exactly as the drones
+## work: the sim owns the pieces, so a chunk leaves the screen because it
+## expired or struck a hull in the battle, never because the view tired of it
+## (CLAUDE.md 5.2).
+func _sync_wrecks(sim_delta: float) -> void:
+	if _battle == null or _wrecks.is_empty():
+		return
+	var fade: float = float(Catalog.tuning()["wreck"]["fade_seconds"])
+	var by_owner: Dictionary = {}
+	for piece in _battle.debris:
+		if not by_owner.has(piece.owner_index):
+			by_owner[piece.owner_index] = []
+		by_owner[piece.owner_index].append(piece)
+	var stale: Array = []
+	for index in _wrecks:
+		# Untyped on purpose: assigning a freed instance to a typed Node3D
+		# throws before is_instance_valid could ever look at it.
+		var wreck = _wrecks[index]
+		if not is_instance_valid(wreck):
+			stale.append(index)
+			continue
+		wreck.sync_debris(by_owner.get(index, []), sim_delta, fade)
+	for index in stale:
+		_wrecks.erase(index)
 
 
 

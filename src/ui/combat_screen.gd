@@ -327,7 +327,10 @@ func _physics_process(delta: float) -> void:
 	if replay_log != null:
 		events = _step_replay(delta)
 		sim_delta = delta
-	elif not paused and not battle.over:
+	elif not paused and (not battle.over or battle.debris_active()):
+		# The battle steps past its own verdict while wreckage is still
+		# flying: the pieces are sim objects that can strike the survivor, so
+		# their coda is battle time, not an afterimage.
 		events = battle.step(delta)
 		sim_delta = delta
 	# The rig update is gated as well as timed. It was timed only, which made
@@ -799,7 +802,11 @@ func _show_end(winner: int, reason: String = "") -> void:
 		result.text = "SHIP LOST"
 		Paint.tint(result, "font_color", Palette.CRIT)
 		detail.text = "%s is destroyed." % String(battle.player().fit.hull()["name"])
-	paused = true
+	# NOT paused. The verdict already stops everything that fights: with the
+	# battle over, step() runs only the debris afterlife, and pausing here
+	# would freeze the wreckage mid air under the result panel. The player
+	# can still pause with escape, and stepping ends on its own when the last
+	# piece is gone.
 
 
 # ---- hud ---------------------------------------------------------------------

@@ -56,6 +56,7 @@ func _initialize() -> void:
 	test_movement_and_weapons()
 	test_battle_and_ai()
 	test_contacts()
+	test_debris()
 	test_seekers()
 	test_shields()
 	test_repairs()
@@ -1623,3 +1624,89 @@ func test_battle_and_ai() -> void:
 	# heading counter clockwise, an ordered heading left of the foe bearing.
 	near(SectorsLib.turn_delta(0.0, ai_ship.ordered_heading), -60.0,
 		"ai turns to present the stronger neighbor facing", 0.5)
+
+
+func test_debris() -> void:
+	print("\n== debris ==")
+	var combat: Dictionary = CatalogLib.tuning()["combat"]
+	var count: int = int(combat["debris_count"])
+	var dt: float = 1.0 / 30.0
+
+	# A kill spawns the wreckage. The hull is beaten down outside the step so
+	# the step itself is what notices the death, exactly as a battle would.
+	var duel = BattleLib.create_duel(FitLib.create_default("wayfarer"), "bloodletter", 11)
+	var victim = duel.enemy()
+	# Well apart, so the survivor is not standing in the blast for the spawn
+	# checks below.
+	# Apart but inside the arena, which clamps positions each step: a spawn
+	# point written outside it would be dragged to the rim and the checks
+	# below would measure the clamp, not the debris.
+	duel.player().pos = Vector2(-150.0, -150.0)
+	victim.pos = Vector2(150.0, 150.0)
+	while victim.alive:
+		victim.apply_damage(0.0, 50.0)
+	duel.step(dt)
+	ok(duel.over, "the battle is decided when the hull comes apart")
+	eq(duel.debris.size(), count, "and the dead ship sheds every piece of itself")
+	ok(duel.debris_active(), "which the battle reports as still flying")
+
+	var spawn: Array[Vector2] = []
+	for piece in duel.debris:
+		spawn.append(piece.pos)
+		near(piece.pos.distance_to(Vector2(150.0, 150.0)), 0.0,
+			"a piece starts where the ship died", 6.0)
+	duel.step(dt)
+	var moved: int = 0
+	for i in range(duel.debris.size()):
+		if duel.debris[i].pos.distance_to(spawn[i]) > 0.001:
+			moved += 1
+	eq(moved, count, "the verdict does not stop the wreckage: every piece flies on")
+
+	# A piece is a hazard. Park the survivor on one and it is struck through
+	# the same collision path ramming uses, and the piece is spent on the hit.
+	var before: int = duel.debris.size()
+	var target = duel.player()
+	target.collision_grace = 0.0
+	target.pos = duel.debris[0].pos
+	var struck: int = 0
+	for e in duel.step(dt):
+		if String(e.get("hazard", "")) == "debris":
+			struck += 1
+	eq(struck, 1, "a chunk that reaches a hull strikes it")
+	eq(duel.debris.size(), before - 1, "and shatters on it")
+	ok(_hurt(target) > 0.0, "the survivor pays for standing in the wreck")
+
+	# Time is the other way out.
+	for piece in duel.debris:
+		piece.age = piece.ttl - dt * 0.5
+	duel.step(dt)
+	eq(duel.debris.size(), 0, "a piece that outlives its clock is gone")
+	ok(not duel.debris_active(), "and the battle knows the sky is clear")
+
+	# The same seed throws the same wreck. Two battles, identical orders,
+	# stepped identically: every piece lands in the same place, which is what
+	# a replay showing the same debris field depends on.
+	var one = _debris_run(17)
+	var two = _debris_run(17)
+	eq(one.size(), two.size(), "the same seed sheds the same count")
+	var same: bool = true
+	for i in range(one.size()):
+		if one[i].distance_to(two[i]) > 0.0001:
+			same = false
+	ok(same, "and flies every piece down the same path")
+
+
+## Kill the enemy, step a while, and report where the pieces got to.
+func _debris_run(seed_value: int) -> Array[Vector2]:
+	var duel = BattleLib.create_duel(FitLib.create_default("wayfarer"), "bloodletter", seed_value)
+	duel.player().pos = Vector2(-150.0, -150.0)
+	var victim = duel.enemy()
+	victim.pos = Vector2(150.0, 150.0)
+	while victim.alive:
+		victim.apply_damage(0.0, 50.0)
+	for i in range(40):
+		duel.step(1.0 / 30.0)
+	var out: Array[Vector2] = []
+	for piece in duel.debris:
+		out.append(piece.pos)
+	return out

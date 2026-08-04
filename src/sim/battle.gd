@@ -11,6 +11,10 @@ var time: float = 0.0
 var over: bool = false
 var winner: int = -1
 var seekers: Array[Seeker] = []
+## Chunks of any ship that has come apart, still flying. In the sim rather
+## than the view because they deal collision damage (CLAUDE.md 5.2): a piece
+## of hull is a hazard to whoever is standing next to the blast.
+var debris: Array[Debris] = []
 
 ## What is in the arena besides the ships. Always present: an "open" battle
 ## flies in an empty Terrain rather than in a null one, so nothing downstream
@@ -125,6 +129,15 @@ func set_target(ship: ShipState, target: ShipState) -> void:
 ## so their beams never flashed while identical AI shots did.
 func step(dt: float) -> Array[Dictionary]:
 	if over:
+		# THE AFTERLIFE. The battle is decided the moment a hull comes apart,
+		# but its pieces are still flying, and the winner is usually standing
+		# right next to the blast. Debris keeps stepping, and keeps striking,
+		# after the verdict: fly in close for the kill and you eat the wreck.
+		# Nothing else moves, so a replay that stops at the end tick has lost
+		# only this coda.
+		_step_debris(dt, Catalog.tuning())
+		time += dt
+		tick += 1
 		return _drain()
 	var tuning: Dictionary = Catalog.tuning()
 
@@ -139,6 +152,7 @@ func step(dt: float) -> Array[Dictionary]:
 	_step_seekers(dt, tuning)
 	_step_terrain(dt)
 	_step_contacts()
+	_step_debris(dt, tuning)
 
 	_keep_in_arena(tuning)
 
@@ -157,6 +171,8 @@ func step(dt: float) -> Array[Dictionary]:
 				"type": "destroyed", "ship": i, "at": ships[i].pos,
 				"log": ["%s BREAKING UP" % String(ships[i].fit.hull()["name"]).to_upper()],
 			})
+			debris.append_array(Debris.burst(ships[i], i,
+				Catalog.tuning()["combat"], seed_value + tick * 7919 + i))
 			_events.append({ "type": "end", "winner": winner })
 			break
 	time += dt
@@ -396,6 +412,61 @@ func _step_contacts() -> void:
 			var pos_a: Vector2 = a.pos
 			_collide(a, b.pos, "ship", base * 2.0 * mass_b / total)
 			_collide(b, pos_a, "ship", base * 2.0 * mass_a / total)
+
+
+## The wreckage in flight: coast, expire, and strike whoever is in the way.
+##
+## A piece that hits a hull is spent on it: it shatters against the plating it
+## just damaged, so one chunk is one hit. The ship's own collision grace, the
+## same one ramming and terrain use, is what stops a cloud of pieces from
+## machine gunning a hull every tick.
+##
+## A strike can kill. When it does after the battle is already decided, the
+## verdict stands (the battle was won when the enemy hull came apart, and what
+## the wreck does to the winner afterwards is physics, not judgement), but the
+## view still gets its "destroyed" event, so the second hull comes apart on
+## screen like the first, sheds its own debris, and the comm log tells the
+## story.
+func _step_debris(dt: float, tuning: Dictionary) -> void:
+	if debris.is_empty():
+		return
+	var combat: Dictionary = tuning["combat"]
+	var drag: float = float(combat["debris_drag"])
+	var flying: Array[Debris] = []
+	# Pieces shed by a ship a strike kills THIS tick. Collected separately and
+	# folded in at the end, because appending to the list being walked would
+	# either step them a tick early or lose them when the list is rebuilt.
+	var shed: Array[Debris] = []
+	for piece in debris:
+		piece.step(dt, drag)
+		if piece.expired():
+			continue
+		var struck: bool = false
+		for i in range(ships.size()):
+			var ship: ShipState = ships[i]
+			if not ship.alive or ship.collision_grace > 0.0:
+				continue
+			if piece.pos.distance_to(ship.pos) > ship.radius() + piece.radius:
+				continue
+			_collide(ship, piece.pos, "debris", piece.damage)
+			struck = true
+			if not ship.alive:
+				_events.append({
+					"type": "destroyed", "ship": i, "at": ship.pos,
+					"log": ["%s BREAKING UP" % String(
+						ship.fit.hull()["name"]).to_upper()],
+				})
+				shed.append_array(Debris.burst(ship, i, combat,
+					seed_value + tick * 7919 + i))
+			break
+		if not struck:
+			flying.append(piece)
+	flying.append_array(shed)
+	debris = flying
+
+
+func debris_active() -> bool:
+	return not debris.is_empty()
 
 
 ## Pay for one collision: the grace, the speed lost, the damage from the
