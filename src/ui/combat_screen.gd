@@ -669,21 +669,24 @@ func _on_recall_requested() -> void:
 		battle.apply_command(0, "recall", [])
 
 
-## A captured hull joins the session's fleet, marked for towing when it cannot
-## move itself: docs/01 section 8's aftermath, recorded for the fleet screen.
+## A captured hull joins the session's fleet, carrying the damage it was
+## taken with and whether it can still move itself: docs/01 section 8's
+## aftermath, recorded for the fleet roster.
 func _record_prize(prize: ShipState) -> void:
 	if session == null:
 		return
-	var needs_tow: bool = prize._boxes_now("IMP") <= 0 		or prize._boxes_now("WARP") <= 0
-	session.add_prize(prize.fit.hull_id, needs_tow)
+	var engines_out: bool = prize._boxes_now("IMP") <= 0 \
+		or prize._boxes_now("WARP") <= 0
+	session.add_prize(prize.fit.hull_id, prize.total_boxes(),
+		prize.total_boxes_max(), engines_out)
 
 
-## Stand on the captured bridge: the prize becomes the session's hull, which
-## also dresses the interface in its navy (session.faction reads the hull),
-## and the screen returns to the skirmish setup flying it.
+## Stand on the captured bridge: the prize just recorded becomes the session's
+## ship, which also dresses the interface in its navy (session.faction reads
+## the hull), and the screen returns to the skirmish setup flying it.
 func _on_take_helm() -> void:
-	if session != null and battle != null:
-		session.take_helm(battle.enemy().fit.hull_id)
+	if session != null:
+		session.take_helm(session.fleet.size() - 1)
 	battle_ended.emit()
 
 

@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://src/ui/skirmish_screen.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/ui/fleet_panel.tscn" id="2"]
 
 [node name="Skirmish" type="HBoxContainer"]
 anchors_preset = 15
@@ -27,6 +28,9 @@ theme_type_variation = &"HeaderLabel"
 layout_mode = 2
 size_flags_vertical = 3
 theme_override_constants/separation = 10
+
+[node name="Fleet" parent="Yours/V" instance=ExtResource("2")]
+layout_mode = 2
 
 [node name="Tonnage" type="Label" parent="Yours/V"]
 layout_mode = 2

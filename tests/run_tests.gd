@@ -23,6 +23,7 @@ const RepairLib = preload("res://src/sim/repair_model.gd")
 const TerrainLib = preload("res://src/sim/terrain.gd")
 const TractorLib = preload("res://src/sim/tractor.gd")
 const BoardingLib = preload("res://src/sim/boarding.gd")
+const SessionLib = preload("res://src/ui/session.gd")
 
 var checks: int = 0
 var failures: int = 0
@@ -59,6 +60,7 @@ func _initialize() -> void:
 	test_contacts()
 	test_debris()
 	test_boarding()
+	test_fleet()
 	test_seekers()
 	test_shields()
 	test_repairs()
@@ -1825,3 +1827,45 @@ func _boarding_run(seed_value: int) -> Array:
 			break
 	return [me.marines.duplicate(), me.away.duplicate(),
 		foe.marines.duplicate(), foe.away.duplicate(), duel.over, duel.winner]
+
+
+## The fleet roster: what a session records when ships are won, refit, and
+## flown. UI side state, but pure RefCounted arithmetic with no scene under
+## it, so it is tested here beside the sim it counts boxes with.
+func test_fleet() -> void:
+	print("\n== fleet roster ==")
+	var s = SessionLib.create()
+	eq(s.fleet.size(), 1, "a new session sails with its flagship on the roster")
+	eq(s.helm, 0, "and the helm is the flagship")
+	var full: int = ShipLib.full_boxes("wayfarer")
+	eq(int(s.fleet[0]["hull"]), full, "the flagship arrives whole")
+	eq(int(s.fleet[0]["hull_max"]), full, "with hull_max the sim's own count")
+	ok(not bool(s.fleet[0]["engines_out"]), "and her engines online")
+
+	s.add_prize("bloodletter", 21, 39, false)
+	eq(s.fleet.size(), 2, "a capture joins the roster")
+	ok(bool(s.fleet[1]["prize"]), "marked as a prize")
+	eq(int(s.fleet[1]["hull"]), 21, "carrying the damage she was taken with")
+
+	s.take_helm(1)
+	eq(s.helm, 1, "taking a helm moves the helm")
+	eq(s.fit.hull_id, "bloodletter", "and the fit becomes that hull's")
+
+	var custom = FitLib.create_default("bloodletter")
+	s.fit = custom
+	s.take_helm(1)
+	ok(s.fit == custom, "re-taking the held helm keeps the dressed fit")
+	s.take_helm(9)
+	eq(s.helm, 1, "an index off the roster is refused")
+
+	s.refit(FitLib.create_default("kestrel"))
+	eq(String(s.fleet[1]["hull_id"]), "kestrel", "a refit replaces the helm row")
+	eq(int(s.fleet[1]["hull"]), ShipLib.full_boxes("kestrel"),
+		"and the new hull arrives whole")
+	ok(not bool(s.fleet[1]["prize"]), "a refit hull is not a prize")
+
+	s.add_prize("talon", 10, 40, true)
+	ok(bool(s.fleet[2]["engines_out"]), "a dead drive is recorded at capture")
+	s.add_prize("kestrel", 5, 34, false)
+	s.add_prize("kestrel", 5, 34, false)
+	eq(s.fleet.size(), 5, "a capture past the berth count is still recorded")

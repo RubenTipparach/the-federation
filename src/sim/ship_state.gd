@@ -228,6 +228,15 @@ func total_boxes_max() -> int:
 	return n
 
 
+## Every internal box a fresh hull sails with. For callers outside a battle
+## (the fleet roster) that need the same number the sim will fight with:
+## building a throwaway state and counting it is what keeps this one
+## implementation rather than a second walk of the hull data (CLAUDE.md 4.1).
+static func full_boxes(hull_id: String) -> int:
+	return ShipState.create(ShipFit.create_default(hull_id),
+		RandomNumberGenerator.new()).total_boxes_max()
+
+
 ## Living systems in one sector, or in the core when asked for CORE.
 func systems_in(sector: int) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
