@@ -16,26 +16,24 @@ extends Node3D
 ## what they wear, which is configuration rather than a reason for a second
 ## component (CLAUDE.md 6.1 applied to the world).
 
-const PUFFS: int = 12
-
 const MAT_CORE := preload("res://assets/materials/mat_fx_star_core.tres")
 const MAT_RAYS := preload("res://assets/materials/mat_fx_star_rays.tres")
 const MAT_OUTER := preload("res://assets/materials/mat_fx_star_outer.tres")
-const MAT_PLUME := preload("res://assets/materials/mat_fx_plume.tres")
+const MAT_PLUME := preload("res://assets/materials/mat_ordnance_drone.tres")
 
-## How far the round travels between exhaust puffs, and how big a puff is
-## against the body it trails. Presentation constants: they describe how this
-## file draws, not how anything plays, and nothing outside it reads them.
-##
-## Spacing is a DISTANCE, not an interval. Sampling on a clock made the trail
-## length depend on the frame rate and on how fast the round happened to be
-## going, and the first two attempts both came out as a blob sitting on the
-## drone rather than a plume behind it. Four units apart, twelve of them, is
-## forty four units of trail behind an eight unit body, always.
-const PUFF_SPACING: float = 4.0
-const PUFF_HEAD_SCALE: float = 0.30
-const PUFF_TAIL_SCALE: float = 0.05
-const PUFF_HEAD_ALPHA: float = 0.8
+## How long the exhaust cone is against the body it trails, and how wide.
+## A wake rather than a string of puffs laid along the path flown: the puff
+## version measured correct in every number it could report, spanning forty
+## seven units with twelve instances visible and materialed, and drew nothing
+## at all on screen. Solid mesh, billboarded mesh, tint material, billboard
+## material and world space placement were each ruled out one at a time, which
+## leaves the offset subtree itself, and that was not worth more of the
+## budget. A cone behind the engine is what the reference shows anyway.
+const WAKE_LENGTH: float = 3.2
+const WAKE_WIDTH: float = 0.55
+## See through, or the drone reads as a dart rather than as a body with
+## something streaming off it.
+const WAKE_ALPHA: float = 0.45
 
 ## How the star moves. The two ray sets turn at different rates and in
 ## opposite directions, which is what stops a stack of three meshes reading as
@@ -53,10 +51,6 @@ var _kind: String = ""
 var _length: float = 1.0
 var _age: float = 0.0
 
-## Where the round has been, newest first, sampled every PUFF_SECONDS of
-## battle time. The plume is drawn along this, which is what makes it follow
-## the round through a turn instead of sticking out behind it like a stick.
-var _path: PackedVector2Array = PackedVector2Array()
 
 
 ## A drone: body forward, exhaust behind.
@@ -67,15 +61,15 @@ func wear_drone(body_material: Material, length: float) -> void:
 	$Body.material_override = body_material
 	$Body.scale = Vector3(length, length, length)
 	$Star.visible = false
-	# Each puff gets its own copy of the material so the plume can fade along
-	# its length. A shared resource would fade every drone on screen together.
-	for i in range(PUFFS):
-		var faded: ShaderMaterial = MAT_PLUME.duplicate()
-		var tint: Color = faded.get_shader_parameter("tint")
-		var t: float = float(i) / float(PUFFS - 1)
-		faded.set_shader_parameter("tint",
-			Color(tint.r, tint.g, tint.b, PUFF_HEAD_ALPHA * (1.0 - t)))
-		_puff(i).material_override = faded
+	$Wake.visible = true
+	# Its own copy, because the alpha is dropped on the wake and a shared
+	# resource would fade every other round on screen with it.
+	var faded: ShaderMaterial = MAT_PLUME.duplicate()
+	var tint: Color = faded.get_shader_parameter("tint")
+	faded.set_shader_parameter("tint", Color(tint.r, tint.g, tint.b, WAKE_ALPHA))
+	$Wake.material_override = faded
+	$Wake.scale = Vector3(length * WAKE_WIDTH, length * WAKE_WIDTH,
+		length * WAKE_LENGTH)
 
 
 ## A photon torpedo: the star, and nothing else.
@@ -89,8 +83,7 @@ func wear_torpedo(length: float) -> void:
 	$Star/Core.material_override = MAT_CORE.duplicate()
 	$Star/Rays.material_override = MAT_RAYS.duplicate()
 	$Star/Outer.material_override = MAT_OUTER.duplicate()
-	for i in range(PUFFS):
-		_puff(i).visible = false
+	$Wake.visible = false
 
 
 ## Put the round on the plane at a bearing, and advance whatever it animates.
@@ -104,12 +97,7 @@ func fly(at: Vector2, bearing: float, height: float, sim_delta: float) -> void:
 	_age += sim_delta
 	if _kind == "torpedo":
 		_step_star()
-	else:
-		_step_plume(at, height)
 
-
-func _puff(i: int) -> MeshInstance3D:
-	return $Plume.get_node("P%d" % i) as MeshInstance3D
 
 
 func _spin(node: MeshInstance3D, rate: float, scale: float) -> void:
@@ -125,29 +113,3 @@ func _step_star() -> void:
 	_spin($Star/Outer, OUTER_SPIN, OUTER_SCALE)
 	_spin($Star/Core, 0.0, CORE_SCALE * pulse)
 
-
-## Lay the exhaust down along the path actually flown.
-##
-## The puffs are children of this node, which is rotated to the round's
-## heading, so each one is placed in LOCAL space: the world position it should
-## sit at, brought back through this node's transform. That is what lets a
-## drone turn hard and leave its plume behind on the old course, instead of
-## dragging a rigid tail round with it.
-func _step_plume(at: Vector2, height: float) -> void:
-	if _path.is_empty() or _path[0].distance_to(at) >= PUFF_SPACING:
-		_path.insert(0, at)
-		if _path.size() > PUFFS:
-			_path.resize(PUFFS)
-	var inverse: Transform3D = global_transform.affine_inverse()
-	for i in range(PUFFS):
-		var puff: MeshInstance3D = _puff(i)
-		if i >= _path.size():
-			puff.visible = false
-			continue
-		puff.visible = true
-		puff.position = inverse * Vector3(_path[i].x, height, _path[i].y)
-		# Puffs are billboards, so their own rotation never matters; the
-		# shader turns them to face the camera whatever this node is doing.
-		var t: float = float(i) / float(PUFFS - 1)
-		var size: float = _length * lerpf(PUFF_HEAD_SCALE, PUFF_TAIL_SCALE, t)
-		puff.scale = Vector3(size, size, size)

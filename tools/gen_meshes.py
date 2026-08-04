@@ -219,6 +219,37 @@ def debris():
                 "Wreck plate %d, extruded irregular polygon, scaled in code" % index)
 
 
+def plume_wake():
+    """The exhaust behind a drone: a cone with its mouth at the origin,
+    tapering to a point at -Z, so it ALREADY POINTS BACKWARD.
+
+    That is the whole design. The first version was the body mesh mirrored
+    with a -1 on Z in the scene, and Node3D.scale cannot represent a mirrored
+    basis, so the first call that set a scale silently threw the flip away and
+    the trail became a spike out the nose. A mesh that points the right way to
+    begin with cannot have that happen to it.
+    """
+    o = Obj()
+    segs = 12
+    rings = []
+    for k in range(segs + 1):
+        t = k / segs
+        r = 0.5 * (1.0 - t) ** 1.5   # fat at the engine, feathering to nothing
+        ring = []
+        for i in range(8):
+            a = 2.0 * math.pi * i / 8
+            ring.append(o.vert(math.cos(a) * r, math.sin(a) * r, -t))
+        rings.append(ring)
+    for k in range(segs):
+        for i in range(8):
+            j = (i + 1) % 8
+            a = 2.0 * math.pi * (i + 0.5) / 8
+            n = o.normal(math.cos(a), math.sin(a), 0)
+            o.tri(rings[k][i], rings[k + 1][j], rings[k + 1][i], n)
+            o.tri(rings[k][i], rings[k][j], rings[k + 1][j], n)
+    o.write("plume_wake.obj", "Unit exhaust cone, mouth at origin tapering to -Z")
+
+
 def star_rays(name="star_rays.obj", spikes=8, waist=0.30, short=0.55):
     """A flat star on the XY plane facing +Z: spikes alternating long and
     short, drawn as a fan from the centre.
@@ -403,6 +434,7 @@ def main():
     ordnance()
     star_rays()
     sprite_disc()
+    plume_wake()
     hull()
 
 
