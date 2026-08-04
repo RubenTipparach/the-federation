@@ -1,0 +1,32 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3]
+
+; The plasma shell a capital ship throws when it goes: blue_hi at the band and
+; shield_hi along its leading line, both from data/palette.json.
+;
+; BLUE, and that is the point of it. Every other layer of an explosion is
+; painted in the fire colours, which are the same oranges the damage report and
+; the collision chips wear. A shell in the shield colours reads as something
+; else entirely: not the hull burning, but the reactor's containment letting go
+; and washing out through it. A frigate's magazine cooking off does not do
+; this, which is why the ring's strength is the nova dial and a small hull
+; shows none of it.
+;
+; A ring rather than a blob, so bright_at sits out at the band and fade_over is
+; its own half width. Additive (occlude 0), because it is light passing
+; through: the debris and the fire behind it stay visible as it washes over
+; them, which is what sells it as a front rather than as a lid.
+
+[ext_resource type="Shader" path="res://assets/shaders/fx_billboard.gdshader" id="1"]
+
+[resource]
+shader = ExtResource("1")
+shader_parameter/tint = Color(0.4941, 0.6627, 0.8118, 1.0)
+shader_parameter/hot = Color(0.6039, 0.8235, 0.7686, 1.0)
+shader_parameter/hot_focus = 1.2
+shader_parameter/spin = 0.0
+shader_parameter/occlude = 0.0
+shader_parameter/soft_power = 1.2
+shader_parameter/softness = 1.0
+shader_parameter/bright_at = 0.95
+shader_parameter/fade_over = 0.06
+shader_parameter/billboard = true

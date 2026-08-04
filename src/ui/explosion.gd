@@ -30,6 +30,18 @@ extends Node3D
 ##           the middle, red at the edges. This is the part that lasts.
 ##   Embers  twenty small fast sparks thrown much further, still lit after the
 ##           fire is out, which is what gives the explosion a tail.
+##   Plasma  a blue shell growing and fading outward over half a minute. The
+##           reactor's containment letting go, in the shield colours rather
+##           than the fire ones, so it reads as something other than the hull
+##           burning. Only a capital ship throws one.
+##
+## A NOVA IS THIS SAME EXPLOSION ON A LONGER CLOCK, dialled by how big the hull
+## was: an escort pops in two seconds, a battlecruiser burns for thirty and
+## washes a plasma shell out across the arena. There is no second explosion and
+## no branch anywhere below (CLAUDE.md 4.1). Every layer reads its numbers
+## through _fx(), which mixes the ordinary value with the one in tuning's
+## "nova" block by that dial, so making a hull nova harder is a number in a
+## config file rather than a code path.
 ##
 ## EVERYTHING IS A FUNCTION OF AGE, never an integration. A piece's position is
 ## its direction times a curve of its age, so seeking an explosion to any moment
@@ -57,6 +69,12 @@ const THROW_EASE: float = 2.6
 const EMBER_THROW_EASE: float = 2.0
 const SHOCK_EASE: float = 2.2
 const SHOCK_DECAY: float = 2.0
+## Gentler than the shock front's on both counts. The front is over before the
+## fire is lit and wants to look like a snap; the plasma shell is the thing
+## still visible when everything else has burned out, so it has to keep moving
+## and keep something to see for the whole half minute.
+const PLASMA_EASE: float = 1.7
+const PLASMA_DECAY: float = 1.0
 ## Deliberately gentle. At 1.5 the fire was gone by the time the debris had
 ## cleared and the last second was a smooth brown sphere with nothing in it; a
 ## slower decay leaves enough billows alight to keep the tail lumpy.
@@ -75,6 +93,9 @@ var _life: float = 1.0
 var _age: float = 0.0
 var _radius: float = 1.0
 var _running: bool = false
+## 0 for a hull that simply blows up, 1 for one that novas. Set once from the
+## radius at burst() and read by every number below.
+var _nova: float = 0.0
 
 ## Per piece, in the order the scene declares them.
 var _fire_dir: Array[Vector3] = []
@@ -94,12 +115,15 @@ var _ember_reach: Array[float] = []
 var _fire_alpha: Array[float] = []
 var _ember_alpha: Array[float] = []
 var _shock_alpha: float = 1.0
+var _plasma_alpha: float = 1.0
 
 
 func _ready() -> void:
 	_own($Shock)
+	_own($Plasma)
 	_own($Ball)
 	_shock_alpha = _alpha_of($Shock)
+	_plasma_alpha = _alpha_of($Plasma)
 	for piece in $Fire.get_children():
 		_own(piece)
 		_fire_alpha.append(_alpha_of(piece))
@@ -121,7 +145,10 @@ func _ready() -> void:
 func burst(radius: float, seed_value: int) -> void:
 	var fx: Dictionary = Catalog.tuning()["explosion"]
 	_radius = maxf(radius, 0.01)
-	_life = float(fx["seconds"])
+	# Set FIRST, because every _fx() below is mixed by it.
+	_nova = clampf(inverse_lerp(float(fx["nova_radius_from"]),
+		float(fx["nova_radius_full"]), _radius), 0.0, 1.0)
+	_life = _fx(fx, "seconds")
 	_age = 0.0
 	_running = true
 
@@ -131,7 +158,7 @@ func burst(radius: float, seed_value: int) -> void:
 	# Billows are thrown on the plane with only a little lift, because the
 	# ships fly on a plane and a fireball that fountained upward would read as
 	# a different game (docs/01). The same reasoning the wreck's plates use.
-	var rise: float = float(fx["fire_rise"])
+	var rise: float = _fx(fx, "fire_rise")
 	var fire: Node3D = $Fire
 	var count: int = fire.get_child_count()
 	_fire_dir = []
@@ -151,24 +178,24 @@ func burst(radius: float, seed_value: int) -> void:
 		# The scene paints a low index hot and a high one red, so the throw has
 		# to grow with the index for the cloud to be hot in the middle.
 		var tier: float = float(i) / float(maxi(count - 1, 1))
-		_fire_reach.append(_radius * float(fx["fire_throw_radii"])
-			* lerpf(float(fx["fire_throw_near"]), 1.0, tier)
+		_fire_reach.append(_radius * _fx(fx, "fire_throw_radii")
+			* lerpf(_fx(fx, "fire_throw_near"), 1.0, tier)
 			* rng.randf_range(0.7, 1.25))
 		# A billow thrown further is drawn BIGGER, which is both what expanding
 		# gas does and what closes the gap the throw opens. Sized at random
 		# instead, the far ones came out small and hung in the dark as separate
 		# brown circles with nothing joining them to the fire.
-		_fire_size.append(_radius * lerpf(float(fx["fire_size_min_radii"]),
-			float(fx["fire_size_max_radii"]), tier) * rng.randf_range(0.8, 1.25))
+		_fire_size.append(_radius * lerpf(_fx(fx, "fire_size_min_radii"),
+			_fx(fx, "fire_size_max_radii"), tier) * rng.randf_range(0.8, 1.25))
 		# EACH BILLOW HAS ITS OWN CLOCK, and this is the single change that
 		# stopped the fire reading as a heap of circles. Lit together and put
 		# out together, two dozen discs pulse as one shape and the eye finds
 		# every edge in it. Started at staggered moments and given lives of
 		# different lengths, the same two dozen are always at different
 		# brightnesses, and what the eye finds instead is churn.
-		_fire_born.append(rng.randf_range(0.0, float(fx["fire_stagger"])))
-		_fire_life.append(float(fx["fire_seconds"]) * rng.randf_range(
-			float(fx["fire_life_min"]), 1.0))
+		_fire_born.append(rng.randf_range(0.0, _fx(fx, "fire_stagger")))
+		_fire_life.append(_fx(fx, "fire_seconds") * rng.randf_range(
+			_fx(fx, "fire_life_min"), 1.0))
 
 	var embers: Node3D = $Embers
 	_ember_dir = []
@@ -177,9 +204,9 @@ func burst(radius: float, seed_value: int) -> void:
 		var span2: float = TAU / float(embers.get_child_count())
 		var bearing2: float = span2 * float(i) + rng.randf_range(-span2 * 0.4, span2 * 0.4)
 		_ember_dir.append(Vector3(sin(bearing2),
-			rng.randf_range(-float(fx["ember_rise"]), float(fx["ember_rise"])),
+			rng.randf_range(-_fx(fx, "ember_rise"), _fx(fx, "ember_rise")),
 			cos(bearing2)).normalized())
-		_ember_reach.append(_radius * float(fx["ember_throw_radii"])
+		_ember_reach.append(_radius * _fx(fx, "ember_throw_radii")
 			* rng.randf_range(0.5, 1.0))
 
 	seek(0.0)
@@ -192,6 +219,13 @@ func progress() -> float:
 
 func burning() -> bool:
 	return _running
+
+
+## How long this explosion runs, in seconds. The wreck asks, because its plates
+## are done in three seconds and a capital ship's nova is not: freeing the node
+## on the plates' clock would cut the shell off mid flight.
+func duration() -> float:
+	return _life
 
 
 ## Advance by the caller's clock. The explosion does not choose which clock that
@@ -220,6 +254,7 @@ func seek(age: float) -> void:
 
 	_step_flash(fx, age)
 	_step_shock(fx, age)
+	_step_plasma(fx, age)
 	_step_ball(fx, age)
 	_step_fire(fx, age)
 	_step_embers(fx, age)
@@ -235,7 +270,7 @@ func seek(age: float) -> void:
 ## few scattered dark pixels instead, which is a fade a palette can actually
 ## express.
 func _step_flash(fx: Dictionary, age: float) -> void:
-	var span: float = float(fx["flash_seconds"])
+	var span: float = _fx(fx, "flash_seconds")
 	var k: float = clampf(age / span, 0.0, 1.0)
 	var sprite: Sprite3D = $Flipbook
 	sprite.visible = k < 1.0
@@ -246,24 +281,50 @@ func _step_flash(fx: Dictionary, age: float) -> void:
 	# over would be a loop, and this plays once.
 	sprite.frame = mini(int(k * float(frames)), frames - 1)
 	# Out fast and slowing, which is what a shock lit gas front does.
-	_size(sprite, _radius * lerpf(float(fx["flash_start_radii"]),
-		float(fx["flash_end_radii"]), sqrt(k)))
+	_size(sprite, _radius * lerpf(_fx(fx, "flash_start_radii"),
+		_fx(fx, "flash_end_radii"), sqrt(k)))
 
 
 ## The front, out ahead of the fire and gone before it.
 func _step_shock(fx: Dictionary, age: float) -> void:
-	var span: float = float(fx["shock_seconds"])
+	var span: float = _fx(fx, "shock_seconds")
 	var k: float = clampf(age / span, 0.0, 1.0)
 	$Shock.visible = k < 1.0
 	if k >= 1.0:
 		return
 	# Decelerating hard: a front is quickest the instant it leaves.
 	var grow: float = 1.0 - pow(1.0 - k, SHOCK_EASE)
-	_size($Shock, _radius * lerpf(float(fx["shock_start_radii"]),
-		float(fx["shock_end_radii"]), grow))
+	_size($Shock, _radius * lerpf(_fx(fx, "shock_start_radii"),
+		_fx(fx, "shock_end_radii"), grow))
 	# Held bright while it is small and thinned as it stretches, which is what
 	# a front spreading its energy over a longer circumference does.
 	_set_alpha($Shock, _shock_alpha * pow(1.0 - k, SHOCK_DECAY))
+
+
+## THE NOVA'S OWN LAYER: a blue shell growing and fading outward long after the
+## fire is out. The reactor's containment going, rather than the hull burning,
+## which is why it is painted in the shield colours and not the fire ones.
+##
+## Its strength is the nova dial, so this is not gated by a branch: a hull too
+## small to nova multiplies the shell by zero and no ring is drawn. A frigate's
+## magazine cooking off does not wash plasma across the arena.
+##
+## Fading the whole way out rather than holding and dropping. A front spreading
+## its energy over an ever longer circumference gets dimmer the whole time it
+## travels, and the shock front's own comment says the same thing on a clock
+## forty times shorter.
+func _step_plasma(fx: Dictionary, age: float) -> void:
+	var span: float = _fx(fx, "plasma_seconds")
+	var k: float = clampf(age / span, 0.0, 1.0)
+	$Plasma.visible = _nova > 0.0 and k < 1.0
+	if not $Plasma.visible:
+		return
+	# Out fast and slowing hard, so most of the reach is covered while the fire
+	# is still burning and the last of it is a wide, slow, dim ring.
+	var grow: float = 1.0 - pow(1.0 - k, PLASMA_EASE)
+	_size($Plasma, _radius * lerpf(_fx(fx, "plasma_start_radii"),
+		_fx(fx, "plasma_end_radii"), grow))
+	_set_alpha($Plasma, _plasma_alpha * _nova * pow(1.0 - k, PLASMA_DECAY))
 
 
 ## The fireball the wreck used to own: one sphere, expanding, its own shader
@@ -275,12 +336,12 @@ func _step_shock(fx: Dictionary, age: float) -> void:
 ## of an explosion was a featureless brown ball. Out before them, what is left
 ## at the end is fire and sparks, which is the right thing for the end to be.
 func _step_ball(fx: Dictionary, age: float) -> void:
-	var k: float = clampf(age / float(fx["ball_seconds"]), 0.0, 1.0)
+	var k: float = clampf(age / _fx(fx, "ball_seconds"), 0.0, 1.0)
 	$Ball.visible = k < 1.0
 	if k >= 1.0:
 		return
-	$Ball.scale = Vector3.ONE * _radius * lerpf(float(fx["ball_start_radii"]),
-		float(fx["ball_end_radii"]), sqrt(k))
+	$Ball.scale = Vector3.ONE * _radius * lerpf(_fx(fx, "ball_start_radii"),
+		_fx(fx, "ball_end_radii"), sqrt(k))
 	var mat: ShaderMaterial = $Ball.material_override
 	if mat != null:
 		# The blast shader owns the colour and the envelope; it wants 0 at the
@@ -308,7 +369,7 @@ func _step_fire(fx: Dictionary, age: float) -> void:
 		var out: float = 1.0 - pow(1.0 - k, THROW_EASE)
 		# Swells from a fraction of its size to all of it, so the cloud thickens
 		# as it spreads instead of thinning into separate dots.
-		var swell: float = lerpf(float(fx["fire_swell_from"]), 1.0, sqrt(k))
+		var swell: float = lerpf(_fx(fx, "fire_swell_from"), 1.0, sqrt(k))
 		# Lights at once, then burns down over the rest of its life.
 		var fade: float = minf(1.0, k * FIRE_ATTACK) * pow(1.0 - k, FIRE_DECAY)
 		piece.position = _fire_dir[i] * _fire_reach[i] * out
@@ -319,7 +380,7 @@ func _step_fire(fx: Dictionary, age: float) -> void:
 ## Sparks. Thrown much further than the fire and much smaller, and still lit
 ## when it is out.
 func _step_embers(fx: Dictionary, age: float) -> void:
-	var span: float = float(fx["ember_seconds"])
+	var span: float = _fx(fx, "ember_seconds")
 	var k: float = clampf(age / span, 0.0, 1.0)
 	var embers: Node3D = $Embers
 	if k >= 1.0:
@@ -328,14 +389,30 @@ func _step_embers(fx: Dictionary, age: float) -> void:
 		return
 	var out: float = 1.0 - pow(1.0 - k, EMBER_THROW_EASE)
 	var fade: float = minf(1.0, k * EMBER_ATTACK) * pow(1.0 - k, EMBER_DECAY)
-	var size: float = _radius * float(fx["ember_size_radii"])
+	var size: float = _radius * _fx(fx, "ember_size_radii")
 	for i in range(mini(embers.get_child_count(), _ember_dir.size())):
 		var piece: MeshInstance3D = embers.get_child(i)
 		piece.visible = true
 		piece.position = _ember_dir[i] * _ember_reach[i] * out
 		# Embers burn down rather than swelling: the opposite of a billow.
-		_size(piece, size * lerpf(1.0, float(fx["ember_burn_down"]), k))
+		_size(piece, size * lerpf(1.0, _fx(fx, "ember_burn_down"), k))
 		_set_alpha(piece, _ember_alpha[i] * fade)
+
+
+## One tuning number, mixed toward its nova value by how big the hull was.
+##
+## A key the "nova" block does not name is one that does not change with hull
+## size, and there are deliberately several of those: the flipbook plays at a
+## speed the eye can follow whatever died, because 25 frames stretched over
+## half a minute is a slideshow, and the shock front still crosses the arena in
+## the first second, because a front that took thirty seconds would not read as
+## a front.
+func _fx(fx: Dictionary, key: String) -> float:
+	var base: float = float(fx[key])
+	var nova: Dictionary = fx["nova"]
+	if _nova <= 0.0 or not nova.has(key):
+		return base
+	return lerpf(base, float(nova[key]), _nova)
 
 
 ## Give a piece its own copy of the material the scene put on it, so two
@@ -374,6 +451,7 @@ func _size(piece: Node3D, size: float) -> void:
 func _hide_all() -> void:
 	$Flipbook.visible = false
 	$Shock.visible = false
+	$Plasma.visible = false
 	$Ball.visible = false
 	for piece in $Fire.get_children():
 		piece.visible = false

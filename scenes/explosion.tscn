@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3]
+[gd_scene load_steps=13 format=3]
 
 ; A ship blowing up: a played flipbook and four layers of billboarded light,
 ; over about two seconds.
@@ -31,6 +31,7 @@
 [ext_resource type="ArrayMesh" path="res://assets/meshes/sprite_disc.obj" id="5"]
 [ext_resource type="Material" path="res://assets/materials/mat_blast.tres" id="6"]
 [ext_resource type="Material" path="res://assets/materials/mat_fx_shock.tres" id="7"]
+[ext_resource type="Material" path="res://assets/materials/mat_fx_plasma.tres" id="8"]
 [ext_resource type="Material" path="res://assets/materials/mat_fx_fire_hot.tres" id="10"]
 [ext_resource type="Material" path="res://assets/materials/mat_fx_fire_mid.tres" id="11"]
 [ext_resource type="Material" path="res://assets/materials/mat_fx_fire_cool.tres" id="12"]
@@ -42,6 +43,19 @@ script = ExtResource("1")
 [node name="Ball" type="MeshInstance3D" parent="."]
 mesh = ExtResource("2")
 material_override = ExtResource("6")
+cast_shadow = 0
+
+; The plasma shell of a capital ship's nova, which is the same ring mesh as the
+; shock front in a different colour and on a clock forty times as long. A
+; second mesh for it would be the fork CLAUDE.md 4.1 forbids: what differs
+; between a front that crosses the arena in half a second and a shell that
+; takes half a minute is numbers, and the numbers are in data/tuning.json.
+;
+; Drawn before everything else so the fire and the debris paint over it.
+
+[node name="Plasma" type="MeshInstance3D" parent="."]
+mesh = ExtResource("3")
+material_override = ExtResource("8")
 cast_shadow = 0
 
 [node name="Shock" type="MeshInstance3D" parent="."]

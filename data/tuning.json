@@ -77,7 +77,31 @@
     "ember_throw_radii": 7.5,
     "ember_size_radii": 0.28,
     "ember_burn_down": 0.3,
-    "ember_rise": 0.5
+    "ember_rise": 0.5,
+    "_plasma_note": "The blue shell a capital ship throws when its containment lets go: one ring growing and fading outward, far slower and a good deal wider than the shock front, and drawn in the shield colours rather than the fire ones. Its strength IS the nova dial below, so these numbers describe the shell at full nova and a hull too small to nova shows no ring at all rather than a faint one nobody asked for.",
+    "plasma_seconds": 26.0,
+    "plasma_start_radii": 2.5,
+    "plasma_end_radii": 22.0,
+    "_nova_note": "A NOVA IS THE SAME EXPLOSION WITH A LONGER CLOCK, not a second effect (CLAUDE.md 4.1). Every key in this block overrides the one above it by the same name, mixed in by how far up the nova dial a hull is, so one code path draws a frigate popping and a battlecruiser going up. A key absent here is one that does not change: the flipbook still plays at a speed the eye can follow, because 25 frames stretched over half a minute is a slideshow, and the shock front still crosses the arena early because a front that took thirty seconds would not be a front.",
+    "_nova_dial_note": "Where the dial runs, as the hull's DRAWN radius: ship_rig.hull_radius(), which is what the wreck hands the explosion and what every other size in this block is a multiple of. Not ShipState.radius(), which is the sim's collision radius and a different number for the same ship (the two are 10.2 and 17.6 for the heavy cruiser). Anything written here has to be in the same units as the radius the caller passes, or the dial reads a hull as smaller than it is, which is the bug these numbers replace. Below the first number a ship simply blows up. Above the second it novas outright. Drawn radii run from 6.1 for the interceptor to 10.2 for the heavy cruiser, so the escorts sit under the low end, the heavy cruiser sits at the top, and the two cruisers land part way up and read as something between the two.",
+    "nova_radius_from": 7.0,
+    "nova_radius_full": 10.2,
+    "nova": {
+      "seconds": 30.0,
+      "flash_seconds": 1.6,
+      "flash_start_radii": 4.2,
+      "flash_end_radii": 9.5,
+      "shock_end_radii": 15.0,
+      "ball_seconds": 7.0,
+      "ball_start_radii": 0.8,
+      "ball_end_radii": 3.4,
+      "fire_seconds": 16.0,
+      "fire_throw_radii": 7.5,
+      "fire_stagger": 6.0,
+      "ember_seconds": 22.0,
+      "ember_throw_radii": 17.0,
+      "ember_size_radii": 0.2
+    }
   },
   "wreck": {
     "_comment": "What a destroyed ship leaves behind: the plates it came apart into, around the explosion that threw them. The fire itself is the 'explosion' block above, because a detonation is not only something a hull does when it dies. Every size is in multiples of the dead ship's own radius, so a battlecruiser leaves a bigger wreck than a frigate without a second table. Presentation only: the simulation has already stopped stepping the ship.",

@@ -130,5 +130,9 @@ func _process(delta: float) -> void:
 		# plates simply shrink away instead, which reads as burning down.
 		plate.scale *= (1.0 - delta * 0.25 * t)
 
-	if _age >= _life:
+	# The plates are done in three seconds. The explosion may not be: a capital
+	# ship novas for half a minute, and freeing this node on the plates' clock
+	# would cut the shell off mid flight. So the wreck stays until the last of
+	# its own fire is out.
+	if _age >= maxf(_life, $Explosion.duration()):
 		queue_free()
