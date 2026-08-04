@@ -25,6 +25,13 @@ const MAT_HULL_FOE := preload("res://assets/materials/mat_hull_foe.tres")
 const MAT_SHIELD_GLOW := preload("res://assets/materials/mat_shield_glow.tres")
 const MAT_TURN_ARC := preload("res://assets/materials/mat_turn_arc.tres")
 
+## Seeds the flicker phase and the smoke jitter of the hull fires. Fixed
+## numbers rather than a draw, for the reason wreck.gd gives: a replay must
+## show the same fire as the battle it recorded, and drawing one must never
+## disturb what the simulation rolls next.
+const FIRE_SEED: int = 6151
+const FIRE_SEED_SIDE: int = 977
+
 ## The shield ring and the turn arc are sized in sim units, and the turn arc
 ## sits well outside the shield band: at close radii the two read as one
 ## confusing ring in the same colour. Both live in data/tuning.json rather than
@@ -127,7 +134,35 @@ func bind_ship(state: ShipState, friendly: bool) -> void:
 	var tonnage: float = float(state.fit.hull()["tonnage"])
 	var s: float = clampf(0.8 + tonnage / 200.0 * 0.8, 0.8, 1.8) * _view("hull_scale")
 	$Hull.scale = Vector3(s, s, s)
+	_place_fires()
 	refresh()
+
+
+## Where on the hull each sector's fire stands. Done once per binding, because
+## it depends on how big this hull is drawn and on nothing that changes during
+## a battle.
+##
+## A facing's fire sits out along that facing's own centre bearing, at the same
+## angles the shield segments above use (Sectors.facing_center_bearing), so the
+## shield that is down and the fire burning under it are in the same place. The
+## core's fire sits amidships, because the core is the volume behind every
+## facing and has no bearing of its own.
+func _place_fires() -> void:
+	var radius: float = hull_radius()
+	var out: float = radius * float(Catalog.tuning()["view"]["fire"]["hull_radius_frac"])
+	# The plate the fire is standing on: the top of the hull mesh as drawn.
+	# Read off the mesh rather than written down, so a taller hull burns from
+	# its own deck and not from a number that was measured once on a cruiser.
+	var deck: float = $Hull.position.y + $Hull.get_aabb().end.y * $Hull.scale.y
+	# The two ships get different seeds, or both hulls flicker on one beat and
+	# throw their smoke the same way, which reads as a rendering artefact.
+	var side: int = FIRE_SEED if _friendly else FIRE_SEED + FIRE_SEED_SIDE
+	for f in range(Sectors.FACING_COUNT):
+		var b: float = deg_to_rad(Sectors.facing_center_bearing(f))
+		var fire: Node3D = $Fires.get_node("F%d" % f)
+		fire.place(Vector3(sin(b) * out, deck, cos(b) * out), radius, side + f)
+	$Fires/FCore.place(Vector3(0.0, deck, 0.0), radius,
+		side + Sectors.FACING_COUNT)
 
 
 ## How far the ship is rolled into its turn, eased so it settles rather than
@@ -174,6 +209,30 @@ func update_flares(delta: float) -> void:
 		# than dimming at a constant rate that reads as a fading lamp.
 		glow.visible = _flare[f] > 0.0 and _state != null and _state.alive
 		glow.material_override.set_shader_parameter("glow", _flare[f] * _flare[f])
+
+
+## Set the hull fires from the damage model and advance them by a slice of
+## BATTLE time, not wall time: a fire is a thing in the world, like a torpedo
+## in flight and unlike a beam afterimage, so a paused fight has a frozen fire.
+##
+## What lights a fire is the damage model's own record, read and never
+## recomputed: a system with no boxes left is out, and the sector it sits in is
+## the sector ShipState put it in. There is no second opinion here about what
+## counts as destroyed (CLAUDE.md 4.1).
+func update_fires(sim_delta: float) -> void:
+	var dead: Dictionary = {}
+	if _state != null and _state.alive:
+		for sys in _state.systems:
+			if int(sys["boxes"]) > 0 or int(sys["boxes_max"]) <= 0:
+				continue
+			var sector: int = int(sys["sector"])
+			dead[sector] = int(dead.get(sector, 0)) + 1
+	for f in range(Sectors.FACING_COUNT):
+		var fire: Node3D = $Fires.get_node("F%d" % f)
+		fire.set_intensity(int(dead.get(f, 0)))
+		fire.step(sim_delta)
+	$Fires/FCore.set_intensity(int(dead.get(ShipState.CORE, 0)))
+	$Fires/FCore.step(sim_delta)
 
 
 ## Half the width a hull is drawn at, in sim units. The wreck that replaces a

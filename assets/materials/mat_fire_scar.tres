@@ -1,0 +1,33 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3]
+
+; The scorch a dead subsystem leaves on the plate above it: bark at the rim
+; and black in the middle, from data/palette.json, covering rather than adding,
+; and laid flat on the hull deck instead of facing the camera, which is what
+; billboard = false is for.
+;
+; WARM rather than neutral, and that is the whole point of it. The first cut
+; was char over black, which is invisible: these hulls are painted in navy and
+; indigo and a near black disc on a dark blue plate is a disc nobody can see.
+; A burn is browner than the metal it is on, so bark reads at once and reads as
+; heat rather than as a shadow.
+;
+; A harder edge than anything else painted with this shader (a low softness),
+; because a burn mark on plating has a boundary and a flame does not. The mark
+; is what still says "this part of the ship is finished" once the fire is out.
+;
+; It uses assets/meshes/disc.obj, the same flat unit disc the terrain fields
+; are drawn with, because a mark lying on a surface is a different orientation
+; of the same soft blob and not a different effect (CLAUDE.md 4.1).
+
+[ext_resource type="Shader" path="res://assets/shaders/fx_billboard.gdshader" id="1"]
+
+[resource]
+render_priority = 1
+shader = ExtResource("1")
+shader_parameter/tint = Color(0.2745, 0.2, 0.1725, 1.0)
+shader_parameter/hot = Color(0.0431, 0.0627, 0.0863, 1.0)
+shader_parameter/hot_focus = 1.4
+shader_parameter/spin = 0.0
+shader_parameter/occlude = 1.0
+shader_parameter/softness = 0.45
+shader_parameter/billboard = false

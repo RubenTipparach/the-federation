@@ -1,0 +1,144 @@
+[gd_scene load_steps=9 format=3]
+
+; A dead subsystem burning out of one part of a hull.
+;
+; Everything here is authored (CLAUDE.md 5.1). The script places, sizes, spins
+; and fades these nodes; it never makes one.
+;
+; THREE PARTS, and the arrangement is the whole design:
+;
+;   Scar   a scorch mark lying flat on the plate, the mark that says something
+;          under this spot is finished. disc.obj, not billboarded.
+;   Flame  a broad base half sunk into the plate, a narrow tongue licking up
+;          out of it, and a small white heart at the opening. The Y offsets and
+;          relative scales below are the SHAPE of a flame, which is arrangement
+;          and so belongs in the scene; how big the whole thing is drawn and
+;          how fast it flickers are tuning and live in data/tuning.json
+;          (CLAUDE.md 5.4).
+;
+;          The base and the heart sit at NEGATIVE Y, which is what puts them
+;          inside the plating: fire coming out of a hull has to start below the
+;          hull, or it reads as a fire standing on top of one.
+;   Plume  twelve smoke puffs. top_level, so a puff stays at the world point it
+;          was made at while the ship sails on: that is what turns a fire into
+;          a trail without anything having to know the ship's velocity. Same
+;          trick the drone's exhaust plume uses.
+;
+; Twelve, because the trail is only as long as the puffs it has: at the rate in
+; data/tuning.json a ring of twelve is about three seconds of smoke, which is
+; the puff lifetime, so the oldest puff is fading out just as its slot is
+; wanted again. Eight recycled a puff that was still half bright, which cut the
+; trail off in mid air.
+
+[ext_resource type="Script" path="res://src/ui/subsystem_fire.gd" id="1"]
+[ext_resource type="ArrayMesh" path="res://assets/meshes/sprite_disc.obj" id="2"]
+[ext_resource type="ArrayMesh" path="res://assets/meshes/disc.obj" id="3"]
+[ext_resource type="Material" path="res://assets/materials/mat_fire_scar.tres" id="4"]
+[ext_resource type="Material" path="res://assets/materials/mat_fire_outer.tres" id="5"]
+[ext_resource type="Material" path="res://assets/materials/mat_fire_mid.tres" id="6"]
+[ext_resource type="Material" path="res://assets/materials/mat_fire_core.tres" id="7"]
+[ext_resource type="Material" path="res://assets/materials/mat_fire_smoke.tres" id="8"]
+
+[node name="SubsystemFire" type="Node3D"]
+script = ExtResource("1")
+
+[node name="Scar" type="MeshInstance3D" parent="."]
+transform = Transform3D(1.7, 0, 0, 0, 1, 0, 0, 0, 1.7, 0, 0.02, 0)
+mesh = ExtResource("3")
+material_override = ExtResource("4")
+cast_shadow = 0
+
+[node name="Flame" type="Node3D" parent="."]
+
+[node name="L0" type="MeshInstance3D" parent="Flame"]
+transform = Transform3D(1.4, 0, 0, 0, 0.8, 0, 0, 0, 1, 0, -0.16, 0)
+mesh = ExtResource("2")
+material_override = ExtResource("5")
+cast_shadow = 0
+
+[node name="L1" type="MeshInstance3D" parent="Flame"]
+transform = Transform3D(0.6, 0, 0, 0, 1.5, 0, 0, 0, 1, 0, 0.72, 0)
+mesh = ExtResource("2")
+material_override = ExtResource("6")
+cast_shadow = 0
+
+[node name="L2" type="MeshInstance3D" parent="Flame"]
+transform = Transform3D(0.44, 0, 0, 0, 0.34, 0, 0, 0, 1, 0, -0.2, 0)
+mesh = ExtResource("2")
+material_override = ExtResource("7")
+cast_shadow = 0
+
+[node name="Plume" type="Node3D" parent="."]
+top_level = true
+
+[node name="P0" type="MeshInstance3D" parent="Plume"]
+mesh = ExtResource("2")
+material_override = ExtResource("8")
+cast_shadow = 0
+visible = false
+
+[node name="P1" type="MeshInstance3D" parent="Plume"]
+mesh = ExtResource("2")
+material_override = ExtResource("8")
+cast_shadow = 0
+visible = false
+
+[node name="P2" type="MeshInstance3D" parent="Plume"]
+mesh = ExtResource("2")
+material_override = ExtResource("8")
+cast_shadow = 0
+visible = false
+
+[node name="P3" type="MeshInstance3D" parent="Plume"]
+mesh = ExtResource("2")
+material_override = ExtResource("8")
+cast_shadow = 0
+visible = false
+
+[node name="P4" type="MeshInstance3D" parent="Plume"]
+mesh = ExtResource("2")
+material_override = ExtResource("8")
+cast_shadow = 0
+visible = false
+
+[node name="P5" type="MeshInstance3D" parent="Plume"]
+mesh = ExtResource("2")
+material_override = ExtResource("8")
+cast_shadow = 0
+visible = false
+
+[node name="P6" type="MeshInstance3D" parent="Plume"]
+mesh = ExtResource("2")
+material_override = ExtResource("8")
+cast_shadow = 0
+visible = false
+
+[node name="P7" type="MeshInstance3D" parent="Plume"]
+mesh = ExtResource("2")
+material_override = ExtResource("8")
+cast_shadow = 0
+visible = false
+
+[node name="P8" type="MeshInstance3D" parent="Plume"]
+mesh = ExtResource("2")
+material_override = ExtResource("8")
+cast_shadow = 0
+visible = false
+
+[node name="P9" type="MeshInstance3D" parent="Plume"]
+mesh = ExtResource("2")
+material_override = ExtResource("8")
+cast_shadow = 0
+visible = false
+
+[node name="P10" type="MeshInstance3D" parent="Plume"]
+mesh = ExtResource("2")
+material_override = ExtResource("8")
+cast_shadow = 0
+visible = false
+
+[node name="P11" type="MeshInstance3D" parent="Plume"]
+mesh = ExtResource("2")
+material_override = ExtResource("8")
+cast_shadow = 0
+visible = false

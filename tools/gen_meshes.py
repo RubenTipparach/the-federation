@@ -171,6 +171,32 @@ def disc():
     o.write("disc.obj", "Unit filled disc on the XZ plane, for terrain fields")
 
 
+def sprite_disc(steps=32):
+    """A unit disc on the XY plane facing +Z: the billboard the effects ride on.
+
+    Every soft blob in the game (a flame tongue, a smoke puff, a coolant
+    cloud) is this one mesh, scaled, spun and tinted by
+    assets/shaders/fx_billboard.gdshader. It is a disc rather than a quad
+    because the shader fades it out by its own model space radius, so the
+    corners of a quad would be geometry that never paints anything.
+
+    Facing +Z rather than +Y because the billboard vertex stage swings the
+    mesh's own XY plane to face the camera; a mesh authored flat on XZ like
+    disc.obj would arrive edge on.
+    """
+    o = Obj()
+    n = o.normal(0, 0, 1)
+    center = o.vert(0, 0, 0)
+    ring = []
+    for i in range(steps + 1):
+        a = 2.0 * math.pi * i / steps
+        ring.append(o.vert(math.cos(a), math.sin(a), 0.0))
+    for i in range(steps):
+        # Counter clockwise in XY, so the cross product agrees with +Z.
+        o.tri(center, ring[i], ring[i + 1], n)
+    o.write("sprite_disc.obj", "Unit billboard disc on XY facing +Z, for the effect shader")
+
+
 def sphere(segs=32, rings=18):
     # A unit sphere, used for every solid terrain body: a nebula's volume, an
     # asteroid, a planet, and the fireball a ship leaves. One mesh scaled four
@@ -448,6 +474,7 @@ def main():
     ring()
     quad()
     disc()
+    sprite_disc()
     sphere()
     debris()
     beam()

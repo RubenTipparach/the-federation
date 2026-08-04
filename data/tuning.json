@@ -26,7 +26,26 @@
     "_ordnance_note": "Rounds that cross the plane instead of arriving instantly. A drone is a simulated object and the view only follows it, so its length here is the only number; a torpedo bolt is presentation alone, because the shot resolved the moment it was fired, and bolt_speed decides how long the depiction takes to catch up with a result that already happened. Fast enough that the delay is not felt, slow enough to read as a round in flight: at 240 the longest torpedo shot in the catalog takes about a second. The shield it struck is lit when the bolt lands rather than when it left, so the two halves of the depiction agree.",
     "ordnance_drone_length": 8.0,
     "ordnance_bolt_length": 11.0,
-    "ordnance_bolt_speed": 240.0
+    "ordnance_bolt_speed": 240.0,
+    "fire": {
+      "_comment": "What a dead subsystem looks like burning out of a hull (src/ui/subsystem_fire.gd). Every size is a fraction of the ship's own drawn radius, the way the wreck is measured, so a battlecruiser burns bigger than a frigate without a second table. Presentation only: the damage model has already decided which systems are out and which sector each sits in.",
+      "hull_radius_frac": 0.46,
+      "flame_radius_frac": 0.3,
+      "scar_radius_frac": 0.52,
+      "_intensity_note": "A fire is lit by a COUNT of dead systems in one sector rather than by a fraction, because a captain reads 'three things in my port quarter are gone'. The cap is where more damage stops making the fire bigger, so a gutted sector does not swallow the ship it is on.",
+      "intensity_cap": 3,
+      "intensity_gain": 0.34,
+      "flicker_hz": 3.2,
+      "flicker_depth": 0.26,
+      "_puff_note": "The smoke. interval is at one dead system and shortens as a sector loses more. Life times rise decides how tall the column is, and life times the ship's speed decides how long the trail is, which is what makes a ship under way stream rather than smoulder. Keep interval times the twelve puffs authored in scenes/subsystem_fire.tscn close to life: shorter and a puff is recycled while it is still bright, which cuts the trail off in mid air.",
+      "puff_interval_sec": 0.26,
+      "puff_life_sec": 3.2,
+      "puff_start_frac": 0.12,
+      "puff_grow": 3.4,
+      "puff_rise": 3.0,
+      "puff_drift": 0.9,
+      "puff_alpha": 0.62
+    }
   },
   "wreck": {
     "_comment": "What a destroyed ship leaves behind. Every size is in multiples of the dead ship's own radius, so a battlecruiser leaves a bigger wreck than a frigate without a second table. Presentation only: the simulation has already stopped stepping the ship.",

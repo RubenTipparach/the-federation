@@ -1,0 +1,26 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3]
+
+; The broad base of a hull fire: the part that sits in the hole in the plate
+; and reads from across the arena.
+;
+; alert at the rim and gold_hi through the middle, both from data/palette.json.
+; alert is the orange every critical readout and collision chip in the
+; interface already wears, so a burning subsystem and the damage report line
+; about it are the same colour.
+;
+; Its alpha is deliberately low. Three additive tongues at full strength add up
+; to a white blob, which is what the first cut of this looked like: a lamp
+; rather than a fire.
+
+[ext_resource type="Shader" path="res://assets/shaders/fx_billboard.gdshader" id="1"]
+
+[resource]
+render_priority = 2
+shader = ExtResource("1")
+shader_parameter/tint = Color(0.8118, 0.4157, 0.3255, 0.58)
+shader_parameter/hot = Color(0.851, 0.7216, 0.4, 1.0)
+shader_parameter/hot_focus = 2.6
+shader_parameter/spin = 0.0
+shader_parameter/occlude = 0.0
+shader_parameter/softness = 0.95
+shader_parameter/billboard = true

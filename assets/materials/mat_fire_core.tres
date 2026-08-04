@@ -1,0 +1,26 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3]
+
+; The heart of a hull fire: the small white hot spot at the base, where the
+; plate has actually been opened. gold_hi at the rim and cream in the middle,
+; from data/palette.json, which is the pair the wreck fireball opens with. A
+; subsystem burning and a ship exploding are then the same fire at two sizes.
+;
+; Small, and only just brighter than the tongues above it. It is the one part
+; that is allowed to saturate, because the middle of a fire does.
+;
+; src/ui/subsystem_fire.gd duplicates this per instance: the flicker is written
+; into the alpha, and a shared resource would make every fire on the field
+; breathe in unison, which is the bug mat_shield_glow.tres already records.
+
+[ext_resource type="Shader" path="res://assets/shaders/fx_billboard.gdshader" id="1"]
+
+[resource]
+render_priority = 2
+shader = ExtResource("1")
+shader_parameter/tint = Color(0.851, 0.7216, 0.4, 0.4)
+shader_parameter/hot = Color(0.8902, 0.8667, 0.8196, 1.0)
+shader_parameter/hot_focus = 3.0
+shader_parameter/spin = 0.0
+shader_parameter/occlude = 0.0
+shader_parameter/softness = 0.85
+shader_parameter/billboard = true

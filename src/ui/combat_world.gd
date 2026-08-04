@@ -187,6 +187,11 @@ func update_visuals(delta: float, sim_delta: float,
 	_sync_drones(sim_delta)
 	$PlayerRig.update_flares(delta)
 	$EnemyRig.update_flares(delta)
+	# Battle time, not wall time. A burning subsystem is a thing in the world,
+	# so it freezes with the fight the way a torpedo in flight does, while the
+	# shield flares above are afterimages and finish regardless.
+	$PlayerRig.update_fires(sim_delta)
+	$EnemyRig.update_fires(sim_delta)
 	var fade: float = float(Catalog.tuning()["combat"]["beam_fade_sec"])
 	for i in range(3):
 		if _beam_ttl[i] > 0.0:
