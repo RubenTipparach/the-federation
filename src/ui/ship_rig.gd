@@ -1,16 +1,23 @@
 extends Node3D
 
-## The 3D presence of one ship: authored hull mesh, 12 authored wedge
+## The 3D presence of one ship: authored hull mesh, 12 authored arc run
 ## instances, 6 authored shield segments, one range ring. This script does
 ## PLACEMENT AND TINT ONLY (CLAUDE.md 5.1): rotate the authored unit meshes
 ## into their sectors, scale them to weapon range, pick an authored material.
 ## All geometry is committed .obj; nothing is generated here.
+##
+## The firing envelope is drawn as CONTIGUOUS RUNS at true reach. Which sectors
+## group into which run, and how far each run reaches, is decided by
+## ShipState.envelope_runs; this file only poses one authored disc per run and
+## tells its shader how wide the run is and which of the three states it is in.
+## Twelve nodes because twelve sectors is the worst case, so the pool covers a
+## ship whose every sector is covered by different guns and nothing is ever
+## constructed at play time.
 
 const MAT_SHIELD_OK := preload("res://assets/materials/mat_shield_ok.tres")
 const MAT_SHIELD_WARN := preload("res://assets/materials/mat_shield_warn.tres")
 const MAT_SHIELD_DOWN := preload("res://assets/materials/mat_shield_down.tres")
-const MAT_WEDGE_FRIEND := preload("res://assets/materials/mat_wedge_friend.tres")
-const MAT_WEDGE_FOE := preload("res://assets/materials/mat_wedge_foe.tres")
+const MAT_ARC_RUN := preload("res://assets/materials/mat_arc_run.tres")
 const MAT_RING_FRIEND := preload("res://assets/materials/mat_ring_friend.tres")
 const MAT_RING_FOE := preload("res://assets/materials/mat_ring_foe.tres")
 const MAT_HULL_FRIEND := preload("res://assets/materials/mat_hull_friend.tres")
@@ -32,6 +39,17 @@ var _state: ShipState
 ## screen before the ship acts on them.
 var _friendly: bool = false
 
+## The mount the player is pointing at in the ship systems display, or "" for
+## none. Every run that mount bears into is drawn in the boldest state, which is
+## how a captain finds out where one gun can shoot without reading a table.
+var _hovered_mount: String = ""
+
+## Who this ship is shooting at, for readiness. Held rather than passed so that
+## refresh() keeps the signature every caller already uses, and it is the same
+## ShipState the battle resolves a shot against (Battle.target_for), never a
+## second idea of who the target is.
+var _target: ShipState = null
+
 ## Impact energy per facing, 1.0 the moment a shield is struck and decaying to
 ## 0. Presentation only: the sim never reads this, so a battle plays out the
 ## same whether or not anything is drawn.
@@ -42,15 +60,32 @@ func bind_ship(state: ShipState, friendly: bool) -> void:
 	_state = state
 	$Hull.material_override = MAT_HULL_FRIEND if friendly else MAT_HULL_FOE
 	$RangeRing.material_override = MAT_RING_FRIEND if friendly else MAT_RING_FOE
-	var wedge_mat: Material = MAT_WEDGE_FRIEND if friendly else MAT_WEDGE_FOE
+	# The range ring is retired by arcs drawn at true reach. It existed to carry
+	# the absolute figure the old fixed radius rosette could not, and a circle at
+	# the longest gun's reach now contradicts the outline of every run that does
+	# not reach that far. The node stays authored in the scene because the plan
+	# inset convention and the shield rings are built around it.
+	$RangeRing.visible = false
 	for i in range(12):
-		var w: MeshInstance3D = $Wedges.get_node("W%d" % i)
-		# wedge30.obj is authored CENTERED on +Z (bearings -15 to +15), while
-		# sector i spans [i*30, i*30+30). The half sector offset aligns the
-		# rendered wedge with the arc fire_check enforces; without it every
-		# displayed arc edge is 15 degrees off, which the review reproduced.
-		w.rotation.y = deg_to_rad(float(i) * Sectors.SECTOR_DEG + Sectors.SECTOR_DEG * 0.5)
-		w.material_override = wedge_mat
+		var arc: MeshInstance3D = $Arcs.get_node("A%d" % i)
+		# arc_run.obj is authored STARTING at +Z and sweeping clockwise, and a
+		# run starts on a sector boundary, so the rotation is the run's first
+		# sector with no half sector offset. The old wedge needed one because it
+		# was authored centred; getting that wrong put every drawn arc edge 15
+		# degrees off the arc fire_check enforces.
+		#
+		# Every run needs its own span, state and colour, so each node gets its
+		# own material. A shared resource would mean the last run drawn decided
+		# what all twelve looked like, the same reason the shield flare and the
+		# turn arc duplicate theirs.
+		arc.material_override = MAT_ARC_RUN.duplicate()
+		arc.material_override.set_shader_parameter("line_color",
+			Palette.CYAN if friendly else Palette.MAGENTA)
+		arc.material_override.set_shader_parameter("tick_px", _view("arc_tick_px"))
+		arc.material_override.set_shader_parameter("tick_frac", _view("arc_tick_frac"))
+		arc.material_override.set_shader_parameter("tick_len", _view("arc_tick_len"))
+		arc.material_override.set_shader_parameter("fill_edge", _view("arc_fill_edge"))
+		arc.visible = false
 	for f in range(6):
 		var seg: MeshInstance3D = $Shields.get_node("S%d" % f)
 		seg.rotation.y = deg_to_rad(float(f) * 60.0)
@@ -187,6 +222,49 @@ func stand_down() -> void:
 		(child as Node3D).visible = false
 
 
+## Who this ship is shooting at, so a run can say whether it could fire this
+## instant. Set by the view from Battle.target_for, and null outside a battle.
+func set_target(target: ShipState) -> void:
+	_target = target
+
+
+## Which mount the ship display is being pointed at, or "" for none. The rig
+## only draws it; what a hover MEANS is the display's business.
+func set_hovered_mount(mount_id: String) -> void:
+	_hovered_mount = mount_id
+
+
+## Which of the three states one run is drawn in. Readiness is
+## ShipState.fire_check, the same answer the readiness chips show and the same
+## one a real shot is resolved against, so a lit arc can never disagree with
+## whether the trigger works (CLAUDE.md 4.1).
+##
+## Hover outranks ready because it answers a question the player is asking right
+## now, and the run is lit for the whole mount rather than only where it bears
+## on the target: pointing at a gun should show where that gun reaches.
+func _run_state(run: Dictionary) -> String:
+	var mounts: Array = run["mounts"]
+	if not _hovered_mount.is_empty():
+		for j in mounts:
+			if String(_state.weapons_rt[int(j)]["mount"]["id"]) == _hovered_mount:
+				return "hover"
+	if _target != null and _target.alive:
+		for j in mounts:
+			if bool(_state.fire_check(int(j), _target.pos)["ok"]):
+				return "ready"
+	return "fitted"
+
+
+## Whether the run next door stops at the same distance this one does. A tenth
+## of a sim unit is well inside the rounding of any two reaches that are meant
+## to be the same and well outside the gap between two that are not.
+func _same_reach(reach_of: Dictionary, sector: int, reach: float) -> bool:
+	var neighbour: int = posmod(sector, Sectors.COUNT)
+	if not reach_of.has(neighbour):
+		return false
+	return absf(float(reach_of[neighbour]) - reach) < 0.1
+
+
 func refresh() -> void:
 	if _state == null or not _state.alive:
 		return
@@ -196,51 +274,52 @@ func refresh() -> void:
 	# at +90 degrees, +Z maps to +X, and bearing 090 is +X.
 	rotation.y = deg_to_rad(_state.heading)
 
-	# Sector wedges: visible where a fitted weapon bears, and long in proportion
-	# to the reach that covers the sector. The same fit code the shipyard uses
-	# decides which sectors those are; the rig just poses meshes.
-	var reach: PackedFloat32Array = PackedFloat32Array()
-	var ring_range: float = 0.0
-	for i in range(12):
-		var r: float = 0.0
-		if _state.alive:
-			for j in range(_state.weapons_rt.size()):
-				if _state.mount_disabled(j):
-					continue
-				var weapon: Dictionary = _state.weapons_rt[j]["weapon"]
-				if weapon.is_empty():
-					continue
-				if _state.fit.effective_field(_state.weapons_rt[j]["mount"]).has(i):
-					r = maxf(r, WeaponModel.max_range(weapon))
-		reach.append(r)
-		ring_range = maxf(ring_range, r)
-
-	# The wedges are a rosette, not a map of the envelope. Drawn at true scale
-	# a single sector is a filled slab most of the width of the arena, which is
-	# a colour wash over the battle rather than a readout, so they are drawn to
-	# a fixed radius instead: the ship's longest reaching sector fills it and
-	# the rest are stubbier in proportion, which keeps the comparison between
-	# sectors that a captain actually reads off them.
+	# The firing envelope, at TRUE reach. The sim groups the sectors into runs
+	# and says how far each one shoots (ShipState.envelope_runs); this loop only
+	# poses one authored disc per run and hands its shader the span and the
+	# state. Nothing about arcs or ranges is decided here.
 	#
-	# How far the guns reach in absolute terms is the range ring's job, and the
-	# ring stays at true scale because it is a thin band rather than a disc: a
-	# big one is a faint circle out at the edge of sight, which is what a
-	# weapons envelope should look like.
-	var rosette: float = _view("arc_wedge_radius")
+	# Drawn at true scale a filled sector was a slab most of the arena wide,
+	# which is a colour wash over the battle rather than a readout. What makes
+	# true scale survivable is that a run is a wire outline over a fill of about
+	# five percent: the shape is carried by three lines instead of by an area,
+	# so the reach can be honest and the battle stays visible through it.
+	var runs: Array[Dictionary] = _state.envelope_runs()
+	# How far the run covering each sector reaches, so a run can tell whether
+	# the neighbour it butts against stops where it does. Where two runs reach
+	# the same distance the edge between them is a seam rather than the edge of
+	# the envelope, and it is drawn as one.
+	var reach_of: Dictionary = {}
+	for run in runs:
+		for s in run["sectors"]:
+			reach_of[int(s)] = float(run["reach"])
 	for i in range(12):
-		var w: MeshInstance3D = $Wedges.get_node("W%d" % i)
-		# The arcs and rings are a lot of blended geometry, and the debug
-		# overlay can take them away to see what they were costing. Read here
-		# rather than cached, because this is where visibility is decided and a
-		# flag consulted anywhere else would be fought by this line.
-		w.visible = reach[i] > 0.0
-		if w.visible:
-			var drawn: float = rosette * reach[i] / ring_range
-			w.scale = Vector3(drawn, 1, drawn)
-
-	$RangeRing.visible = ring_range > 0.0
-	if ring_range > 0.0:
-		$RangeRing.scale = Vector3(ring_range, 1, ring_range)
+		var arc: MeshInstance3D = $Arcs.get_node("A%d" % i)
+		arc.visible = i < runs.size()
+		if not arc.visible:
+			continue
+		var run: Dictionary = runs[i]
+		var sectors: Array = run["sectors"]
+		var reach: float = float(run["reach"])
+		arc.rotation.y = deg_to_rad(float(int(sectors[0])) * Sectors.SECTOR_DEG)
+		arc.scale = Vector3(reach, 1, reach)
+		var mat: ShaderMaterial = arc.material_override
+		mat.set_shader_parameter("span_deg",
+			float(sectors.size()) * Sectors.SECTOR_DEG)
+		mat.set_shader_parameter("inner_r", _view("shield_ring_radius") / reach)
+		var state: String = _run_state(run)
+		var weights: Dictionary = Catalog.tuning()["view"]["arc_states"][state]
+		mat.set_shader_parameter("fill_alpha", float(weights["fill"]))
+		mat.set_shader_parameter("line_alpha", float(weights["line"]))
+		mat.set_shader_parameter("line_px", float(weights["px"]))
+		# A hovered run keeps both its edges at full weight whatever its
+		# neighbours do: the player is asking where exactly this gun bears, and
+		# a softened edge is the one thing that answer must not have.
+		var seam: bool = state != "hover"
+		mat.set_shader_parameter("start_seam", 1.0 if seam and _same_reach(
+			reach_of, int(sectors[0]) - 1, reach) else 0.0)
+		mat.set_shader_parameter("end_seam", 1.0 if seam and _same_reach(
+			reach_of, int(sectors[-1]) + 1, reach) else 0.0)
 
 	# Material by shield band. The thresholds live in Palette.shield_band,
 	# shared with every 2D shield readout, so the 3D ring can never disagree

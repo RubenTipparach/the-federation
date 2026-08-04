@@ -117,6 +117,25 @@ def arc_glow():
     o.write("arc_glow.obj", "Unit shield impact flare, 88 degrees, wider than one facing")
 
 
+def arc_run():
+    o = Obj()
+    # One CONTIGUOUS RUN of firing sectors: the sectors covered by the same set
+    # of weapons, outlined once instead of twelve times. A run is anything from
+    # 30 to 360 degrees and a mesh cannot change its angular span, so this is a
+    # full disc masked down to the run by assets/shaders/arc_run.gdshader, the
+    # same trick turn_arc.obj already uses and for the same reason: one
+    # committed mesh instead of a family of fixed wedges, and no geometry built
+    # at play time.
+    #
+    # Radius 1.06 rather than 1.0 because the shader draws the outer arc AT the
+    # reach, so half the line's width and its antialiasing fall outside it. The
+    # extra 6 percent is margin for that line, never for the envelope: the
+    # shader treats r = 1.0 as the weapon's reach and paints nothing past the
+    # rim stroke.
+    flat_fan(o, 0, 360, 1.06, 96)
+    o.write("arc_run.obj", "Unit disc for one arc run, masked to its span by the shader")
+
+
 def turn_arc():
     o = Obj()
     # A FULL circle, because the turn it shows is any angle from nothing to a
@@ -422,6 +441,7 @@ def main():
     # writing a stale untextured cruiser over the painted one proved it.
     os.makedirs(OUT, exist_ok=True)
     wedge30()
+    arc_run()
     arc_segment()
     arc_glow()
     turn_arc()

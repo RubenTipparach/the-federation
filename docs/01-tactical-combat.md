@@ -250,6 +250,39 @@ Firing requires: target within range, target inside one of the mount's sectors, 
 capacitor charged. The **firing envelope** is therefore the mount's arc intersected with
 the weapon's range, which is exactly the wedge the fitting screen draws.
 
+### The envelope in 3D is outlined in runs, at true reach
+
+The tactical view draws the same envelope on the plane, and it draws it **at the range
+the guns actually reach**. Twelve filled sectors could not: a filled 30 degree slab 288
+units long is a colour wash over most of the arena, which is why the arcs used to be a
+fixed radius rosette that a player then had to translate. Three things make true scale
+readable instead.
+
+- **A run, not a sector.** Sectors covered by exactly the same set of weapons are
+  outlined once, as a contiguous run: two radial edges and one outer arc. On a typical
+  hull that is four to six shapes instead of twelve. The key is the weapon set rather
+  than the distance, which is what lets a run be drawn at one radius honestly: the same
+  guns cover every sector in it, so there is no other reach inside it and no averaging.
+  The interior 30 degree divisions survive as short ticks hanging in from the rim, so
+  bearings are still readable off the shape. `ShipState.envelope_runs` is the one place
+  that grouping happens, over `Sectors.contiguous_runs`, which the arc wheel already
+  shares.
+- **Outline, not area.** The shape is carried by the line. The fill is a few percent at
+  the ship and thins to almost nothing at the rim, because the outline is what states the
+  reach and the wash underneath does not have to state it twice.
+- **Weight, not colour, says state.** Colour is already saying friend or foe. A fitted
+  run is an outline you can see the battle through, a run whose weapon could fire at the
+  current target this instant is lit, and the run belonging to the weapon the player is
+  pointing at in the ship display is bolder still. Readiness is `ShipState.fire_check`,
+  the same answer the readiness chips give and a real shot is resolved against, so a lit
+  arc can never disagree with whether the trigger works.
+
+Where two runs meet at the same radius, because the guns change and the distance does
+not, the edge between them is drawn with the tick pen rather than the outline pen: the
+pair read as one shape with a division in it. The range ring is retired by this. It
+existed to carry the absolute figure a fixed radius rosette could not, and a circle at
+the longest gun's reach contradicts the outline of every run that stops short of it.
+
 
 ### 5.0 Controls, and touch
 

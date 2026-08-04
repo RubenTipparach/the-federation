@@ -159,6 +159,12 @@ func follow_pivot(delta: float = 0.0) -> void:
 ## only honest thing to draw over a frozen battle.
 func update_visuals(delta: float, sim_delta: float,
 		events: Array[Dictionary]) -> void:
+	# Each rig is told who its ship is shooting at, so its arcs can light where
+	# a weapon could fire this instant. Both sides come from Battle.target_for,
+	# the same choice a shot is resolved against, so a lit arc is never the
+	# view's own opinion about who is being engaged.
+	$PlayerRig.set_target(_battle.target_for(_battle.player()))
+	$EnemyRig.set_target(_battle.target_for(_battle.enemy()))
 	$PlayerRig.refresh()
 	$EnemyRig.refresh()
 	for e in events:
