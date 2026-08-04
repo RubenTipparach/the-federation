@@ -112,6 +112,7 @@ func bind_session(p_session: Session) -> void:
 	$Mid/Actions/Disengage.pressed.connect(_end_battle.bind("Disengaged"))
 	$Mid/ViewPanel/Stack/EndOverlay/P/V/Return.pressed.connect(
 		func() -> void: battle_ended.emit())
+	$Mid/ViewPanel/Stack/EndOverlay/P/V/TakeHelm.pressed.connect(_on_take_helm)
 
 	var throttle: Control = $Left/ShipPanel/V/Throttle/Boxes
 	# Both of these are controls, not readouts, so their empty boxes are drawn
@@ -146,6 +147,8 @@ func bind_session(p_session: Session) -> void:
 		panel.tractor_release_requested.connect(_on_tractor_release)
 		panel.tractor_mode_picked.connect(_on_tractor_mode)
 		panel.tractor_bid_picked.connect(_on_power_picked.bind(Tractor.SINK))
+		panel.beam_requested.connect(_on_beam_requested)
+		panel.recall_requested.connect(_on_recall_requested)
 
 	# The own ship display is where a repair is ordered. The target's is the
 	# same component with detail and editing off, which is what stops an
@@ -351,7 +354,7 @@ func _physics_process(delta: float) -> void:
 			for line in e["log"]:
 				_note(String(line))
 		if String(e["type"]) == "end":
-			_show_end(int(e["winner"]))
+			_show_end(int(e["winner"]), "", String(e.get("reason", "")))
 	_apply_debug()
 	# The HUD repaint is throttled separately from the simulation, which keeps
 	# stepping at full rate: that is what makes the switch measure interface
@@ -655,6 +658,35 @@ func _on_power_picked(level: int, sink: String) -> void:
 ## The three tractor orders. Like every other order on this screen they go
 ## through Battle.apply_command, so a recording sees them and a replay repeats
 ## them (docs/11).
+## The boarding orders, through the one command door like everything else.
+func _on_beam_requested(count: int) -> void:
+	if battle != null:
+		battle.apply_command(0, "beam", [count])
+
+
+func _on_recall_requested() -> void:
+	if battle != null:
+		battle.apply_command(0, "recall", [])
+
+
+## A captured hull joins the session's fleet, marked for towing when it cannot
+## move itself: docs/01 section 8's aftermath, recorded for the fleet screen.
+func _record_prize(prize: ShipState) -> void:
+	if session == null:
+		return
+	var needs_tow: bool = prize._boxes_now("IMP") <= 0 		or prize._boxes_now("WARP") <= 0
+	session.add_prize(prize.fit.hull_id, needs_tow)
+
+
+## Stand on the captured bridge: the prize becomes the session's hull, which
+## also dresses the interface in its navy (session.faction reads the hull),
+## and the screen returns to the skirmish setup flying it.
+func _on_take_helm() -> void:
+	if session != null and battle != null:
+		session.take_helm(battle.enemy().fit.hull_id)
+	battle_ended.emit()
+
+
 func _on_tractor_latch() -> void:
 	if battle == null:
 		return
@@ -784,13 +816,29 @@ func _save_recording() -> void:
 		_note("Battle recorded to %s" % [path.get_file()])
 
 
-func _show_end(winner: int, reason: String = "") -> void:
+func _show_end(winner: int, reason: String = "", outcome: String = "") -> void:
 	_save_recording()
 	var overlay: CenterContainer = $Mid/ViewPanel/Stack/EndOverlay
 	overlay.visible = true
 	var result: Label = overlay.get_node("P/V/Result")
 	var detail: Label = overlay.get_node("P/V/Detail")
-	if not reason.is_empty():
+	overlay.get_node("P/V/TakeHelm").visible = false
+	if outcome == "captured" and winner == 0:
+		# The prize. Taking its helm is offered here, at the moment of the
+		# capture, because that is when a captain decides whose bridge to
+		# stand on.
+		var prize: ShipState = battle.enemy()
+		result.text = "SHIP CAPTURED"
+		Paint.tint(result, "font_color", Palette.OK)
+		detail.text = "%s is yours. Her crew is done fighting." % String(
+			prize.fit.hull()["name"])
+		overlay.get_node("P/V/TakeHelm").visible = true
+		_record_prize(prize)
+	elif outcome == "captured":
+		result.text = "SHIP LOST"
+		Paint.tint(result, "font_color", Palette.CRIT)
+		detail.text = "%s is taken. The boarding party holds the bridge." 			% String(battle.player().fit.hull()["name"])
+	elif not reason.is_empty():
 		result.text = reason.to_upper()
 		Paint.tint(result, "font_color", Palette.AMBER)
 		detail.text = "The engagement is broken off."

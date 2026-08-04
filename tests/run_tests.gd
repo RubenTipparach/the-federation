@@ -22,6 +22,7 @@ const LogLib = preload("res://src/sim/battle_log.gd")
 const RepairLib = preload("res://src/sim/repair_model.gd")
 const TerrainLib = preload("res://src/sim/terrain.gd")
 const TractorLib = preload("res://src/sim/tractor.gd")
+const BoardingLib = preload("res://src/sim/boarding.gd")
 
 var checks: int = 0
 var failures: int = 0
@@ -57,6 +58,7 @@ func _initialize() -> void:
 	test_battle_and_ai()
 	test_contacts()
 	test_debris()
+	test_boarding()
 	test_seekers()
 	test_shields()
 	test_repairs()
@@ -1094,7 +1096,7 @@ func test_damage() -> void:
 	print("\n== damage model ==")
 	var ship = _fresh_ship()
 	var boxes_before: int = ship.total_boxes()
-	eq(boxes_before, 70, "wayfarer starts with 70 internal boxes")
+	eq(boxes_before, 75, "wayfarer starts with 75 internal boxes")
 
 	# 16 into a 24 shield: absorbed fully, nothing inside is touched.
 	ship.apply_damage(0.0, 16.0)
@@ -1710,3 +1712,116 @@ func _debris_run(seed_value: int) -> Array[Vector2]:
 	for piece in duel.debris:
 		out.append(piece.pos)
 	return out
+
+
+func test_boarding() -> void:
+	print("\n== boarding ==")
+	var combat: Dictionary = CatalogLib.tuning()["combat"]
+	var limit: int = int(combat["hits_to_kill"])
+	var dt: float = 1.0 / 30.0
+
+	var duel = BattleLib.create_duel(FitLib.create_default("wayfarer"), "bloodletter", 21)
+	var me = duel.player()
+	var foe = duel.enemy()
+	eq(me.marines.size(), 4, "a crew's marines are its MRNE boxes")
+	eq(me.pad_cycles.size(), 3, "and its pads are its TRAN boxes")
+	eq(foe.marines.size(), 5, "the enemy cruiser garrisons five")
+
+	# Out of range, then in range but shielded, then legal: the check names
+	# each refusal, the same contract every fire_check follows.
+	me.pos = Vector2.ZERO
+	me.heading = 0.0
+	foe.pos = Vector2(0.0, 200.0)
+	foe.heading = 0.0
+	eq(String(BoardingLib.beam_check(me, foe, combat)["reason"]), "range",
+		"too far to beam")
+	foe.pos = Vector2(0.0, 30.0)
+	var facing: int = SectorsLib.facing_of_relative_bearing(
+		SectorsLib.relative_bearing(
+			SectorsLib.bearing_between(foe.pos, me.pos), foe.heading))
+	ok(foe.shields[facing] > 0.0, "the facing toward us starts shielded")
+	eq(String(BoardingLib.beam_check(me, foe, combat)["reason"]), "shielded",
+		"and a raised shield refuses the beam")
+	foe.shields[facing] = 0.0
+	eq(String(BoardingLib.beam_check(me, foe, combat)["reason"]), "ready",
+		"a downed facing opens the door")
+
+	# EACH PAD HAS ITS OWN CYCLE: sending two spends two pads and leaves the
+	# third ready, so a third man can follow at once while the first two pads
+	# recharge alone.
+	ok(duel.apply_command(0, "beam", [2]), "two marines beam over")
+	eq(me.away.size(), 2, "and stand on the enemy deck")
+	eq(me.marines.size(), 2, "leaving two at home")
+	eq(me.pads_ready().size(), 1, "two pads are cycling, one is not")
+	ok(duel.apply_command(0, "beam", [2]), "the last ready pad still fires")
+	eq(me.away.size(), 3, "sending the one marine it could")
+	eq(me.pads_ready().size(), 0, "and now every pad is cycling")
+	ok(not duel.apply_command(0, "beam", [1]), "with no pad ready the beam refuses")
+
+	# The pads come back on their own clocks.
+	for i in range(int(float(combat["pad_cycle_sec"]) * 30.0) + 2):
+		me.step(dt, CatalogLib.tuning())
+	eq(me.pads_ready().size(), 3, "every pad recharges on its own clock")
+
+	# The deck fight: volleys on the interval until one side is done. The foe
+	# is softened so the fight resolves inside the test's patience; what is
+	# being proved is the loop, not the odds.
+	for i in range(foe.marines.size()):
+		foe.marines[i] = limit - 1
+	var guard: int = 0
+	while not duel.over and guard < 3000:
+		duel.step(dt)
+		guard += 1
+	ok(duel.over, "the deck fight ends the battle")
+	eq(duel.winner, 0, "the raiders' side takes the ship")
+	eq(foe.captured_by, 0, "which the hull records")
+	ok(ShipLib.count_alive(foe.marines, limit) == 0, "no defender left standing")
+
+	# Same seed, same fight: the volley dice come from the battle's own rng.
+	var first = _boarding_run(33)
+	var second = _boarding_run(33)
+	eq(str(first), str(second), "the same seed fights the same deck fight")
+
+	# Recall: the away team comes home through the same pads, wounds and all,
+	# even when nobody is left on the home deck to send.
+	var back = BattleLib.create_duel(FitLib.create_default("kestrel"), "bloodletter", 9)
+	var crew = back.player()
+	var host = back.enemy()
+	crew.pos = Vector2.ZERO
+	host.pos = Vector2(0.0, 25.0)
+	host.heading = 0.0
+	var f2: int = SectorsLib.facing_of_relative_bearing(
+		SectorsLib.relative_bearing(
+			SectorsLib.bearing_between(host.pos, crew.pos), host.heading))
+	host.shields[f2] = 0.0
+	ok(back.apply_command(0, "beam", [2]), "the team goes over")
+	for i in range(int(float(combat["pad_cycle_sec"]) * 30.0) + 2):
+		crew.step(dt, CatalogLib.tuning())
+	var aboard: int = crew.away.size()
+	ok(back.apply_command(0, "recall", []), "and can be recalled")
+	eq(crew.away.size(), 0, "the deck over there is empty again")
+	eq(crew.marines.size(), 4, "and everyone is home")
+	ok(aboard == 2, "both of them came back")
+
+
+## Beam a team over and let the fight run a fixed number of steps, reporting
+## every marine's wounds on both sides.
+func _boarding_run(seed_value: int) -> Array:
+	var combat: Dictionary = CatalogLib.tuning()["combat"]
+	var duel = BattleLib.create_duel(FitLib.create_default("wayfarer"), "bloodletter", seed_value)
+	var me = duel.player()
+	var foe = duel.enemy()
+	me.pos = Vector2.ZERO
+	foe.pos = Vector2(0.0, 30.0)
+	foe.heading = 0.0
+	var facing: int = SectorsLib.facing_of_relative_bearing(
+		SectorsLib.relative_bearing(
+			SectorsLib.bearing_between(foe.pos, me.pos), foe.heading))
+	foe.shields[facing] = 0.0
+	duel.apply_command(0, "beam", [3])
+	for i in range(600):
+		duel.step(1.0 / 30.0)
+		if duel.over:
+			break
+	return [me.marines.duplicate(), me.away.duplicate(),
+		foe.marines.duplicate(), foe.away.duplicate(), duel.over, duel.winner]

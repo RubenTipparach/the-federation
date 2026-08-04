@@ -1,4 +1,4 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=5 format=3]
 
 ; The body of whichever subsystem station is open. One authored panel serves
 ; all ten: the rows are authored here and each station shows and configures
@@ -11,6 +11,7 @@
 [ext_resource type="Script" path="res://src/ui/subsystem_panel.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/ui/stat_row.tscn" id="2"]
 [ext_resource type="Script" path="res://src/ui/tug_bar.gd" id="3"]
+[ext_resource type="Script" path="res://src/ui/marine_strip.gd" id="4"]
 
 [node name="SubsystemPanel" type="PanelContainer"]
 clip_contents = true
@@ -129,6 +130,82 @@ size_flags_horizontal = 3
 horizontal_alignment = 2
 theme_override_font_sizes/font_size = 11
 text = ""
+
+[node name="Boarding" type="VBoxContainer" parent="V"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="HomeHead" type="Label" parent="V/Boarding"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+clip_text = true
+text_overrun_behavior = 3
+text = "ABOARD"
+
+[node name="Home" type="Control" parent="V/Boarding"]
+custom_minimum_size = Vector2(0, 24)
+layout_mode = 2
+mouse_filter = 2
+script = ExtResource("4")
+
+[node name="AboardHead" type="HBoxContainer" parent="V/Boarding"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Chip" type="ColorRect" parent="V/Boarding/AboardHead"]
+custom_minimum_size = Vector2(10, 10)
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="L" type="Label" parent="V/Boarding/AboardHead"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 11
+clip_text = true
+text_overrun_behavior = 3
+text = "ABOARD"
+
+[node name="Taken" type="Label" parent="V/Boarding/AboardHead"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "[CAPTURED]"
+
+[node name="Ours" type="Control" parent="V/Boarding"]
+custom_minimum_size = Vector2(0, 24)
+layout_mode = 2
+mouse_filter = 2
+script = ExtResource("4")
+
+[node name="Theirs" type="Control" parent="V/Boarding"]
+custom_minimum_size = Vector2(0, 24)
+layout_mode = 2
+mouse_filter = 2
+script = ExtResource("4")
+
+[node name="Verdict" type="Label" parent="V/Boarding"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+clip_text = true
+text_overrun_behavior = 3
+text = ""
+
+[node name="BoardCmds" type="HBoxContainer" parent="V"]
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="Beam" type="Button" parent="V/BoardCmds"]
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+theme_override_font_sizes/font_size = 12
+text = "BEAM"
+
+[node name="Recall" type="Button" parent="V/BoardCmds"]
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+theme_override_font_sizes/font_size = 12
+text = "RECALL"
 
 [node name="Cmds" type="HBoxContainer" parent="V"]
 layout_mode = 2

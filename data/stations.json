@@ -23,7 +23,7 @@
       "blurb": "A standing bid out of the reactor, weighted by tonnage. Both sides pay for every second of it."
     },
     "marines": {
-      "label": "Marines", "mark": "MRNE", "icon": "mrne", "code": "MRNE", "side": "fight", "live": false,
+      "label": "Marines", "mark": "MRNE", "icon": "mrne", "code": "MRNE", "side": "fight", "live": true,
       "blurb": "Boarding needs a shield down on the facing you transport through."
     },
     "shuttle": {

@@ -411,6 +411,15 @@ exception until it is listed in this section and agreed.
   authored in the scene and configured from `data/debug.json`, so nothing is
   constructed. Agreed with the instruction to build it (2026-08-02).
 
+- **The marine strip paints itself.** `src/ui/marine_strip.gd` draws a squad of
+  marines as figures with wound pips in `Control._draw()`, for the reason the
+  SSD ring and the box strips do: its content is the sim's marine arrays, a
+  roster whose length and wounds change with every boarding volley, so no
+  static node tree could describe it. The nodes are authored in
+  `scenes/ui/subsystem_panel.tscn`, the script paints only what it is handed
+  and reports nothing but pixels. Agreed with the approved marines station
+  mockup and the instruction to implement boarding (2026-08-04).
+
 **One candidate is pending a decision.** Rendering roughly 3,000 hexes with smooth zoom and
 several frequently changing per hex overlays is hard to do with statically authored nodes
 alone. `docs/06-technical-architecture.md` §9 raises this and does **not** adopt a procedural

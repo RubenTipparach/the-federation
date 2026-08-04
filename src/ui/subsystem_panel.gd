@@ -24,6 +24,10 @@ signal tractor_release_requested
 signal tractor_mode_picked(mode: String)
 ## The player set the tractor bid, in whole reactor units.
 signal tractor_bid_picked(units: int)
+## The boarding orders. Count is how many marines to send: the panel asks for
+## a full pad's worth and the sim sends what the checks allow.
+signal beam_requested(count: int)
+signal recall_requested
 
 const REPAIR_JOB := preload("res://scenes/ui/repair_job.tscn")
 const ICON_DIR: String = "res://assets/icons/"
@@ -47,6 +51,7 @@ func _ready() -> void:
 		"reactor": _render_reactor,
 		"life": _render_life,
 		"tractor": _render_tractor,
+		"marines": _render_marines,
 	}
 	if not _wired:
 		_wired = true
@@ -58,6 +63,8 @@ func _ready() -> void:
 			b.text = Sectors.facing_mark(f)
 			b.pressed.connect(_on_pick.bind(f))
 		$V/Cmds/Latch.pressed.connect(_on_latch)
+		$V/BoardCmds/Beam.pressed.connect(_on_beam)
+		$V/BoardCmds/Recall.pressed.connect(func() -> void: recall_requested.emit())
 		$V/Cmds/Hold.pressed.connect(_on_mode.bind(Tractor.MODE_HOLD))
 		$V/Cmds/Reel.pressed.connect(_on_mode.bind(Tractor.MODE_REEL))
 		_row(0).get_node("Boxes").level_picked.connect(_on_bid_picked)
@@ -92,6 +99,8 @@ func refresh() -> void:
 	$V/Total.visible = false
 	$V/Tug.visible = false
 	$V/Cmds.visible = false
+	$V/Boarding.visible = false
+	$V/BoardCmds.visible = false
 
 	var out: bool = index >= 0 and int(_ship.systems[index]["boxes"]) <= 0
 	# One station keeps working with its hardware gone, and it is in the data
@@ -394,6 +403,83 @@ func _render_tractor_contest(beam: Tractor, tuning: Dictionary) -> void:
 
 ## Crew aboard and the control boxes that keep them alive. Casualties and the
 ## officer roster are in the mockup and not in the sim, so they are not faked.
+## The marines station: the transporter's pads, each on ITS OWN cycle, and
+## the two decks of the boarding fight. Everything drawn comes from the sim
+## (marines, away, pad_cycles, captured_by); the panel invents nothing.
+func _render_marines() -> void:
+	var combat: Dictionary = Catalog.tuning()["combat"]
+	var limit: int = int(combat["hits_to_kill"])
+	var cycle: float = float(combat["pad_cycle_sec"])
+	var foe: ShipState = battle.enemy() if battle != null else null
+
+	# One row per pad. The strip is the pad's recharge filling back up, so a
+	# row reads like every other charge readout on this screen.
+	var live_pads: Array[int] = _ship.pads_ready()
+	var pads: int = mini(_ship.pad_cycles.size(), ROW_COUNT)
+	for i in range(pads):
+		var left: float = _ship.pad_cycles[i]
+		var backed: bool = i < _ship._boxes_now("TRAN")
+		var out: String = "RDY" if left <= 0.0 else "%ds" % ceili(left)
+		var tint: Color = Palette.OK if left <= 0.0 else Palette.AMBER
+		if not backed:
+			out = "OUT"
+			tint = Palette.CRIT
+		var steps: int = 6
+		var fill: int = steps if left <= 0.0 \
+			else clampi(int((1.0 - left / cycle) * float(steps)), 0, steps)
+		_paint_row(i, "PAD %d" % (i + 1), fill if backed else 0, steps, out, tint)
+
+	var boarding: Control = $V/Boarding
+	boarding.visible = true
+	$V/BoardCmds.visible = true
+	boarding.get_node("HomeHead").text = "ABOARD %s" % String(
+		_ship.fit.hull()["name"]).to_upper()
+	boarding.get_node("Home").set_squad(_ship.marines, limit, Palette.OK)
+
+	var head: HBoxContainer = boarding.get_node("AboardHead")
+	if foe != null:
+		# The chip is who holds that hull RIGHT NOW: their deck colour until
+		# the deck is cleared, ours after. One glance answers the only
+		# question the fight is about.
+		var taken: bool = foe.captured_by >= 0
+		head.get_node("L").text = "ABOARD %s" % String(
+			foe.fit.hull()["name"]).to_upper()
+		head.get_node("Chip").color = Palette.OK if taken else Palette.CRIT
+		head.get_node("Taken").visible = taken
+		boarding.get_node("Ours").set_squad(_ship.away, limit, Palette.OK)
+		boarding.get_node("Theirs").set_squad(foe.marines, limit, Palette.CRIT)
+
+		var verdict: Label = boarding.get_node("Verdict")
+		var raiders: int = ShipState.count_alive(_ship.away, limit)
+		if taken:
+			verdict.text = "DECK CLEARED"
+			Paint.tint(verdict, "font_color", Palette.OK)
+		elif raiders > 0:
+			verdict.text = "VOLLEY IN %ds" % ceili(maxf(foe.boarding_clock, 0.0))
+			Paint.tint(verdict, "font_color", Palette.AMBER)
+		else:
+			var check: Dictionary = Boarding.beam_check(_ship, foe, combat)
+			verdict.text = String(check["reason"]).to_upper()
+			Paint.tint(verdict, "font_color",
+				Palette.OK if bool(check["ok"]) else Palette.DIM)
+
+		var can: bool = bool(Boarding.beam_check(_ship, foe, combat)["ok"])
+		$V/BoardCmds/Beam.disabled = not can
+		$V/BoardCmds/Beam.text = "BEAM %d" % maxi(mini(live_pads.size(),
+			ShipState.count_alive(_ship.marines, limit)), 1)
+		$V/BoardCmds/Recall.disabled = \
+			ShipState.count_alive(_ship.away, limit) <= 0 \
+			or not bool(Boarding.beam_check(_ship, foe, combat, false)["ok"])
+
+
+func _on_beam() -> void:
+	var combat: Dictionary = Catalog.tuning()["combat"]
+	var count: int = mini(_ship.pads_ready().size(),
+		ShipState.count_alive(_ship.marines, int(combat["hits_to_kill"])))
+	if count > 0:
+		beam_requested.emit(count)
+
+
 func _render_life() -> void:
 	var crew: int = int(_ship.fit.hull()["budgets"]["crew"])
 	_paint_row(0, "CREW", crew, maxi(1, crew), "%d aboard" % crew, Palette.CYAN)

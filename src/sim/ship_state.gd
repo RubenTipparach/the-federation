@@ -61,6 +61,25 @@ var tow_target: Vector2 = Vector2.ZERO
 ## resting against a rock is not damage every tick.
 var collision_grace: float = 0.0
 
+## THE BOARDING STATE. Marines come from the hull's MRNE boxes and pads from
+## its TRAN boxes, so the barracks and the transporter room are things the
+## damage model can already shoot out. Each entry in `marines` and `away` is
+## one marine's HITS TAKEN (0 to hits_to_kill); a marine at the limit is dead
+## and stays in the list so the display can show the body count. `marines` is
+## this ship's own deck, `away` is this crew's team standing on the enemy's.
+var marines: Array[int] = []
+var away: Array[int] = []
+## One recharge clock per transporter pad, index aligned with the TRAN boxes:
+## pad i is usable when its clock is 0 AND at least i+1 TRAN boxes survive, so
+## shooting the transporter room takes pads with it (docs/01 section 8).
+var pad_cycles: Array[float] = []
+## Seconds until the next volley on THIS ship's deck, running only while it is
+## contested.
+var boarding_clock: float = 0.0
+## Who owns this hull now: -1 is its own crew, otherwise the index of the ship
+## whose marines cleared the deck.
+var captured_by: int = -1
+
 ## Micrometeor damage banked but not yet worth a whole point. See
 ## Battle._apply_grind for why dust is not applied every tick.
 var grind_credit: float = 0.0
@@ -134,6 +153,10 @@ static func create(p_fit: ShipFit, p_rng: RandomNumberGenerator, ai_ship: bool =
 			"charge": 0.0,
 			"overload": false,
 		})
+	for i in range(s._boxes_max("MRNE")):
+		s.marines.append(0)
+	for i in range(s._boxes_max("TRAN")):
+		s.pad_cycles.append(0.0)
 	s.split = PowerModel.default_split(ai_ship)
 	s.parts_max = int(h.get("spare_parts", 0))
 	s.parts = s.parts_max
@@ -312,6 +335,8 @@ func set_order(p_heading: float, p_throttle: float) -> void:
 
 func step(dt: float, tuning: Dictionary) -> void:
 	collision_grace = maxf(0.0, collision_grace - dt)
+	for i in range(pad_cycles.size()):
+		pad_cycles[i] = maxf(0.0, pad_cycles[i] - dt)
 	if not alive:
 		speed = maxf(0.0, speed - float(tuning["combat"]["dead_ship_decel"]) * dt)
 		_step_drift(dt, tuning)
@@ -775,3 +800,42 @@ func weakest_facing() -> int:
 		if shields[i] < shields[best]:
 			best = i
 	return best
+
+
+# ---- boarding ---------------------------------------------------------------
+
+
+func _boxes_max(code: String) -> int:
+	var total: int = 0
+	for sys in systems:
+		if String(sys["code"]) == code:
+			total += int(sys["boxes_max"])
+	return total
+
+
+func _boxes_now(code: String) -> int:
+	var total: int = 0
+	for sys in systems:
+		if String(sys["code"]) == code:
+			total += int(sys["boxes"])
+	return total
+
+
+static func count_alive(squad: Array[int], limit: int) -> int:
+	var n: int = 0
+	for hits in squad:
+		if hits < limit:
+			n += 1
+	return n
+
+
+## Pads that could fire right now: recharged, and still backed by a surviving
+## TRAN box. The transporter room being shot up takes the highest pads first,
+## which is arbitrary but stable, and stable is what the display needs.
+func pads_ready() -> Array[int]:
+	var live_boxes: int = _boxes_now("TRAN")
+	var out: Array[int] = []
+	for i in range(mini(pad_cycles.size(), live_boxes)):
+		if pad_cycles[i] <= 0.0:
+			out.append(i)
+	return out

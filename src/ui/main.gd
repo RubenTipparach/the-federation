@@ -166,6 +166,10 @@ func _on_replay_chosen(log: BattleLog) -> void:
 
 
 func _on_battle_ended() -> void:
+	# The session's hull may have changed on the way out (a prize taken), and
+	# the deck follows the hull.
+	Palette.use_faction(session.faction())
+	$Root/Content/Fitting.refresh_from_session()
 	show_tab("Skirmish")
 
 
