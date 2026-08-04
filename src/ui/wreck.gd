@@ -1,15 +1,17 @@
 extends Node3D
 
-## What is left of a ship: a fireball and the plates it came apart into.
+## What is left of a ship: an explosion and the plates it came apart into.
 ##
 ## Presentation only. The simulation has already decided the ship is dead and
 ## has stopped stepping it (ShipState.alive), so nothing here can change the
 ## outcome of a battle. That is deliberate: a battle must play out identically
 ## whether or not anything is drawn (CLAUDE.md 5.2).
 ##
-## Nothing is built here. The blast sphere and the plates are committed meshes;
-## this script gives each plate a direction, a tumble and a speed, then flies
-## them apart and fades the fire, which is behaviour rather than geometry.
+## The fire is not drawn here. scenes/explosion.tscn owns every part of a
+## detonation and this scene instances it, because a hull dying is one caller of
+## an explosion and a torpedo going off is another. The wreck's own job is the
+## debris: it gives each plate a direction, a tumble and a speed, then flies
+## them apart, which is behaviour rather than geometry.
 ##
 ## A ship comes apart into ITS OWN pieces where it has them. Every painted hull
 ## is written twice by its generator: once whole and once as eight fragments cut
@@ -25,16 +27,12 @@ extends Node3D
 ## wreck as the battle it recorded, and it must not be able to change what the
 ## battle rolled next.
 
-const MAT_BLAST := preload("res://assets/materials/mat_blast.tres")
-
 var _age: float = 0.0
 var _life: float = 1.0
 ## Per plate: direction, spin axis, spin rate. Index aligned with the authored
 ## children of Chunks.
 var _drift: Array[Vector3] = []
 var _spin: Array[Vector3] = []
-var _blast_from: float = 1.0
-var _blast_to: float = 1.0
 
 
 ## radius is how big the ship was, in sim units: everything else is measured
@@ -50,17 +48,15 @@ func burst(at: Vector2, radius: float, hull_material: Material, seed_value: int,
 	rotation.y = deg_to_rad(heading_deg)
 	_life = float(view["seconds"])
 	_age = 0.0
-	_blast_from = radius * float(view["blast_start_radii"])
-	_blast_to = radius * float(view["blast_end_radii"])
 
 	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 	rng.seed = seed_value
 
-	var blast: MeshInstance3D = $Blast
-	# Duplicated, because progress belongs to this wreck and not to every wreck
-	# that will ever be drawn.
-	blast.material_override = MAT_BLAST.duplicate()
-	blast.scale = Vector3.ONE * _blast_from
+	# The wreck's own rotation is the dead ship's heading, so the explosion is
+	# lit inside a turned node. That is harmless and deliberate: the fire is
+	# thrown around a full circle, so turning the whole thing turns which piece
+	# went where and nothing else.
+	$Explosion.burst(radius, seed_value)
 
 	var speed: float = radius * float(view["plate_speed_radii"])
 	var spread: float = float(view["plate_rise"])
@@ -120,11 +116,7 @@ func _process(delta: float) -> void:
 	_age += delta
 	var t: float = clampf(_age / _life, 0.0, 1.0)
 
-	var blast: MeshInstance3D = $Blast
-	blast.scale = Vector3.ONE * lerpf(_blast_from, _blast_to, sqrt(t))
-	var mat: ShaderMaterial = blast.material_override
-	if mat != null:
-		mat.set_shader_parameter("progress", t)
+	$Explosion.step(delta)
 
 	# Plates coast outward and slow, the way a piece of hull thrown clear by an
 	# explosion does once the blast front has passed it.

@@ -1,0 +1,18 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3]
+
+; An ember thrown clear of the fire. Small, fast, and the last thing still lit
+; when the billow has gone out, which is what gives the explosion a tail rather
+; than an ending.
+;
+; Colour from data/palette.json (gold_hi).
+
+[ext_resource type="Shader" path="res://assets/shaders/fx_billboard.gdshader" id="1"]
+
+[resource]
+shader = ExtResource("1")
+shader_parameter/tint = Color(0.850980, 0.721569, 0.400000, 1.0)
+shader_parameter/hot = Color(0.850980, 0.721569, 0.400000, 1.0)
+shader_parameter/spin = 0.0
+shader_parameter/softness = 1.0
+shader_parameter/soft_power = 2.0
+shader_parameter/bright_at = 0.0

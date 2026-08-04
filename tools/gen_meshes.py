@@ -174,8 +174,8 @@ def disc():
 def sprite_disc(steps=32):
     """A unit disc on the XY plane facing +Z: the billboard the effects ride on.
 
-    Every soft blob in the game (a flame tongue, a smoke puff, a coolant
-    cloud) is this one mesh, scaled, spun and tinted by
+    Every soft blob in the game (a flame tongue, a smoke puff, a billow of an
+    exploding hull) is this one mesh, scaled, spun and tinted by
     assets/shaders/fx_billboard.gdshader. It is a disc rather than a quad
     because the shader fades it out by its own model space radius, so the
     corners of a quad would be geometry that never paints anything.
@@ -183,17 +183,20 @@ def sprite_disc(steps=32):
     Facing +Z rather than +Y because the billboard vertex stage swings the
     mesh's own XY plane to face the camera; a mesh authored flat on XZ like
     disc.obj would arrive edge on.
+
+    Half a unit across, like star_rays and sprite_ring, so one softness reads
+    the same whichever sprite mesh carries it.
     """
     o = Obj()
     n = o.normal(0, 0, 1)
-    center = o.vert(0, 0, 0)
+    c = o.vert(0, 0, 0)
     ring = []
-    for i in range(steps + 1):
+    for i in range(steps):
         a = 2.0 * math.pi * i / steps
-        ring.append(o.vert(math.cos(a), math.sin(a), 0.0))
+        ring.append(o.vert(math.cos(a) * 0.5, math.sin(a) * 0.5, 0))
     for i in range(steps):
         # Counter clockwise in XY, so the cross product agrees with +Z.
-        o.tri(center, ring[i], ring[i + 1], n)
+        o.tri(c, ring[i], ring[(i + 1) % steps], n)
     o.write("sprite_disc.obj", "Unit billboard disc on XY facing +Z, for the effect shader")
 
 
@@ -321,18 +324,34 @@ def star_rays(name="star_rays.obj", spikes=8, waist=0.30, short=0.55):
     o.write(name, "Unit star on XY facing +Z, for billboarded weapon effects")
 
 
-def sprite_disc(steps=24):
-    """A filled circle on the XY plane facing +Z, for billboarded puffs."""
+def sprite_ring(steps=64, inner=0.90):
+    """A thin annulus on the XY plane facing +Z: the explosion's shock front.
+
+    On XY rather than XZ for the same reason star_rays and sprite_disc are:
+    it is billboarded, so its local X and Y are the camera's right and up, and
+    the band stays a circle whatever angle the camera is orbited to. The plane
+    aligned ring.obj is the other choice and it is the wrong one here, because
+    seen from the tactical view's default 30 degree pitch a plane ring reads as
+    an ellipse painted on the deck rather than as a front moving outward.
+
+    The band is deliberately thin. The shader fades it from the middle of the
+    band to both of its edges (fx_billboard's bright_at and fade_over), so a
+    wide one would read as a filled ball rather than as a ring with a bright
+    leading edge.
+    """
     o = Obj()
     n = o.normal(0, 0, 1)
-    c = o.vert(0, 0, 0)
-    ring = []
-    for i in range(steps):
+    rim_in = []
+    rim_out = []
+    for i in range(steps + 1):
         a = 2.0 * math.pi * i / steps
-        ring.append(o.vert(math.cos(a) * 0.5, math.sin(a) * 0.5, 0))
+        rim_in.append(o.vert(math.cos(a) * 0.5 * inner, math.sin(a) * 0.5 * inner, 0))
+        rim_out.append(o.vert(math.cos(a) * 0.5, math.sin(a) * 0.5, 0))
     for i in range(steps):
-        o.tri(c, ring[i], ring[(i + 1) % steps], n)
-    o.write("sprite_disc.obj", "Unit disc on XY facing +Z, for billboarded puffs")
+        o.tri(rim_in[i], rim_out[i], rim_out[i + 1], n)
+        o.tri(rim_in[i], rim_out[i + 1], rim_in[i + 1], n)
+    o.write("sprite_ring.obj",
+            "Unit ring band on XY facing +Z, for the billboarded shock front")
 
 
 def ordnance():
@@ -480,7 +499,7 @@ def main():
     beam()
     ordnance()
     star_rays()
-    sprite_disc()
+    sprite_ring()
     plume_wake()
     hull()
 

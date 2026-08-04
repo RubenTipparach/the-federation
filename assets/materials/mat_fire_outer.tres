@@ -17,10 +17,11 @@
 [resource]
 render_priority = 2
 shader = ExtResource("1")
-shader_parameter/tint = Color(0.8118, 0.4157, 0.3255, 0.58)
+shader_parameter/tint = Color(0.8118, 0.4157, 0.3255, 1.0)
 shader_parameter/hot = Color(0.851, 0.7216, 0.4, 1.0)
 shader_parameter/hot_focus = 2.6
 shader_parameter/spin = 0.0
 shader_parameter/occlude = 0.0
-shader_parameter/softness = 0.95
+shader_parameter/soft_power = 2.4
+shader_parameter/softness = 1.0
 shader_parameter/billboard = true

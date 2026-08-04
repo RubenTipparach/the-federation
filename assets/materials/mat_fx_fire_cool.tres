@@ -1,0 +1,18 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3]
+
+; Fire, outermost of three: the red the billow has cooled to by the time it has
+; been thrown clear. The same entry the critical readouts wear, so the colour of
+; a ship dying is the colour of the panel saying so.
+;
+; Colour from data/palette.json (alert).
+
+[ext_resource type="Shader" path="res://assets/shaders/fx_billboard.gdshader" id="1"]
+
+[resource]
+shader = ExtResource("1")
+shader_parameter/tint = Color(0.811765, 0.415686, 0.325490, 0.6)
+shader_parameter/hot = Color(0.811765, 0.415686, 0.325490, 0.6)
+shader_parameter/spin = 0.0
+shader_parameter/softness = 1.0
+shader_parameter/soft_power = 2.4
+shader_parameter/bright_at = 0.0

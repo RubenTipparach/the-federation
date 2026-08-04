@@ -1,0 +1,19 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3]
+
+; Fire, innermost of three. Three materials rather than one tinted in code,
+; because which entry a billow is painted in is a palette decision and
+; CLAUDE.md 3.1 keeps those out of gameplay code. The scene says which puff
+; wears which; the script only fades them.
+;
+; Colour from data/palette.json (gold_hi), the hottest of the three.
+
+[ext_resource type="Shader" path="res://assets/shaders/fx_billboard.gdshader" id="1"]
+
+[resource]
+shader = ExtResource("1")
+shader_parameter/tint = Color(0.850980, 0.721569, 0.400000, 0.6)
+shader_parameter/hot = Color(0.850980, 0.721569, 0.400000, 0.6)
+shader_parameter/spin = 0.0
+shader_parameter/softness = 1.0
+shader_parameter/soft_power = 2.4
+shader_parameter/bright_at = 0.0
