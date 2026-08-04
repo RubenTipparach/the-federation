@@ -30,9 +30,11 @@ extends Node3D
 ##           the middle, red at the edges. This is the part that lasts.
 ##   Embers  twenty small fast sparks thrown much further, still lit after the
 ##           fire is out, which is what gives the explosion a tail.
-##   Plasma  a blue shell growing and fading outward over half a minute. The
-##           reactor's containment letting go, in the shield colours rather
-##           than the fire ones, so it reads as something other than the hull
+##   Plasma  a blue shell growing and fading outward over half a minute, LYING
+##           FLAT ON THE BATTLE PLANE rather than facing the camera, so the
+##           ellipse it makes says which plane the ship was flying in. The
+##           reactor's containment letting go, in the blues rather than the
+##           fire colours, so it reads as something other than the hull
 ##           burning. Only a capital ship throws one.
 ##
 ## A NOVA IS THIS SAME EXPLOSION ON A LONGER CLOCK, dialled by how big the hull
@@ -322,8 +324,14 @@ func _step_plasma(fx: Dictionary, age: float) -> void:
 	# Out fast and slowing hard, so most of the reach is covered while the fire
 	# is still burning and the last of it is a wide, slow, dim ring.
 	var grow: float = 1.0 - pow(1.0 - k, PLASMA_EASE)
-	_size($Plasma, _radius * lerpf(_fx(fx, "plasma_start_radii"),
-		_fx(fx, "plasma_end_radii"), grow))
+	var ring: float = _radius * lerpf(_fx(fx, "plasma_start_radii"),
+		_fx(fx, "plasma_end_radii"), grow)
+	# The tuning numbers are the RING's radius. The quad has to be wider than
+	# that, because the art leaves room outside the band for the filaments to
+	# reach into, and plasma_band_frac is where the band sits in it. Both this
+	# and tools/gen_plasma_ring.py read that one number, so the picture and the
+	# scale cannot drift apart.
+	_size($Plasma, ring * 2.0 / maxf(_fx(fx, "plasma_band_frac"), 0.01))
 	_set_alpha($Plasma, _plasma_alpha * _nova * pow(1.0 - k, PLASMA_DECAY))
 
 
@@ -423,19 +431,33 @@ func _own(piece: MeshInstance3D) -> void:
 		piece.material_override = piece.material_override.duplicate()
 
 
+## How strongly a piece is drawn, whichever kind of material it wears.
+##
+## Every layer but one is tinted geometry under fx_billboard.gdshader, where
+## the strength is the tint's alpha. The plasma shell is a picture under a
+## StandardMaterial3D, where it is the albedo's. Teaching these two functions
+## about both is what keeps every caller above from having to know which is
+## which, and stops the shell growing a fade of its own (CLAUDE.md 4.1).
 func _alpha_of(piece: MeshInstance3D) -> float:
-	var mat: ShaderMaterial = piece.material_override
-	if mat == null:
-		return 1.0
-	return (mat.get_shader_parameter("tint") as Color).a
+	var shaded: ShaderMaterial = piece.material_override as ShaderMaterial
+	if shaded != null:
+		return (shaded.get_shader_parameter("tint") as Color).a
+	var plain: StandardMaterial3D = piece.material_override as StandardMaterial3D
+	if plain != null:
+		return plain.albedo_color.a
+	return 1.0
 
 
 func _set_alpha(piece: MeshInstance3D, alpha: float) -> void:
-	var mat: ShaderMaterial = piece.material_override
-	if mat == null:
+	var shaded: ShaderMaterial = piece.material_override as ShaderMaterial
+	if shaded != null:
+		var tint: Color = shaded.get_shader_parameter("tint")
+		shaded.set_shader_parameter("tint", Color(tint.r, tint.g, tint.b, alpha))
 		return
-	var tint: Color = mat.get_shader_parameter("tint")
-	mat.set_shader_parameter("tint", Color(tint.r, tint.g, tint.b, alpha))
+	var plain: StandardMaterial3D = piece.material_override as StandardMaterial3D
+	if plain != null:
+		var albedo: Color = plain.albedo_color
+		plain.albedo_color = Color(albedo.r, albedo.g, albedo.b, alpha)
 
 
 ## Billboards are square in their own coordinates, so a size is one number.

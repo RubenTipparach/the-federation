@@ -38,7 +38,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from shiplib import Px, load_fx_ramp
+from shiplib import Px, bayer, load_fx_ramp, ramp_index
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PALETTE = os.path.join(ROOT, "data", "palette.json")
@@ -75,19 +75,6 @@ CORE_TO = 0.52
 # Below this a pixel is empty rather than dark. A detonation has to end as
 # nothing, not as a grey disc.
 FLOOR = 0.055
-
-# The 4x4 ordered matrix every dither in this repo uses. Two jobs here: it
-# picks between the two ramp entries a value falls between, which is what keeps
-# a smooth field on a nine colour palette from banding into rings, and it
-# stipples the rim so the sprite ends in scattered pixels rather than on a
-# circle.
-BAYER = [
-    [0, 8, 2, 10],
-    [12, 4, 14, 6],
-    [3, 11, 1, 9],
-    [15, 7, 13, 5],
-]
-
 
 def puffs(rng):
     """The fireball's blobs: where each is thrown, how big it is drawn, when it
@@ -201,7 +188,6 @@ def paint(px, ox, oy, cell, heat, ramp, t):
     how far down it has cooled. The whole frame slides toward the cold end as
     it ages, which is what turns fire into smoke without a second field to
     track."""
-    top = len(ramp) - 1
     # What the coldest lit pixel is allowed to be. Early it stops at the reds,
     # so nothing in a fresh detonation is ash coloured; late it reaches the
     # end, which is where the smoke lives.
@@ -211,7 +197,7 @@ def paint(px, ox, oy, cell, heat, ramp, t):
             v = heat[y * cell + x]
             if v <= 0.0:
                 continue
-            b = (BAYER[y & 3][x & 3] + 0.5) / 16.0
+            b = bayer(x, y)
             # The rim ends in scattered pixels rather than on a circle: a
             # threshold that varies per pixel is a stipple, and a stipple is
             # what a hard alpha palette has instead of a soft edge.
@@ -224,9 +210,8 @@ def paint(px, ox, oy, cell, heat, ramp, t):
             # keeps climbing, slowly, so the heart of the fire still has
             # structure in it.
             near = v / (v + 0.75)
-            step = (1.0 - near) * reach
-            index = int(step + b)
-            if index > top:
+            index = ramp_index(near, ramp, reach, b)
+            if index >= len(ramp):
                 continue
             px.put(ox + x, oy + y, ramp[index])
 

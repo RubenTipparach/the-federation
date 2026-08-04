@@ -100,6 +100,41 @@ def load_fx_ramp(path, name):
     return [colors[entry] for entry in entries]
 
 
+# ---- ordered dithering ------------------------------------------------------
+
+# The 4x4 ordered matrix every dither in this repo uses.
+BAYER = [
+    [0, 8, 2, 10],
+    [12, 4, 14, 6],
+    [3, 11, 1, 9],
+    [15, 7, 13, 5],
+]
+
+
+def bayer(x, y):
+    """The ordered dither threshold at a pixel, from 0 to just under 1."""
+    return (BAYER[y & 3][x & 3] + 0.5) / 16.0
+
+
+def ramp_index(near, ramp, reach, dither):
+    """Which entry of a hottest first ramp a brightness lands on.
+
+    `near` is 1 at the brightest and 0 where the effect has run out. `reach` is
+    how far down the ramp the coldest lit pixel is allowed to go, so a value
+    below len(ramp) keeps an effect off the cold end entirely; sliding it with
+    age is how fire turns into smoke without a second field to track.
+
+    `dither` is the pixel's bayer() threshold. It is added before truncating, so
+    a value falling between two entries lands on the nearer one more often than
+    the further one, and a smooth field on a handful of colours comes out
+    stippled rather than banded into rings.
+
+    Returns an index past the end of the ramp for anything too cold to paint,
+    so callers test against len(ramp) rather than being handed a colour they
+    then have to decide about."""
+    return int((1.0 - near) * reach + dither)
+
+
 # ---- masks ------------------------------------------------------------------
 
 

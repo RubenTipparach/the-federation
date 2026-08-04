@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3]
+[gd_scene load_steps=14 format=3]
 
 ; A ship blowing up: a played flipbook and four layers of billboarded light,
 ; over about two seconds.
@@ -26,6 +26,7 @@
 
 [ext_resource type="Script" path="res://src/ui/explosion.gd" id="1"]
 [ext_resource type="ArrayMesh" path="res://assets/meshes/sphere.obj" id="2"]
+[ext_resource type="ArrayMesh" path="res://assets/meshes/quad.obj" id="14"]
 [ext_resource type="ArrayMesh" path="res://assets/meshes/sprite_ring.obj" id="3"]
 [ext_resource type="Texture2D" path="res://assets/textures/fx_explosion.png" id="4"]
 [ext_resource type="ArrayMesh" path="res://assets/meshes/sprite_disc.obj" id="5"]
@@ -45,16 +46,25 @@ mesh = ExtResource("2")
 material_override = ExtResource("6")
 cast_shadow = 0
 
-; The plasma shell of a capital ship's nova, which is the same ring mesh as the
-; shock front in a different colour and on a clock forty times as long. A
-; second mesh for it would be the fork CLAUDE.md 4.1 forbids: what differs
-; between a front that crosses the arena in half a second and a shell that
-; takes half a minute is numbers, and the numbers are in data/tuning.json.
+; The plasma shell of a capital ship's nova: the flat XZ quad, wearing a
+; committed .png, LYING ON THE BATTLE PLANE instead of facing the camera. The
+; ellipse it makes from the tactical camera's angle is what says which plane
+; the ship was flying in; see assets/materials/mat_fx_plasma.tres.
+;
+; The same quad the grid plane is drawn on, which is why that mesh grew texture
+; coordinates. One flat unit square in the repository, two things painted on it
+; (CLAUDE.md 4.1).
+;
+; Lifted clear of the deck, because the grid is at y=0 as well and two coplanar
+; surfaces flicker against each other wherever the camera lands. Well under the
+; hulls, which sit at 0.55, so it still reads as lying on the plane rather than
+; hovering over it.
 ;
 ; Drawn before everything else so the fire and the debris paint over it.
 
 [node name="Plasma" type="MeshInstance3D" parent="."]
-mesh = ExtResource("3")
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.12, 0)
+mesh = ExtResource("14")
 material_override = ExtResource("8")
 cast_shadow = 0
 
