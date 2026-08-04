@@ -27,6 +27,8 @@ extends Node3D
 ## wreck as the battle it recorded, and it must not be able to change what the
 ## battle rolled next.
 
+const MAT_INTERIOR := preload("res://assets/materials/mat_debris_interior.tres")
+
 var _age: float = 0.0
 var _life: float = 1.0
 ## Per plate: direction, spin axis, spin rate. Index aligned with the authored
@@ -73,11 +75,18 @@ func burst(at: Vector2, radius: float, hull_material: Material, seed_value: int,
 			_drift.append(Vector3.ZERO)
 			_spin.append(Vector3.ZERO)
 			continue
-		if hull_material != null:
-			plate.material_override = hull_material
 		var out: Vector3
 		if real:
 			plate.mesh = fragments[i]
+			# A fragment is two surfaces, split by the cutter: 0 is the hull's
+			# own skin and wears the ship's paint, 1 is the capped tear and
+			# wears the shared burning interior. Per surface, not
+			# material_override, because an override would paint the caps in
+			# exterior hull plate too and the tear would disappear.
+			plate.material_override = null
+			plate.set_surface_override_material(0, hull_material)
+			if plate.mesh.get_surface_count() > 1:
+				plate.set_surface_override_material(1, MAT_INTERIOR)
 			plate.scale = Vector3.ONE * hull_scale
 			plate.position = Vector3.ZERO
 			plate.rotation = Vector3.ZERO
@@ -94,6 +103,9 @@ func burst(at: Vector2, radius: float, hull_material: Material, seed_value: int,
 			out.y *= spread
 			out = out.normalized()
 		else:
+			# The generic plates are one closed surface with no tear to paint.
+			if hull_material != null:
+				plate.material_override = hull_material
 			# Thrown outward on the plane, with only a little lift: the ships fly
 			# on a plane and a wreck that fountained upward would read as a
 			# different game (docs/01, the simulation is planar).
