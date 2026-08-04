@@ -14,10 +14,14 @@ extends Node3D
 ##
 ## FIVE LAYERS, because one is not an explosion:
 ##
-##   Flash   the first instant. A cream star, born already wider than the hull
-##           and gone in a fifth of a second, which is what makes the eye
-##           arrive at the right place.
-##   Core    the white hot middle of that flash, a disc inside the rays.
+##   Flash   the first instant, PLAYED FROM A SHEET rather than stacked out of
+##           shapes: a white hot ball punching out fingers of burning gas and
+##           cooling to smoke, 25 frames of committed pixel art from
+##           tools/gen_explosion_flipbook.py. Born already wider than the hull,
+##           which is what makes the eye arrive at the right place. The shapes
+##           this replaced read as a cartoon starburst, which is the whole
+##           reason a texture earns its place in a game otherwise drawn in
+##           tinted geometry.
 ##   Shock   a ring racing out ahead of everything and gone before the fire is,
 ##           so the blast reads as having a front.
 ##   Ball    the fireball itself, the sphere the wreck used to own, expanding
@@ -89,18 +93,12 @@ var _ember_reach: Array[float] = []
 ## than from whatever the last frame left behind.
 var _fire_alpha: Array[float] = []
 var _ember_alpha: Array[float] = []
-var _flash_alpha: float = 1.0
-var _core_alpha: float = 1.0
 var _shock_alpha: float = 1.0
 
 
 func _ready() -> void:
-	_own($Flash)
-	_own($Core)
 	_own($Shock)
 	_own($Ball)
-	_flash_alpha = _alpha_of($Flash)
-	_core_alpha = _alpha_of($Core)
 	_shock_alpha = _alpha_of($Shock)
 	for piece in $Fire.get_children():
 		_own(piece)
@@ -227,35 +225,29 @@ func seek(age: float) -> void:
 	_step_embers(fx, age)
 
 
-## The first instant: rays and a core, both blooming out of nothing and gone
-## before the fire has finished being thrown. Two layers rather than one so the
-## middle can saturate while the rays are still readable as rays.
+## The first instant, played from the sheet: which frame is showing, and how
+## big the sprite is drawn.
+##
+## THE FADE IS IN THE ART, not applied on top of it. The sheet is pixel art
+## with hard alpha, so the sprite discards rather than blending (alpha_cut in
+## the scene), and modulating a discarded sprite does not dim it, it erases it
+## once the threshold is crossed. The last frames cool through the ramp to a
+## few scattered dark pixels instead, which is a fade a palette can actually
+## express.
 func _step_flash(fx: Dictionary, age: float) -> void:
 	var span: float = float(fx["flash_seconds"])
 	var k: float = clampf(age / span, 0.0, 1.0)
-	var lit: bool = k < 1.0
-	$Flash.visible = lit
-	$Core.visible = lit
-	if not lit:
+	var sprite: Sprite3D = $Flipbook
+	sprite.visible = k < 1.0
+	if k >= 1.0:
 		return
+	var frames: int = sprite.hframes * sprite.vframes
+	# The last frame is held rather than wrapped: an explosion that started
+	# over would be a loop, and this plays once.
+	sprite.frame = mini(int(k * float(frames)), frames - 1)
 	# Out fast and slowing, which is what a shock lit gas front does.
-	var grow: float = sqrt(k)
-	# HOLDS AT FULL, then falls. An alpha that starts dropping at once never
-	# gets near white: the palette's brightest entry added at half strength
-	# over black is grey, and the first version of this drew a grey doughnut on
-	# top of the ship instead of a flash. A flash is saturated for as long as it
-	# lasts and then it is over.
-	var fade: float = clampf((1.0 - k) / float(fx["flash_hold"]), 0.0, 1.0)
-	_size($Flash, _radius * lerpf(float(fx["flash_start_radii"]),
-		float(fx["flash_end_radii"]), grow))
-	_size($Core, _radius * lerpf(float(fx["core_start_radii"]),
-		float(fx["core_end_radii"]), grow))
-	# The rays turn a little as they go, so the flash is not a decal that
-	# happens to be growing.
-	_set_alpha($Flash, _flash_alpha * fade)
-	_set_alpha($Core, _core_alpha * fade)
-	($Flash.material_override as ShaderMaterial).set_shader_parameter(
-		"spin", age * float(fx["flash_spin"]))
+	_size(sprite, _radius * lerpf(float(fx["flash_start_radii"]),
+		float(fx["flash_end_radii"]), sqrt(k)))
 
 
 ## The front, out ahead of the fire and gone before it.
@@ -370,13 +362,17 @@ func _set_alpha(piece: MeshInstance3D, alpha: float) -> void:
 
 
 ## Billboards are square in their own coordinates, so a size is one number.
-func _size(piece: MeshInstance3D, size: float) -> void:
+##
+## Takes a Node3D rather than a MeshInstance3D because the flipbook is a
+## Sprite3D and is sized exactly the same way. Its pixel_size is authored as
+## one over the frame width, so a scale of 1 is one sim unit across and this
+## call means the same thing for a sprite as it does for a mesh.
+func _size(piece: Node3D, size: float) -> void:
 	piece.scale = Vector3(size, size, size)
 
 
 func _hide_all() -> void:
-	$Flash.visible = false
-	$Core.visible = false
+	$Flipbook.visible = false
 	$Shock.visible = false
 	$Ball.visible = false
 	for piece in $Fire.get_children():

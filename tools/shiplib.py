@@ -76,6 +76,30 @@ def load_ramps(path):
     return ramps
 
 
+def load_fx_ramp(path, name):
+    """One effect ramp from data/palette.json, hottest entry first, as a list
+    of RGB tuples.
+
+    Resolves against colors AND ui_colors together, which the ship role map
+    does not do. That is deliberate rather than sloppy: the hot end of a fire
+    is the same orange every critical readout and collision chip in the
+    interface already wears, so a burning ship and the damage report line
+    about it are one colour. Naming a second one would be inventing a colour,
+    which CLAUDE.md 3.1 forbids.
+
+    A ramp naming a colour neither table has raises here, rather than writing
+    an off palette pixel."""
+    colors, data = load_colors(path)
+    for entry_name, value in data.get("ui_colors", {}).items():
+        text = value.lstrip("#")
+        colors[entry_name] = (int(text[0:2], 16), int(text[2:4], 16),
+                              int(text[4:6], 16))
+    entries = data["fx"][name]
+    for entry in entries:
+        assert entry in colors, "%r is not a palette color" % (entry,)
+    return [colors[entry] for entry in entries]
+
+
 # ---- masks ------------------------------------------------------------------
 
 

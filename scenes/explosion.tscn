@@ -1,6 +1,7 @@
-[gd_scene load_steps=14 format=3]
+[gd_scene load_steps=12 format=3]
 
-; A ship blowing up: five layers of billboarded light over about two seconds.
+; A ship blowing up: a played flipbook and four layers of billboarded light,
+; over about two seconds.
 ;
 ; Its own scene rather than part of wreck.tscn, because a detonation is not only
 ; something a hull does when it dies. A torpedo going off against a shield and a
@@ -10,9 +11,10 @@
 ; lives in the wreck any more.
 ;
 ; Nothing is built at runtime (CLAUDE.md 5.1). Every node here is authored,
-; every mesh is a committed .obj from tools/gen_meshes.py, and every material is
-; a committed .tres naming its palette entry. src/ui/explosion.gd only places,
-; scales and fades what this file declares.
+; every mesh is a committed .obj from tools/gen_meshes.py, every material is a
+; committed .tres naming its palette entry, and the sheet is a committed .png
+; from tools/gen_explosion_flipbook.py. src/ui/explosion.gd only places, scales,
+; fades and advances what this file declares.
 ;
 ; TWENTY FOUR BILLOWS, which is more than it sounds like it needs. Twelve was
 ; the first count and it read as twelve circles: at that many each one is big
@@ -25,12 +27,10 @@
 [ext_resource type="Script" path="res://src/ui/explosion.gd" id="1"]
 [ext_resource type="ArrayMesh" path="res://assets/meshes/sphere.obj" id="2"]
 [ext_resource type="ArrayMesh" path="res://assets/meshes/sprite_ring.obj" id="3"]
-[ext_resource type="ArrayMesh" path="res://assets/meshes/star_rays.obj" id="4"]
+[ext_resource type="Texture2D" path="res://assets/textures/fx_explosion.png" id="4"]
 [ext_resource type="ArrayMesh" path="res://assets/meshes/sprite_disc.obj" id="5"]
 [ext_resource type="Material" path="res://assets/materials/mat_blast.tres" id="6"]
 [ext_resource type="Material" path="res://assets/materials/mat_fx_shock.tres" id="7"]
-[ext_resource type="Material" path="res://assets/materials/mat_fx_flash.tres" id="8"]
-[ext_resource type="Material" path="res://assets/materials/mat_fx_flash_core.tres" id="9"]
 [ext_resource type="Material" path="res://assets/materials/mat_fx_fire_hot.tres" id="10"]
 [ext_resource type="Material" path="res://assets/materials/mat_fx_fire_mid.tres" id="11"]
 [ext_resource type="Material" path="res://assets/materials/mat_fx_fire_cool.tres" id="12"]
@@ -49,14 +49,27 @@ mesh = ExtResource("3")
 material_override = ExtResource("7")
 cast_shadow = 0
 
-[node name="Flash" type="MeshInstance3D" parent="."]
-mesh = ExtResource("4")
-material_override = ExtResource("8")
-cast_shadow = 0
+; The first instant, as a played sheet rather than as stacked shapes. See
+; tools/gen_explosion_flipbook.py for why this one effect is a texture when
+; every other one in the game is tinted geometry.
+;
+; pixel_size is one over the frame's own width in pixels, so a scale of 1 is
+; one sim unit across and src/ui/explosion.gd sizes it with the same call it
+; sizes every other layer with.
+;
+; ALPHA_CUT_DISCARD, because the sheet is pixel art: every pixel in it is
+; either a palette entry or nothing, so there is no soft edge to preserve and
+; discarding buys correct sorting against the fire behind it. It also means
+; the sheet's own frames have to carry the fade, which they do.
 
-[node name="Core" type="MeshInstance3D" parent="."]
-mesh = ExtResource("5")
-material_override = ExtResource("9")
+[node name="Flipbook" type="Sprite3D" parent="."]
+texture = ExtResource("4")
+hframes = 5
+vframes = 5
+billboard = 1
+pixel_size = 0.0078125
+texture_filter = 0
+alpha_cut = 1
 cast_shadow = 0
 
 [node name="Fire" type="Node3D" parent="."]
