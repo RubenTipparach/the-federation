@@ -30,6 +30,12 @@ extends Node3D
 ##           the middle, red at the edges. This is the part that lasts.
 ##   Embers  twenty small fast sparks thrown much further, still lit after the
 ##           fire is out, which is what gives the explosion a tail.
+##   Nova    the supernova burst: a committed picture of a white hot centre in
+##           a red and purple corona with rays coming out of it, billboarded.
+##           It grows and fades ON THE SHELL'S OWN CURVES over two thirds of
+##           the shell's life, so glare and front read as one event at two
+##           speeds. Its strength is the nova dial, like the shell's, so an
+##           escort popping never shows it.
 ##   Plasma  a blue shell growing and fading outward over half a minute, LYING
 ##           FLAT ON THE BATTLE PLANE rather than facing the camera, so the
 ##           ellipse it makes says which plane the ship was flying in. The
@@ -118,14 +124,17 @@ var _fire_alpha: Array[float] = []
 var _ember_alpha: Array[float] = []
 var _shock_alpha: float = 1.0
 var _plasma_alpha: float = 1.0
+var _supernova_alpha: float = 1.0
 
 
 func _ready() -> void:
 	_own($Shock)
 	_own($Plasma)
+	_own($Supernova)
 	_own($Ball)
 	_shock_alpha = _alpha_of($Shock)
 	_plasma_alpha = _alpha_of($Plasma)
+	_supernova_alpha = _alpha_of($Supernova)
 	for piece in $Fire.get_children():
 		_own(piece)
 		_fire_alpha.append(_alpha_of(piece))
@@ -257,6 +266,7 @@ func seek(age: float) -> void:
 	_step_flash(fx, age)
 	_step_shock(fx, age)
 	_step_plasma(fx, age)
+	_step_supernova(fx, age)
 	_step_ball(fx, age)
 	_step_fire(fx, age)
 	_step_embers(fx, age)
@@ -301,6 +311,26 @@ func _step_shock(fx: Dictionary, age: float) -> void:
 	# Held bright while it is small and thinned as it stretches, which is what
 	# a front spreading its energy over a longer circumference does.
 	_set_alpha($Shock, _shock_alpha * pow(1.0 - k, SHOCK_DECAY))
+
+
+## The nova's centrepiece: the supernova burst blooming out of the wreck and
+## hanging there while the fire around it burns down. Like the shell below,
+## its strength is the dial itself, so there is no branch: a hull too small to
+## nova multiplies it by zero and no burst is drawn.
+func _step_supernova(fx: Dictionary, age: float) -> void:
+	var span: float = _fx(fx, "supernova_seconds")
+	var k: float = clampf(age / span, 0.0, 1.0)
+	$Supernova.visible = _nova > 0.0 and k < 1.0
+	if not $Supernova.visible:
+		return
+	# THE SHELL'S OWN CURVES, deliberately. The burst is the light of the same
+	# event the ring is the front of, so the two grow and fade in step, on
+	# different spans: the glare is gone at two thirds of the shell's life and
+	# the front runs on without it.
+	var grow: float = 1.0 - pow(1.0 - k, PLASMA_EASE)
+	_size($Supernova, _radius * lerpf(_fx(fx, "supernova_start_radii"),
+		_fx(fx, "supernova_end_radii"), grow))
+	_set_alpha($Supernova, _supernova_alpha * _nova * pow(1.0 - k, PLASMA_DECAY))
 
 
 ## THE NOVA'S OWN LAYER: a blue shell growing and fading outward long after the
@@ -474,6 +504,7 @@ func _hide_all() -> void:
 	$Flipbook.visible = false
 	$Shock.visible = false
 	$Plasma.visible = false
+	$Supernova.visible = false
 	$Ball.visible = false
 	for piece in $Fire.get_children():
 		piece.visible = false

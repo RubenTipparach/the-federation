@@ -1,0 +1,32 @@
+[gd_resource type="StandardMaterial3D" load_steps=2 format=3]
+
+; The heart of a capital ship's nova: a committed .png of a white hot centre
+; in a red and purple corona with rays streaming out of it, BILLBOARDED.
+;
+; Billboarded where the plasma ring lies flat, and the two are opposite on
+; purpose. The ring is a front moving through the world, so it belongs to the
+; world's plane; this is a point of light too bright to have a shape, and a
+; glare faces every camera.
+;
+; A StandardMaterial3D for the reason mat_fx_plasma.tres records: the effect
+; shader's whole job is tinting untextured geometry, this is a picture, and a
+; StandardMaterial3D's albedo map is the texture path that works on the
+; compatibility renderer. billboard_keep_scale, so src/ui/explosion.gd sizes
+; it with the same call it sizes every other layer with.
+;
+; Additive, and the alpha in the texture is how much light each texel adds.
+; The script fades the whole burst by albedo_color's alpha, so the palette
+; colours in the picture never shift.
+
+[ext_resource type="Texture2D" path="res://assets/textures/fx_supernova.png" id="1"]
+
+[resource]
+transparency = 1
+blend_mode = 1
+cull_mode = 2
+shading_mode = 0
+billboard_mode = 1
+billboard_keep_scale = true
+albedo_color = Color(1, 1, 1, 1)
+albedo_texture = ExtResource("1")
+texture_filter = 0

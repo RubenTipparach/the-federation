@@ -391,7 +391,8 @@
   "fx_note": "Colour ramps for the effect sprite sheets, hottest entry first. A ramp is named here rather than written into a generator so that a palette swap stays a one file change (CLAUDE.md 3.1). Entries resolve against colors and ui_colors together, because the hot end of a fire is the same orange every critical readout in the interface already wears, and naming a second one would be inventing a colour.",
   "fx": {
     "explosion": ["cream", "gold_hi", "alert_hi", "alert", "clay", "clay_deep", "maroon", "bark", "char"],
-    "plasma": ["cream", "blue_hi", "blue_light", "blue", "navy"]
+    "plasma": ["cream", "blue_hi", "blue_light", "blue", "navy"],
+    "supernova": ["cream", "rose_hi", "wine_hi", "wine", "plum"]
   },
   "ramps_note": [
     "Lookup ramps for the sky shader, baked to assets/textures/sky_ramps.png by",

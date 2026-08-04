@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3]
+[gd_scene load_steps=16 format=3]
 
 ; A ship blowing up: a played flipbook and four layers of billboarded light,
 ; over about two seconds.
@@ -27,6 +27,8 @@
 [ext_resource type="Script" path="res://src/ui/explosion.gd" id="1"]
 [ext_resource type="ArrayMesh" path="res://assets/meshes/sphere.obj" id="2"]
 [ext_resource type="ArrayMesh" path="res://assets/meshes/quad.obj" id="14"]
+[ext_resource type="ArrayMesh" path="res://assets/meshes/billboard.obj" id="15"]
+[ext_resource type="Material" path="res://assets/materials/mat_fx_supernova.tres" id="16"]
 [ext_resource type="ArrayMesh" path="res://assets/meshes/sprite_ring.obj" id="3"]
 [ext_resource type="Texture2D" path="res://assets/textures/fx_explosion.png" id="4"]
 [ext_resource type="ArrayMesh" path="res://assets/meshes/sprite_disc.obj" id="5"]
@@ -40,6 +42,17 @@
 
 [node name="Explosion" type="Node3D"]
 script = ExtResource("1")
+
+; The heart of a nova: the supernova burst, a committed .png on the
+; billboarded sprite quad. Drawn only when the nova dial is up, like the
+; plasma ring; an escort popping never shows it. See
+; assets/materials/mat_fx_supernova.tres for why it faces the camera when the
+; ring does not.
+
+[node name="Supernova" type="MeshInstance3D" parent="."]
+mesh = ExtResource("15")
+material_override = ExtResource("16")
+cast_shadow = 0
 
 [node name="Ball" type="MeshInstance3D" parent="."]
 mesh = ExtResource("2")
