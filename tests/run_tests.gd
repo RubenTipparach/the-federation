@@ -771,7 +771,7 @@ func test_tractors() -> void:
 	# tonnage ratio is the only thing being compared. Off that step the plan's
 	# own multiplier is in the grip, which is the point of the plan and would
 	# make this a test of two things at once.
-	beam.standoff = int(TractorLib.steps(tuning) / 2)
+	beam.standoff = 0.5
 	ok(beam.break_bid() > beam.hold_bid(tuning),
 		"the heavier ship out-shoves an equal bid")
 
@@ -890,7 +890,7 @@ func test_tractors() -> void:
 	winch.set_alloc_units("tractor", 10.0)
 	ok(reel_duel.apply_command(0, "tractor_latch", [1]), "the winch takes hold")
 	var reel_beam = reel_duel.tractor_on(winch)
-	ok(reel_duel.apply_command(0, "tractor_plan", [reel_beam.bearing, 1]),
+	ok(reel_duel.apply_command(0, "tractor_plan", [reel_beam.bearing, 0.05]),
 		"and can be told to pull the catch closer (5D)")
 	var gap_before: float = winch.pos.distance_to(catch.pos)
 	var winch_start: Vector2 = winch.pos
@@ -909,7 +909,7 @@ func test_tractors() -> void:
 
 	# ---- the tow plan: a bearing off the nose and a standoff ----
 	# The trade the plan exists for: reach far and hold weakly, or bring her in
-	# and hold hard. The middle step is exactly neutral, which is what makes the
+	# and hold hard. Halfway out is exactly neutral, which is what makes the
 	# default plan a reading a captain can measure the others against.
 	var plan_duel = BattleLib.create_duel(FitLib.create_default("wayfarer"), "kestrel", 31)
 	var hauler = plan_duel.player()
@@ -921,33 +921,34 @@ func test_tractors() -> void:
 	ok(plan_duel.apply_command(0, "tractor_latch", [1]), "the beam takes hold")
 	var plan = plan_duel.tractor_on(hauler)
 	near(plan.bearing, 0.0, "a fresh beam adopts the bearing it found her on")
-	eq(plan.standoff, TractorLib.step_for_range(60.0, tuning),
-		"and the step nearest the range it found her at")
+	near(plan.standoff, TractorLib.frac_for_range(60.0, tuning),
+		"and the fraction of range it found her at")
 
-	var notches: int = TractorLib.steps(tuning)
-	plan.standoff = int(notches / 2)
+	plan.standoff = 0.5
 	near(plan.grip_multiplier(tuning), 1.0,
-		"the middle step is exactly neutral grip", 0.05)
-	plan.standoff = 1
+		"halfway out is exactly neutral grip", 0.001)
+	plan.standoff = 0.0
 	var close_grip: float = plan.hold_bid(tuning)
-	plan.standoff = notches
+	plan.standoff = 1.0
 	var far_grip: float = plan.hold_bid(tuning)
 	ok(close_grip > far_grip * 2.0,
 		"holding her close grips far harder than holding her out")
 	near(far_grip, TractorLib.bid_of(hauler) * float(t["grip_far"]),
 		"and the far end is the tuned floor times the bid")
-	ok(TractorLib.frac_for_step(0, tuning) > 0.0,
-		"no step is a zero standoff")
+	ok(TractorLib.clamp_frac(0.0, tuning) > 0.0,
+		"no order is a zero standoff")
+	near(TractorLib.clamp_frac(9.0, tuning), 1.0,
+		"and none reaches past the beam")
 	# The floor is the hulls' own contact circle, not a share of range: the
-	# bottom box of a heavy ship's strip would otherwise station her prize
-	# inside her collision radius and grind it to scrap for free.
-	plan.standoff = 1
+	# closest the slider can be dragged would otherwise station her prize
+	# inside a heavy ship's collision radius and grind it to scrap for free.
+	plan.standoff = 0.0
 	ok(plan.standoff_range(tuning) > hauler.contact_distance(catch2),
 		"and the closest station clears both hulls")
 
-	# The station is a point on the HOLDER: turning the hull swings the catch2
+	# The station is a point on the HOLDER: turning the hull swings the prize
 	# around with it, which is what makes steering her into a rock piloting.
-	plan.standoff = int(notches / 2)
+	plan.standoff = 0.5
 	plan.bearing = 90.0
 	var station: Vector2 = plan.station_point(tuning)
 	near(station.x, plan.standoff_range(tuning),
@@ -957,10 +958,10 @@ func test_tractors() -> void:
 	near(plan.station_point(tuning).x, -plan.standoff_range(tuning),
 		"and the station swings with the holder's heading", 0.01)
 
-	# The catch2 is worked toward her station, wherever the plan puts her.
+	# The prize is worked toward her station, wherever the plan puts her.
 	hauler.heading = 0.0
 	plan.bearing = 0.0
-	plan.standoff = 2
+	plan.standoff = 0.12
 	var gap_start: float = hauler.pos.distance_to(catch2.pos)
 	for _i in range(200):
 		for s in plan_duel.ships:

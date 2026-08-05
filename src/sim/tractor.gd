@@ -24,17 +24,22 @@ var holder: ShipState
 var held: ShipState
 
 ## THE TOW PLAN: where the holder is telling the prisoner to sit, as a bearing
-## relative to the holder's own nose and a standoff in whole steps out of
-## standoff_steps. Federation Commander 5D's two options, "hold objects at a
-## distance" and "pull them closer", are both this one number: holding is
-## leaving the standoff where it is and reeling in is walking it down. One
-## mechanism rather than a mode beside a distance (CLAUDE.md 4.1).
+## relative to the holder's own nose and a standoff as a fraction of tractor
+## range. Federation Commander 5D's two options, "hold objects at a distance"
+## and "pull them closer", are both this one number: holding is leaving the
+## standoff where it is and reeling in is walking it down. One mechanism
+## rather than a mode beside a distance (CLAUDE.md 4.1).
+##
+## A fraction rather than whole steps, because the control that sets it is a
+## slider over a real continuous distance (the section 7 exception). Nothing
+## in the simulation quantises it, so a finer control could be swapped in
+## later without the sim knowing.
 ##
 ## Relative rather than absolute, because the plan is a station on the ship
 ## that owns the beam: turning your hull swings the prize around with you,
 ## which is what makes steering a prisoner into an asteroid a piloting problem.
 var bearing: float = 0.0
-var standoff: int = 0
+var standoff: float = 0.5
 
 ## Seconds the prisoner has been out-bidding the holder without the beam having
 ## snapped yet. Reset the moment the holder is ahead again, so the struggle is
@@ -52,36 +57,30 @@ static func create(p_holder: ShipState, p_held: ShipState,
 	t.held = p_held
 	t.bearing = Sectors.relative_bearing(
 		Sectors.bearing_between(p_holder.pos, p_held.pos), p_holder.heading)
-	t.standoff = Tractor.step_for_range(
+	t.standoff = Tractor.frac_for_range(
 		p_holder.pos.distance_to(p_held.pos), tuning)
 	return t
 
 
 # ---- the tow plan ------------------------------------------------------------
 
-## How many steps the standoff is cut into, and which one a fresh plan sits on.
-static func steps(tuning: Dictionary) -> int:
-	return maxi(1, int(tuning["tractor"]["standoff_steps"]))
+## Any fraction brought back into what the beam will actually accept. Never
+## zero: even the closest station leaves the prize off the hull, because a
+## beam that could stack two ships in the same water would be a collision
+## generator rather than a tow.
+static func clamp_frac(frac: float, tuning: Dictionary) -> float:
+	return clampf(frac, float(tuning["tractor"]["standoff_min_frac"]), 1.0)
 
 
-## The commanded standoff as a fraction of tractor range. Never zero: a step of
-## one still leaves the prize off the hull, because a beam that could stack two
-## ships in the same water would be a collision generator rather than a tow.
-static func frac_for_step(level: int, tuning: Dictionary) -> float:
-	var n: int = Tractor.steps(tuning)
-	return clampf(float(clampi(level, 1, n)) / float(n),
-		float(tuning["tractor"]["standoff_min_frac"]), 1.0)
-
-
-## Which step a real separation falls on, for a beam adopting what it found.
-static func step_for_range(distance: float, tuning: Dictionary) -> int:
-	var n: int = Tractor.steps(tuning)
-	var reach: float = maxf(0.001, float(tuning["tractor"]["range"]))
-	return clampi(int(roundf(distance / reach * float(n))), 1, n)
+## What fraction a real separation sits at, for a beam adopting what it found
+## and for a readout showing where the prize actually is against the order.
+static func frac_for_range(distance: float, tuning: Dictionary) -> float:
+	return Tractor.clamp_frac(
+		distance / maxf(0.001, float(tuning["tractor"]["range"])), tuning)
 
 
 func standoff_frac(tuning: Dictionary) -> float:
-	return Tractor.frac_for_step(standoff, tuning)
+	return Tractor.clamp_frac(standoff, tuning)
 
 
 ## How far out the prisoner is being told to ride, in world units.

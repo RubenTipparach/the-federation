@@ -661,10 +661,10 @@ func apply_command(actor: int, kind: String, args: Array, record: bool = true) -
 			# it is being dragged to.
 			if beam != null and beam.holder == ship:
 				var want_brg: float = Sectors.wrap_deg(float(args[0]))
-				var want_off: int = clampi(int(args[1]), 1,
-					Tractor.steps(Catalog.tuning()))
+				var want_off: float = Tractor.clamp_frac(
+					float(args[1]), Catalog.tuning())
 				if not is_equal_approx(beam.bearing, want_brg) \
-						or beam.standoff != want_off:
+						or not is_equal_approx(beam.standoff, want_off):
 					beam.bearing = want_brg
 					beam.standoff = want_off
 					ok = true

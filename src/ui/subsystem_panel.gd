@@ -23,7 +23,11 @@ signal tractor_latch_requested
 signal tractor_release_requested
 ## The player moved the tow plan: a bearing off the holder's nose and a
 ## standoff step. One order rather than two, because the plan is one point.
-signal tractor_plan_picked(bearing: float, standoff: int)
+## standoff is a FRACTION of tractor range, so this parameter is a float and
+## must stay one. Typed int here, Godot silently truncated every order to zero
+## and the clamp turned it into "hard alongside": one press of REEL took a
+## prize from a 60 unit tow to the closest station the beam allows.
+signal tractor_plan_picked(bearing: float, standoff: float)
 ## The player set the tractor bid, in whole reactor units.
 signal tractor_bid_picked(units: int)
 ## The boarding orders. Count is how many marines to send: the panel asks for
@@ -414,9 +418,15 @@ func _render_tractor_contest(beam: Tractor, tuning: Dictionary) -> void:
 		other.fit.hull()["name"]).to_upper()
 	$V/Cmds/Latch.disabled = not holding
 	$V/Cmds/Hold.disabled = not holding
-	$V/Cmds/Hold.button_pressed = holding and not reeling and not paying
-	$V/Cmds/Reel.disabled = not holding or beam.standoff <= 1
-	$V/Cmds/Reel.button_pressed = holding and reeling
+	# set_pressed_no_signal, not button_pressed: this is a repaint REFLECTING
+	# the beam, not a player pressing anything, and these two buttons now carry
+	# a RELATIVE order. An absolute selection survives being re-fired because
+	# setting it twice says the same thing; "reel one step in" does not. The
+	# fleet roster's helm wheel is guarded the same way.
+	$V/Cmds/Hold.set_pressed_no_signal(holding and not reeling and not paying)
+	$V/Cmds/Reel.disabled = not holding or beam.standoff_frac(tuning) \
+		<= float(tuning["tractor"]["standoff_min_frac"])
+	$V/Cmds/Reel.set_pressed_no_signal(holding and reeling)
 
 
 ## Crew aboard and the control boxes that keep them alive. Casualties and the
@@ -554,18 +564,20 @@ func _on_latch() -> void:
 		tractor_latch_requested.emit()
 
 
-## Walk the standoff by `delta` steps, keeping the bearing. Zero is "hold her
-## right there", which is the order the HOLD button always gave.
-func _on_standoff_step(delta: int) -> void:
+## Walk the standoff by `nudges` of the tuned step, keeping the bearing. Zero
+## is "hold her right there", which is the order the HOLD button always gave.
+func _on_standoff_step(nudges: int) -> void:
 	var beam: Tractor = battle.tractor_on(_ship) if battle != null else null
 	if beam == null:
 		return
-	var want: int = beam.standoff + delta
-	if delta == 0:
+	var tuning: Dictionary = Catalog.tuning()
+	var want: float = beam.standoff \
+		+ float(nudges) * float(tuning["tractor"]["standoff_nudge"])
+	if nudges == 0:
 		# Hold means hold WHERE SHE IS, not where the plan last said, so a prize
 		# still being dragged in stops where the order was given.
-		want = Tractor.step_for_range(
-			beam.holder.pos.distance_to(beam.held.pos), Catalog.tuning())
+		want = Tractor.frac_for_range(
+			beam.holder.pos.distance_to(beam.held.pos), tuning)
 	tractor_plan_picked.emit(beam.bearing, want)
 
 

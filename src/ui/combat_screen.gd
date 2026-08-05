@@ -704,7 +704,7 @@ func _on_tractor_release() -> void:
 		battle.apply_command(0, "tractor_release", [])
 
 
-func _on_tractor_plan(bearing: float, standoff: int) -> void:
+func _on_tractor_plan(bearing: float, standoff: float) -> void:
 	if battle != null:
 		battle.apply_command(0, "tractor_plan", [bearing, standoff])
 
