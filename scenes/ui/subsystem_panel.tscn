@@ -95,6 +95,8 @@ layout_mode = 2
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 12
+clip_text = true
+text_overrun_behavior = 3
 text = ""
 
 [node name="R" type="Label" parent="V/Tug/Reading"]
@@ -102,6 +104,8 @@ layout_mode = 2
 size_flags_horizontal = 3
 horizontal_alignment = 2
 theme_override_font_sizes/font_size = 12
+clip_text = true
+text_overrun_behavior = 3
 text = ""
 
 [node name="Strain" type="ColorRect" parent="V/Tug"]
@@ -122,6 +126,8 @@ layout_mode = 2
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 11
+clip_text = true
+text_overrun_behavior = 3
 text = ""
 
 [node name="R" type="Label" parent="V/Tug/Note"]
@@ -129,6 +135,8 @@ layout_mode = 2
 size_flags_horizontal = 3
 horizontal_alignment = 2
 theme_override_font_sizes/font_size = 11
+clip_text = true
+text_overrun_behavior = 3
 text = ""
 
 [node name="Boarding" type="VBoxContainer" parent="V"]

@@ -21,7 +21,9 @@ signal repair_dropped(system_index: int)
 ## screen turns each of these into a Battle command (docs/11: one command path).
 signal tractor_latch_requested
 signal tractor_release_requested
-signal tractor_mode_picked(mode: String)
+## The player moved the tow plan: a bearing off the holder's nose and a
+## standoff step. One order rather than two, because the plan is one point.
+signal tractor_plan_picked(bearing: float, standoff: int)
 ## The player set the tractor bid, in whole reactor units.
 signal tractor_bid_picked(units: int)
 ## The boarding orders. Count is how many marines to send: the panel asks for
@@ -65,8 +67,11 @@ func _ready() -> void:
 		$V/Cmds/Latch.pressed.connect(_on_latch)
 		$V/BoardCmds/Beam.pressed.connect(_on_beam)
 		$V/BoardCmds/Recall.pressed.connect(func() -> void: recall_requested.emit())
-		$V/Cmds/Hold.pressed.connect(_on_mode.bind(Tractor.MODE_HOLD))
-		$V/Cmds/Reel.pressed.connect(_on_mode.bind(Tractor.MODE_REEL))
+		# Both old orders are the same control now: hold keeps the standoff
+		# where it is and reel walks it in a step (CLAUDE.md 4.1). The dial
+		# that sets the bearing is awaiting its mockup approval.
+		$V/Cmds/Hold.pressed.connect(_on_standoff_step.bind(0))
+		$V/Cmds/Reel.pressed.connect(_on_standoff_step.bind(-1))
 		_row(0).get_node("Boxes").level_picked.connect(_on_bid_picked)
 
 
@@ -339,7 +344,7 @@ func _render_tractor_idle(tuning: Dictionary) -> void:
 func _render_tractor_contest(beam: Tractor, tuning: Dictionary) -> void:
 	var holding: bool = beam.holder == _ship
 	var other: ShipState = beam.held if holding else beam.holder
-	var grip: float = beam.hold_bid()
+	var grip: float = beam.hold_bid(tuning)
 	var shove: float = beam.break_bid()
 	var mine: Color = Palette.CYAN
 	var theirs: Color = Palette.MAGENTA
@@ -360,9 +365,13 @@ func _render_tractor_contest(beam: Tractor, tuning: Dictionary) -> void:
 	# The multiplication is printed rather than hidden, because a captain losing
 	# to a lighter ship has earned an explanation.
 	var ratio: float = Tractor.tonnage(beam.held) / Tractor.tonnage(beam.holder)
-	$V/Tug/Reading/L.text = "%.1f grip" % grip
+	# Both readings are the working shown, not a label: the row above already
+	# says which side is which, so the words are dropped and the arithmetic
+	# kept. The column is 148 pixels and the face is wide, which is about
+	# eleven characters, so every space here is spent deliberately.
+	$V/Tug/Reading/L.text = "%.1f x%.2f" % [grip, beam.grip_multiplier(tuning)]
 	Paint.tint($V/Tug/Reading/L, "font_color", mine if holding else theirs)
-	$V/Tug/Reading/R.text = "%.1f x %.2f = %.1f" % [
+	$V/Tug/Reading/R.text = "%.0fx%.2f=%.1f" % [
 		Tractor.bid_of(beam.held), ratio, shove]
 	Paint.tint($V/Tug/Reading/R, "font_color", theirs if holding else mine)
 
@@ -385,20 +394,29 @@ func _render_tractor_contest(beam: Tractor, tuning: Dictionary) -> void:
 	else:
 		$V/Tug/Note/L.text = "Breaking free in %.1fs" % seconds_left
 		Paint.tint($V/Tug/Note/L, "font_color", Palette.OK)
-	$V/Tug/Note/R.text = "%d t against %d t, %s" % [
+	# Whether she is being dragged is the plan against where she actually is,
+	# not a mode: a standoff shorter than the separation IS reeling in.
+	# Decided once as a value, never re-derived by comparing the words that
+	# were printed: a readout and a lit button that disagreed about whether
+	# the beam is reeling would be two answers to one question (CLAUDE.md 4.1).
+	var gap: float = beam.holder.pos.distance_to(beam.held.pos)
+	var want: float = beam.standoff_range(tuning)
+	var reeling: bool = want < gap - 1.0
+	var paying: bool = want > gap + 1.0
+	$V/Tug/Note/R.text = "%d/%dt %s" % [
 		int(Tractor.tonnage(beam.held)), int(Tractor.tonnage(beam.holder)),
-		"reeling in" if beam.mode == Tractor.MODE_REEL else "holding range"]
+		"reel" if reeling else ("pay out" if paying else "hold")]
 	Paint.tint($V/Tug/Note/R, "font_color", Palette.DIM)
 
-	# Only the holder chooses hold or reel. The prisoner does not get a say in
-	# whether it is being pulled closer, so those buttons are simply not theirs.
+	# Only the holder plans. The prisoner does not get a say in where it is
+	# being dragged to, so those buttons are simply not theirs.
 	$V/Cmds/Latch.text = "RELEASE" if holding else "HELD BY %s" % String(
 		other.fit.hull()["name"]).to_upper()
 	$V/Cmds/Latch.disabled = not holding
-	for entry in [["Hold", Tractor.MODE_HOLD], ["Reel", Tractor.MODE_REEL]]:
-		var b: Button = $V/Cmds.get_node(String(entry[0]))
-		b.disabled = not holding
-		b.button_pressed = holding and beam.mode == String(entry[1])
+	$V/Cmds/Hold.disabled = not holding
+	$V/Cmds/Hold.button_pressed = holding and not reeling and not paying
+	$V/Cmds/Reel.disabled = not holding or beam.standoff <= 1
+	$V/Cmds/Reel.button_pressed = holding and reeling
 
 
 ## Crew aboard and the control boxes that keep them alive. Casualties and the
@@ -536,8 +554,19 @@ func _on_latch() -> void:
 		tractor_latch_requested.emit()
 
 
-func _on_mode(mode: String) -> void:
-	tractor_mode_picked.emit(mode)
+## Walk the standoff by `delta` steps, keeping the bearing. Zero is "hold her
+## right there", which is the order the HOLD button always gave.
+func _on_standoff_step(delta: int) -> void:
+	var beam: Tractor = battle.tractor_on(_ship) if battle != null else null
+	if beam == null:
+		return
+	var want: int = beam.standoff + delta
+	if delta == 0:
+		# Hold means hold WHERE SHE IS, not where the plan last said, so a prize
+		# still being dragged in stops where the order was given.
+		want = Tractor.step_for_range(
+			beam.holder.pos.distance_to(beam.held.pos), Catalog.tuning())
+	tractor_plan_picked.emit(beam.bearing, want)
 
 
 func _on_bid_picked(level: int) -> void:
