@@ -83,19 +83,26 @@ func standoff_frac(tuning: Dictionary) -> float:
 	return Tractor.clamp_frac(standoff, tuning)
 
 
-## How far out the prisoner is being told to ride, in world units.
+## The closest station THIS PAIR of hulls allows, as a fraction of range.
 ##
-## Floored at the two hulls' own contact distance plus a clearance, because a
-## step is a fraction of RANGE and range knows nothing about tonnage: the
-## innermost step of a battlecruiser's beam is well inside her own collision
-## circle, so a captain who walked the standoff to the bottom would grind the
-## prize to scrap against the hull without ever ordering it. Ramming a held
-## ship into something is meant to be steering, not the default of the last
-## box on the strip.
+## A fraction of range knows nothing about tonnage, and the bottom of that
+## scale is well inside a battlecruiser's own collision circle, so a captain
+## who dragged the slider all the way down would grind the prize to scrap
+## against the hull without ever ordering it. Ramming a held ship into
+## something is meant to be steering. The slider starts here rather than at
+## zero, so its whole travel is usable and no part of it is a dead zone that
+## quietly means the same distance.
+func floor_frac(tuning: Dictionary) -> float:
+	var clearance: float = holder.contact_distance(held) \
+		* float(tuning["tractor"]["station_clearance"])
+	return clampf(maxf(float(tuning["tractor"]["standoff_min_frac"]),
+		clearance / maxf(0.001, float(tuning["tractor"]["range"]))), 0.0, 1.0)
+
+
+## How far out the prisoner is being told to ride, in world units.
 func standoff_range(tuning: Dictionary) -> float:
-	var want: float = standoff_frac(tuning) * float(tuning["tractor"]["range"])
-	return maxf(want, holder.contact_distance(held)
-		* float(tuning["tractor"]["station_clearance"]))
+	return maxf(standoff_frac(tuning), floor_frac(tuning)) \
+		* float(tuning["tractor"]["range"])
 
 
 ## THE FALLOFF: a tractor field is stiff against a hull held close and soft
