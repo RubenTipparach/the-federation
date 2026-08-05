@@ -27,12 +27,12 @@ alignment = 1
 
 [node name="Code" type="Label" parent="Body"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 14
 horizontal_alignment = 1
 text = "SYS"
 
 [node name="Hp" type="Label" parent="Body"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 14
 horizontal_alignment = 1
 text = "0/0"

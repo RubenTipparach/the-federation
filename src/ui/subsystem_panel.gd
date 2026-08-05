@@ -21,7 +21,13 @@ signal repair_dropped(system_index: int)
 ## screen turns each of these into a Battle command (docs/11: one command path).
 signal tractor_latch_requested
 signal tractor_release_requested
-signal tractor_mode_picked(mode: String)
+## The player moved the tow plan: a bearing off the holder's nose and a
+## standoff step. One order rather than two, because the plan is one point.
+## standoff is a FRACTION of tractor range, so this parameter is a float and
+## must stay one. Typed int here, Godot silently truncated every order to zero
+## and the clamp turned it into "hard alongside": one press of REEL took a
+## prize from a 60 unit tow to the closest station the beam allows.
+signal tractor_plan_picked(bearing: float, standoff: float)
 ## The player set the tractor bid, in whole reactor units.
 signal tractor_bid_picked(units: int)
 ## The boarding orders. Count is how many marines to send: the panel asks for
@@ -65,8 +71,8 @@ func _ready() -> void:
 		$V/Cmds/Latch.pressed.connect(_on_latch)
 		$V/BoardCmds/Beam.pressed.connect(_on_beam)
 		$V/BoardCmds/Recall.pressed.connect(func() -> void: recall_requested.emit())
-		$V/Cmds/Hold.pressed.connect(_on_mode.bind(Tractor.MODE_HOLD))
-		$V/Cmds/Reel.pressed.connect(_on_mode.bind(Tractor.MODE_REEL))
+		$V/Tow/Dial.bearing_picked.connect(_on_bearing_picked)
+		$V/Tow/Slider.distance_picked.connect(_on_distance_picked)
 		_row(0).get_node("Boxes").level_picked.connect(_on_bid_picked)
 
 
@@ -98,6 +104,7 @@ func refresh() -> void:
 	$V/Queue.visible = false
 	$V/Total.visible = false
 	$V/Tug.visible = false
+	$V/Tow.visible = false
 	$V/Cmds.visible = false
 	$V/Boarding.visible = false
 	$V/BoardCmds.visible = false
@@ -327,10 +334,14 @@ func _render_tractor_idle(tuning: Dictionary) -> void:
 		Palette.OK if ok else Palette.AMBER)
 	$V/Cmds/Latch.text = "LATCH"
 	$V/Cmds/Latch.disabled = not ok
-	for name in ["Hold", "Reel"]:
-		var b: Button = $V/Cmds.get_node(name)
-		b.disabled = true
-		b.button_pressed = false
+	# The compass stays on with nothing held, dark and unclickable. A station
+	# whose instrument vanishes between grapples reads as broken hardware, and
+	# the panel is a fixed rectangle either way (CLAUDE.md 6.4).
+	$V/Tow.visible = true
+	$V/Tow/Dial.paint(0.0, false, float(tuning["tractor"]["bearing_snap_deg"]))
+	$V/Tow/Slider.paint(0.0, 0.0, false)
+	$V/Tow/BrgHead/R.text = ""
+	$V/Tow/DistHead/R.text = ""
 
 
 ## A beam is up. The same panel serves both ends of it: the geometry is fixed,
@@ -339,7 +350,7 @@ func _render_tractor_idle(tuning: Dictionary) -> void:
 func _render_tractor_contest(beam: Tractor, tuning: Dictionary) -> void:
 	var holding: bool = beam.holder == _ship
 	var other: ShipState = beam.held if holding else beam.holder
-	var grip: float = beam.hold_bid()
+	var grip: float = beam.hold_bid(tuning)
 	var shove: float = beam.break_bid()
 	var mine: Color = Palette.CYAN
 	var theirs: Color = Palette.MAGENTA
@@ -360,9 +371,13 @@ func _render_tractor_contest(beam: Tractor, tuning: Dictionary) -> void:
 	# The multiplication is printed rather than hidden, because a captain losing
 	# to a lighter ship has earned an explanation.
 	var ratio: float = Tractor.tonnage(beam.held) / Tractor.tonnage(beam.holder)
-	$V/Tug/Reading/L.text = "%.1f grip" % grip
+	# Both readings are the working shown, not a label: the row above already
+	# says which side is which, so the words are dropped and the arithmetic
+	# kept. The column is 148 pixels and the face is wide, which is about
+	# eleven characters, so every space here is spent deliberately.
+	$V/Tug/Reading/L.text = "%.1f x%.2f" % [grip, beam.grip_multiplier(tuning)]
 	Paint.tint($V/Tug/Reading/L, "font_color", mine if holding else theirs)
-	$V/Tug/Reading/R.text = "%.1f x %.2f = %.1f" % [
+	$V/Tug/Reading/R.text = "%.0fx%.2f=%.1f" % [
 		Tractor.bid_of(beam.held), ratio, shove]
 	Paint.tint($V/Tug/Reading/R, "font_color", theirs if holding else mine)
 
@@ -385,20 +400,61 @@ func _render_tractor_contest(beam: Tractor, tuning: Dictionary) -> void:
 	else:
 		$V/Tug/Note/L.text = "Breaking free in %.1fs" % seconds_left
 		Paint.tint($V/Tug/Note/L, "font_color", Palette.OK)
-	$V/Tug/Note/R.text = "%d t against %d t, %s" % [
+	# Whether she is being dragged is the plan against where she actually is,
+	# not a mode: a standoff shorter than the separation IS reeling in.
+	# Decided once as a value, never re-derived by comparing the words that
+	# were printed: a readout and a lit button that disagreed about whether
+	# the beam is reeling would be two answers to one question (CLAUDE.md 4.1).
+	var gap: float = beam.holder.pos.distance_to(beam.held.pos)
+	var want: float = beam.standoff_range(tuning)
+	var reeling: bool = want < gap - 1.0
+	var paying: bool = want > gap + 1.0
+	$V/Tug/Note/R.text = "%d/%dt %s" % [
 		int(Tractor.tonnage(beam.held)), int(Tractor.tonnage(beam.holder)),
-		"reeling in" if beam.mode == Tractor.MODE_REEL else "holding range"]
+		"reel" if reeling else ("pay out" if paying else "hold")]
 	Paint.tint($V/Tug/Note/R, "font_color", Palette.DIM)
 
-	# Only the holder chooses hold or reel. The prisoner does not get a say in
-	# whether it is being pulled closer, so those buttons are simply not theirs.
+	# Only the holder plans. The prisoner does not get a say in where it is
+	# being dragged to, so the plan is simply not drawn for it.
+	_render_tow_plan(beam, tuning, holding, gap, reeling, paying)
 	$V/Cmds/Latch.text = "RELEASE" if holding else "HELD BY %s" % String(
 		other.fit.hull()["name"]).to_upper()
 	$V/Cmds/Latch.disabled = not holding
-	for entry in [["Hold", Tractor.MODE_HOLD], ["Reel", Tractor.MODE_REEL]]:
-		var b: Button = $V/Cmds.get_node(String(entry[0]))
-		b.disabled = not holding
-		b.button_pressed = holding and beam.mode == String(entry[1])
+
+
+## The tow plan: the bearing dial and the distance slider, both of them dumb
+## terminals handed numbers by this function.
+##
+## The slider's track runs from the closest station these two hulls allow to
+## the edge of tractor range, so the conversion between a position on it and a
+## standoff fraction lives here, in the one place that knows the beam. It is
+## the exact inverse of what _on_distance_picked does with a drag: if these
+## two ever disagree the handle will not sit where the player put it, which is
+## why they are written as one pair rather than two separate mappings.
+func _render_tow_plan(beam: Tractor, tuning: Dictionary, holding: bool,
+		gap: float, reeling: bool, paying: bool) -> void:
+	$V/Tow.visible = true
+	var floor_frac: float = beam.floor_frac(tuning)
+	var span: float = maxf(0.001, 1.0 - floor_frac)
+	var reach: float = float(tuning["tractor"]["range"])
+
+	$V/Tow/Dial.paint(beam.bearing, holding,
+		float(tuning["tractor"]["bearing_snap_deg"]))
+	$V/Tow/Slider.paint(
+		(maxf(beam.standoff_frac(tuning), floor_frac) - floor_frac) / span,
+		(clampf(gap / reach, floor_frac, 1.0) - floor_frac) / span, holding)
+
+	var brg: Label = $V/Tow/BrgHead/R
+	brg.text = "%03d REL" % int(roundf(beam.bearing)) if holding else ""
+	Paint.tint(brg, "font_color", Palette.CYAN)
+	# Both numbers on one line, because the pair IS the reading: what was
+	# ordered, and where she has actually got to.
+	var dist: Label = $V/Tow/DistHead/R
+	dist.text = "%du now %du" % [
+		int(roundf(beam.standoff_range(tuning))), int(roundf(gap))] \
+		if holding else ""
+	Paint.tint(dist, "font_color",
+		Palette.AMBER if (reeling or paying) else Palette.CYAN)
 
 
 ## Crew aboard and the control boxes that keep them alive. Casualties and the
@@ -536,8 +592,32 @@ func _on_latch() -> void:
 		tractor_latch_requested.emit()
 
 
-func _on_mode(mode: String) -> void:
-	tractor_mode_picked.emit(mode)
+## The dial was clicked: a new bearing, the distance left alone.
+func _on_bearing_picked(deg: float) -> void:
+	var beam: Tractor = _beam()
+	if beam != null:
+		tractor_plan_picked.emit(deg, beam.standoff)
+
+
+## The slider was dragged. It reports a position along its track, and the
+## track starts at the closest station THESE TWO HULLS allow, so turning that
+## into a standoff fraction happens here where the beam is known. The slider
+## is told about pixels and fractions and never about ships.
+func _on_distance_picked(unit: float) -> void:
+	var beam: Tractor = _beam()
+	if beam == null:
+		return
+	var floor_frac: float = beam.floor_frac(Catalog.tuning())
+	tractor_plan_picked.emit(beam.bearing, lerpf(floor_frac, 1.0, unit))
+
+
+## The beam this panel is planning for: the one whose holder is our ship. A
+## prisoner does not plan its own tow.
+func _beam() -> Tractor:
+	var beam: Tractor = battle.tractor_on(_ship) if battle != null else null
+	if beam == null or beam.holder != _ship:
+		return null
+	return beam
 
 
 func _on_bid_picked(level: int) -> void:

@@ -17,19 +17,29 @@ extends RefCounted
 ## Pure simulation. This class exists once and both the battle and any fitting
 ## or panel projection read it (CLAUDE.md 4.1, 5.2).
 
-## Keep the current separation. Federation Commander 5D: "hold objects at a
-## distance".
-const MODE_HOLD: String = "hold"
-## Close the range. 5D: "or pull them closer". There is no push mode, because
-## the source does not describe one.
-const MODE_REEL: String = "reel"
-
 const SINK: String = "tractor"
 const BOX: String = "TRAC"
 
 var holder: ShipState
 var held: ShipState
-var mode: String = MODE_HOLD
+
+## THE TOW PLAN: where the holder is telling the prisoner to sit, as a bearing
+## relative to the holder's own nose and a standoff as a fraction of tractor
+## range. Federation Commander 5D's two options, "hold objects at a distance"
+## and "pull them closer", are both this one number: holding is leaving the
+## standoff where it is and reeling in is walking it down. One mechanism
+## rather than a mode beside a distance (CLAUDE.md 4.1).
+##
+## A fraction rather than whole steps, because the control that sets it is a
+## slider over a real continuous distance (the section 7 exception). Nothing
+## in the simulation quantises it, so a finer control could be swapped in
+## later without the sim knowing.
+##
+## Relative rather than absolute, because the plan is a station on the ship
+## that owns the beam: turning your hull swings the prize around with you,
+## which is what makes steering a prisoner into an asteroid a piloting problem.
+var bearing: float = 0.0
+var standoff: float = 0.5
 
 ## Seconds the prisoner has been out-bidding the holder without the beam having
 ## snapped yet. Reset the moment the holder is ahead again, so the struggle is
@@ -37,11 +47,85 @@ var mode: String = MODE_HOLD
 var strain: float = 0.0
 
 
-static func create(p_holder: ShipState, p_held: ShipState) -> Tractor:
+## A fresh beam takes the prisoner where it found her: the bearing she is
+## already on and the nearest step to the range she is already at. A latch that
+## snapped the prize to a default station would be a shove nobody ordered.
+static func create(p_holder: ShipState, p_held: ShipState,
+		tuning: Dictionary) -> Tractor:
 	var t: Tractor = Tractor.new()
 	t.holder = p_holder
 	t.held = p_held
+	t.bearing = Sectors.relative_bearing(
+		Sectors.bearing_between(p_holder.pos, p_held.pos), p_holder.heading)
+	t.standoff = Tractor.frac_for_range(
+		p_holder.pos.distance_to(p_held.pos), tuning)
 	return t
+
+
+# ---- the tow plan ------------------------------------------------------------
+
+## Any fraction brought back into what the beam will actually accept. Never
+## zero: even the closest station leaves the prize off the hull, because a
+## beam that could stack two ships in the same water would be a collision
+## generator rather than a tow.
+static func clamp_frac(frac: float, tuning: Dictionary) -> float:
+	return clampf(frac, float(tuning["tractor"]["standoff_min_frac"]), 1.0)
+
+
+## What fraction a real separation sits at, for a beam adopting what it found
+## and for a readout showing where the prize actually is against the order.
+static func frac_for_range(distance: float, tuning: Dictionary) -> float:
+	return Tractor.clamp_frac(
+		distance / maxf(0.001, float(tuning["tractor"]["range"])), tuning)
+
+
+func standoff_frac(tuning: Dictionary) -> float:
+	return Tractor.clamp_frac(standoff, tuning)
+
+
+## The closest station THIS PAIR of hulls allows, as a fraction of range.
+##
+## A fraction of range knows nothing about tonnage, and the bottom of that
+## scale is well inside a battlecruiser's own collision circle, so a captain
+## who dragged the slider all the way down would grind the prize to scrap
+## against the hull without ever ordering it. Ramming a held ship into
+## something is meant to be steering. The slider starts here rather than at
+## zero, so its whole travel is usable and no part of it is a dead zone that
+## quietly means the same distance.
+func floor_frac(tuning: Dictionary) -> float:
+	var clearance: float = holder.contact_distance(held) \
+		* float(tuning["tractor"]["station_clearance"])
+	return clampf(maxf(float(tuning["tractor"]["standoff_min_frac"]),
+		clearance / maxf(0.001, float(tuning["tractor"]["range"]))), 0.0, 1.0)
+
+
+## How far out the prisoner is being told to ride, in world units.
+func standoff_range(tuning: Dictionary) -> float:
+	return maxf(standoff_frac(tuning), floor_frac(tuning)) \
+		* float(tuning["tractor"]["range"])
+
+
+## THE FALLOFF: a tractor field is stiff against a hull held close and soft
+## against one held at arm's length, so what the emitter is worth is a
+## multiplier on the standoff. Linear between the two ends, which puts the
+## middle step at exactly one: the default plan is the neutral reading, and
+## every other step is legible as better or worse than it at a glance.
+##
+## This is the whole trade the plan exists for. Reach out to the edge of range
+## to catch something running and you hold it with a fraction of your grip;
+## walk the standoff in and the same reactor units hold far harder.
+func grip_multiplier(tuning: Dictionary) -> float:
+	var t: Dictionary = tuning["tractor"]
+	return lerpf(float(t["grip_near"]), float(t["grip_far"]),
+		standoff_frac(tuning))
+
+
+## Where the plan says the prisoner belongs, in world coordinates. The bearing
+## is relative to the holder's nose, so this point swings as the holder turns.
+func station_point(tuning: Dictionary) -> Vector2:
+	var world: float = Sectors.wrap_deg(holder.heading + bearing)
+	var out: Vector2 = Vector2(sin(deg_to_rad(world)), cos(deg_to_rad(world)))
+	return holder.pos + out * standoff_range(tuning)
 
 
 # ---- the bids ----------------------------------------------------------------
@@ -53,8 +137,11 @@ static func bid_of(ship: ShipState) -> float:
 	return ship.alloc_units(SINK)
 
 
-func hold_bid() -> float:
-	return Tractor.bid_of(holder)
+## The grip the holder actually brings: units spent, times what the standoff
+## does to them. Every reader of the contest goes through here, so the panel's
+## projection and the battle's arithmetic cannot disagree (CLAUDE.md 4.1).
+func hold_bid(tuning: Dictionary) -> float:
+	return Tractor.bid_of(holder) * grip_multiplier(tuning)
 
 
 ## What the prisoner is shoving back with, weighted by the tonnage ratio. This
@@ -108,9 +195,9 @@ func step(dt: float, tuning: Dictionary) -> String:
 		return "emitter destroyed"
 	if holder.pos.distance_to(held.pos) > float(t["range"]):
 		return "out of range"
-	if hold_bid() < float(t["min_units"]):
+	if Tractor.bid_of(holder) < float(t["min_units"]):
 		return "power cut"
-	if break_bid() > hold_bid():
+	if break_bid() > hold_bid(tuning):
 		strain += dt
 		if strain >= float(t["break_seconds"]):
 			return "broken free"
@@ -127,10 +214,17 @@ func strain_frac(tuning: Dictionary) -> float:
 
 # ---- what a beam does to the two ships ---------------------------------------
 
-## Ask both ships to move toward their common momentum, weighted by tonnage, and
-## in REEL to close as well. Written as a target velocity the ships ease toward
-## rather than as a force, for the same reason gravity is (docs/13 section 4.1):
-## it is stable at any timestep, and a replay depends on that.
+## Ask both ships to move toward their common momentum, weighted by tonnage,
+## and to work the prisoner toward her commanded station on top of that.
+## Written as a target velocity the ships ease toward rather than as a force,
+## for the same reason gravity is (docs/13 section 4.1): it is stable at any
+## timestep, and a replay depends on that.
+##
+## The station is a point, so one piece of arithmetic does what hold and reel
+## used to do separately. A plan already satisfied has no error left and the
+## beam simply carries her along; a plan pointing somewhere else drags her
+## there, and whether that reads as reeling in or as swinging her around the
+## bow is the captain's business rather than a mode.
 ##
 ## Attitude is deliberately untouched. A held ship can still come about and
 ## bring its guns to bear, because taking away a ship's arcs takes away the
@@ -143,18 +237,22 @@ func apply_tow(tuning: Dictionary) -> void:
 	var v_held: Vector2 = held.engine_velocity()
 	var common: Vector2 = (v_holder * m_holder + v_held * m_held) / total
 
-	var reel_holder: Vector2 = Vector2.ZERO
-	var reel_held: Vector2 = Vector2.ZERO
-	if mode == MODE_REEL:
-		var span: Vector2 = held.pos - holder.pos
-		if span.length() > 0.001:
-			# Each ship closes in inverse proportion to its own mass, so the
-			# total closing rate is the reel speed and the light ship is the one
-			# that actually travels.
-			var toward: Vector2 = span.normalized()
-			var rate: float = float(tuning["tractor"]["reel_speed"])
-			reel_holder = toward * rate * m_held / total
-			reel_held = -toward * rate * m_holder / total
+	var work_holder: Vector2 = Vector2.ZERO
+	var work_held: Vector2 = Vector2.ZERO
+	var err: Vector2 = station_point(tuning) - held.pos
+	if err.length() > 0.001:
+		# The closing speed eases off as the prize nears her station, so she
+		# settles onto it instead of sailing through and coming back. Capped by
+		# reel_speed, which is what the beam can do at its best.
+		var t: Dictionary = tuning["tractor"]
+		var speed: float = minf(err.length() * float(t["station_ease"]),
+			float(t["reel_speed"]))
+		# Each ship moves in inverse proportion to its own mass, so the pair
+		# closes at that speed and the light ship is the one that travels. A
+		# frigate that latches a battlecruiser gets dragged to the cruiser.
+		var toward: Vector2 = err.normalized()
+		work_held = toward * speed * m_holder / total
+		work_holder = -toward * speed * m_held / total
 
-	holder.tow_target = common + reel_holder - v_holder
-	held.tow_target = common + reel_held - v_held
+	holder.tow_target = common + work_holder - v_holder
+	held.tow_target = common + work_held - v_held

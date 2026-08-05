@@ -26,7 +26,7 @@ step = 0.01
 [node name="Chip" type="Label" parent="."]
 custom_minimum_size = Vector2(77, 0)
 layout_mode = 2
-theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/font_size = 14
 horizontal_alignment = 2
 text_overrun_behavior = 1
 text = "RDY"

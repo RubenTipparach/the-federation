@@ -92,16 +92,22 @@ func _draw() -> void:
 
 		var mid: float = deg_to_rad(f * 60.0)
 		var label_pos: Vector2 = center + Vector2(sin(mid), -cos(mid)) * ((r_out + r_in) * 0.5)
-		draw_string(font, label_pos + Vector2(-10, 4), Sectors.facing_mark(f),
-			HORIZONTAL_ALIGNMENT_CENTER, 22, 9 if compact else 12,
+		# Boxes measured from the face rather than guessed, because the face has
+		# exactly one size and a box measured for a smaller one clips a digit
+		# off the number without saying so.
+		var mark_w: float = Paint.type_width(2)
+		draw_string(font, label_pos + Vector2(-mark_w * 0.5, 4),
+			Sectors.facing_mark(f),
+			HORIZONTAL_ALIGNMENT_CENTER, mark_w, Paint.TYPE_SIZE,
 			Palette.CRIT if _shields[f] <= 0.0 else Palette.FG)
 		if compact:
 			continue
 		var hp_pos: Vector2 = center + Vector2(sin(mid), -cos(mid)) * (r_out + 14.0)
 		var hp_text: String = "DOWN" if _shields[f] <= 0.0 else "%d/%d" % [
 			int(_shields[f]), int(_shield_max)]
-		draw_string(font, hp_pos + Vector2(-18, 4), hp_text,
-			HORIZONTAL_ALIGNMENT_CENTER, 46, 10,
+		var hp_w: float = Paint.type_width(7)
+		draw_string(font, hp_pos + Vector2(-hp_w * 0.5, 4), hp_text,
+			HORIZONTAL_ALIGNMENT_CENTER, hp_w, Paint.TYPE_SIZE,
 			Palette.CRIT if _shields[f] <= 0.0 else Palette.DIM)
 
 

@@ -20,7 +20,7 @@ theme_override_constants/separation = 10
 
 [node name="Head" type="Label" parent="Yours/V"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 14
 text = "YOUR SQUADRON / YOUR DESIGNS"
 theme_type_variation = &"HeaderLabel"
 
@@ -34,7 +34,7 @@ layout_mode = 2
 
 [node name="Tonnage" type="Label" parent="Yours/V"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 14
 text = "COMMAND TONNAGE  0 / 240"
 
 [node name="Mid" type="VBoxContainer" parent="."]
@@ -45,20 +45,20 @@ theme_override_constants/separation = 12
 
 [node name="Vs" type="Label" parent="Mid"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 31
+theme_override_font_sizes/font_size = 28
 horizontal_alignment = 1
 text = "VS"
 
 [node name="Kind" type="Label" parent="Mid"]
 layout_mode = 2
 autowrap_mode = 2
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 14
 horizontal_alignment = 1
 text = "FLEET ACTION / DEEP SPACE"
 
 [node name="WhereHead" type="Label" parent="Mid"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 14
 text = "WHERE"
 theme_type_variation = &"HeaderLabel"
 
@@ -69,7 +69,7 @@ theme_override_constants/separation = 6
 [node name="MapBlurb" type="Label" parent="Mid"]
 layout_mode = 2
 custom_minimum_size = Vector2(0, 36)
-theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/font_size = 14
 autowrap_mode = 2
 text = ""
 
@@ -79,7 +79,7 @@ text = "Begin skirmish"
 
 [node name="ReplayHead" type="Label" parent="Mid"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 14
 text = "RECORDED BATTLES"
 theme_type_variation = &"HeaderLabel"
 
@@ -103,7 +103,7 @@ theme_override_constants/separation = 10
 
 [node name="Head" type="Label" parent="Foes/V"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 14
 text = "OPPOSITION / PREDEFINED AI"
 theme_type_variation = &"HeaderLabel"
 
@@ -114,5 +114,5 @@ theme_override_constants/separation = 10
 
 [node name="Tonnage" type="Label" parent="Foes/V"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 14
 text = "ENEMY TONNAGE  0"

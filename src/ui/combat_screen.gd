@@ -145,7 +145,7 @@ func bind_session(p_session: Session) -> void:
 		panel.regen_facing_picked.connect(_on_regen_facing_picked)
 		panel.tractor_latch_requested.connect(_on_tractor_latch)
 		panel.tractor_release_requested.connect(_on_tractor_release)
-		panel.tractor_mode_picked.connect(_on_tractor_mode)
+		panel.tractor_plan_picked.connect(_on_tractor_plan)
 		panel.tractor_bid_picked.connect(_on_power_picked.bind(Tractor.SINK))
 		panel.beam_requested.connect(_on_beam_requested)
 		panel.recall_requested.connect(_on_recall_requested)
@@ -704,9 +704,9 @@ func _on_tractor_release() -> void:
 		battle.apply_command(0, "tractor_release", [])
 
 
-func _on_tractor_mode(mode: String) -> void:
+func _on_tractor_plan(bearing: float, standoff: float) -> void:
 	if battle != null:
-		battle.apply_command(0, "tractor_mode", [mode])
+		battle.apply_command(0, "tractor_plan", [bearing, standoff])
 
 
 ## Throttle is stored as a 0 to 1 fraction, so the notch count is the only

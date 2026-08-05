@@ -767,7 +767,12 @@ func test_tractors() -> void:
 	var ratio: float = TractorLib.tonnage(foe) / TractorLib.tonnage(me)
 	near(beam.break_bid(), foe.alloc_units("tractor") * ratio,
 		"the prisoner's shove is weighted by the tonnage ratio")
-	ok(beam.break_bid() > beam.hold_bid(),
+	# Weight for weight: the standoff is put on the neutral middle step so the
+	# tonnage ratio is the only thing being compared. Off that step the plan's
+	# own multiplier is in the grip, which is the point of the plan and would
+	# make this a test of two things at once.
+	beam.standoff = 0.5
+	ok(beam.break_bid() > beam.hold_bid(tuning),
 		"the heavier ship out-shoves an equal bid")
 
 	# Losing the auction does not snap the beam at once: the holder has
@@ -825,19 +830,33 @@ func test_tractors() -> void:
 	var m_tug: float = TractorLib.tonnage(tug)
 	var m_prize: float = TractorLib.tonnage(prize)
 	var common: Vector2 = Vector2(0, 20.0) * m_tug / (m_tug + m_prize)
+	# Parked exactly on her commanded station, so the momentum sharing is the
+	# only term left in the tow and can be checked on its own. A prize off her
+	# station also gets the work that drags her onto it, which the plan block
+	# below tests separately.
+	prize.pos = tow_duel.tractor_on(tug).station_point(tuning)
 	tow_duel._step_tractors(1.0 / 10.0, tuning)
 	near(prize.tow_target.y, common.y,
 		"a held ship is asked for the pair's common momentum")
 	near(tug.tow_target.y, common.y - 20.0, "and so is the holder, from the other side")
 
+	var towed_from: float = prize.pos.y
 	for _i in range(200):
 		for s in tow_duel.ships:
 			s.tow_target = Vector2.ZERO
 		tow_duel._step_tractors(1.0 / 20.0, tuning)
+		# The holder is kept under way. Without an order its speed bleeds off
+		# to the throttle it was never given, and a tow behind a ship that has
+		# coasted to a stop proves nothing about towing.
+		tug.set_order(tug.heading, 1.0)
 		prize.set_order(prize.heading, 0.0)
 		for s in tow_duel.ships:
 			s.step(1.0 / 20.0, tuning)
-	ok(prize.pos.y > 26.0, "and it is dragged along behind the ship holding it")
+	ok(prize.pos.y > towed_from + 2.0,
+		"and it is dragged along behind the ship holding it")
+	near(tug.pos.distance_to(prize.pos),
+		tow_duel.tractor_on(tug).standoff_range(tuning),
+		"still riding the station the plan gave it", 4.0)
 	# Attitude is deliberately untouched: taking a ship's arcs away takes the
 	# game away, and 5D says the beam holds position, not heading.
 	prize.set_order(90.0, 0.0)
@@ -870,7 +889,8 @@ func test_tractors() -> void:
 	catch.speed = 0.0
 	winch.set_alloc_units("tractor", 10.0)
 	ok(reel_duel.apply_command(0, "tractor_latch", [1]), "the winch takes hold")
-	ok(reel_duel.apply_command(0, "tractor_mode", [TractorLib.MODE_REEL]),
+	var reel_beam = reel_duel.tractor_on(winch)
+	ok(reel_duel.apply_command(0, "tractor_plan", [reel_beam.bearing, 0.05]),
 		"and can be told to pull the catch closer (5D)")
 	var gap_before: float = winch.pos.distance_to(catch.pos)
 	var winch_start: Vector2 = winch.pos
@@ -886,6 +906,75 @@ func test_tractors() -> void:
 	ok(winch.pos.distance_to(catch.pos) < gap_before - 4.0, "reeling closes the range")
 	ok(catch_start.distance_to(catch.pos) > winch_start.distance_to(winch.pos) * 2.0,
 		"and the light ship is the one that actually travels")
+
+	# ---- the tow plan: a bearing off the nose and a standoff ----
+	# The trade the plan exists for: reach far and hold weakly, or bring her in
+	# and hold hard. Halfway out is exactly neutral, which is what makes the
+	# default plan a reading a captain can measure the others against.
+	var plan_duel = BattleLib.create_duel(FitLib.create_default("wayfarer"), "kestrel", 31)
+	var hauler = plan_duel.player()
+	var catch2 = plan_duel.enemy()
+	hauler.pos = Vector2.ZERO
+	hauler.heading = 0.0
+	catch2.pos = Vector2(0.0, 60.0)
+	hauler.set_alloc_units("tractor", 10.0)
+	ok(plan_duel.apply_command(0, "tractor_latch", [1]), "the beam takes hold")
+	var plan = plan_duel.tractor_on(hauler)
+	near(plan.bearing, 0.0, "a fresh beam adopts the bearing it found her on")
+	near(plan.standoff, TractorLib.frac_for_range(60.0, tuning),
+		"and the fraction of range it found her at")
+
+	plan.standoff = 0.5
+	near(plan.grip_multiplier(tuning), 1.0,
+		"halfway out is exactly neutral grip", 0.001)
+	plan.standoff = 0.0
+	var close_grip: float = plan.hold_bid(tuning)
+	plan.standoff = 1.0
+	var far_grip: float = plan.hold_bid(tuning)
+	ok(close_grip > far_grip * 2.0,
+		"holding her close grips far harder than holding her out")
+	near(far_grip, TractorLib.bid_of(hauler) * float(t["grip_far"]),
+		"and the far end is the tuned floor times the bid")
+	ok(TractorLib.clamp_frac(0.0, tuning) > 0.0,
+		"no order is a zero standoff")
+	near(TractorLib.clamp_frac(9.0, tuning), 1.0,
+		"and none reaches past the beam")
+	# The floor is the hulls' own contact circle, not a share of range: the
+	# closest the slider can be dragged would otherwise station her prize
+	# inside a heavy ship's collision radius and grind it to scrap for free.
+	plan.standoff = 0.0
+	ok(plan.standoff_range(tuning) > hauler.contact_distance(catch2),
+		"and the closest station clears both hulls")
+
+	# The station is a point on the HOLDER: turning the hull swings the prize
+	# around with it, which is what makes steering her into a rock piloting.
+	plan.standoff = 0.5
+	plan.bearing = 90.0
+	var station: Vector2 = plan.station_point(tuning)
+	near(station.x, plan.standoff_range(tuning),
+		"bearing 090 stations her off the starboard beam", 0.01)
+	near(station.y, 0.0, "and level with the bow", 0.01)
+	hauler.heading = 180.0
+	near(plan.station_point(tuning).x, -plan.standoff_range(tuning),
+		"and the station swings with the holder's heading", 0.01)
+
+	# The prize is worked toward her station, wherever the plan puts her.
+	hauler.heading = 0.0
+	plan.bearing = 0.0
+	plan.standoff = 0.12
+	var gap_start: float = hauler.pos.distance_to(catch2.pos)
+	for _i in range(200):
+		for s in plan_duel.ships:
+			s.tow_target = Vector2.ZERO
+		plan_duel._step_tractors(1.0 / 20.0, tuning)
+		hauler.set_order(hauler.heading, 0.0)
+		catch2.set_order(catch2.heading, 0.0)
+		for s in plan_duel.ships:
+			s.step(1.0 / 20.0, tuning)
+	var gap_end: float = hauler.pos.distance_to(catch2.pos)
+	ok(gap_end < gap_start, "a shorter standoff drags her in")
+	near(gap_end, plan.standoff_range(tuning),
+		"and she settles ON the commanded standoff rather than through it", 6.0)
 
 	# ---- holding needs an emitter, breaking does not ----
 	ok(not TractorLib.emitter_ready(catch), "the Talon carries no tractor")

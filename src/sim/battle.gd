@@ -298,7 +298,7 @@ func latch_tractor(attacker: ShipState, target: ShipState) -> bool:
 			return false
 	if not bool(Tractor.latch_check(attacker, target, tuning)["ok"]):
 		return false
-	tractors.append(Tractor.create(attacker, target))
+	tractors.append(Tractor.create(attacker, target, tuning))
 	_events.append({
 		"type": "tractor", "state": "latched",
 		"holder_player": attacker == player(),
@@ -655,13 +655,19 @@ func apply_command(actor: int, kind: String, args: Array, record: bool = true) -
 			ok = beam_marines(actor, int(args[0]))
 		"recall":
 			ok = recall_marines(actor)
-		"tractor_mode":
+		"tractor_plan":
 			var beam: Tractor = tractor_on(ship)
-			# Only the holder chooses. The prisoner does not get to decide whether
-			# it is being reeled in.
-			if beam != null and beam.holder == ship and beam.mode != String(args[0]):
-				beam.mode = String(args[0])
-				ok = true
+			# Only the holder plans. The prisoner does not get to decide where
+			# it is being dragged to.
+			if beam != null and beam.holder == ship:
+				var want_brg: float = Sectors.wrap_deg(float(args[0]))
+				var want_off: float = Tractor.clamp_frac(
+					float(args[1]), Catalog.tuning())
+				if not is_equal_approx(beam.bearing, want_brg) \
+						or not is_equal_approx(beam.standoff, want_off):
+					beam.bearing = want_brg
+					beam.standoff = want_off
+					ok = true
 	# Only what actually happened is written down. A fire order that found no
 	# weapon bearing, or a transfer the shields refused, changed nothing, and
 	# recording it would make a replay differ from the battle it came from by

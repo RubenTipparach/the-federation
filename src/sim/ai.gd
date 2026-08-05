@@ -127,6 +127,6 @@ static func _work_tractor(me: ShipState, battle) -> void:
 	# reactor has. The tonnage weighting is the simulation's, so the shove asked
 	# for here is divided back out through it.
 	var ratio: float = Tractor.tonnage(beam.held) / Tractor.tonnage(beam.holder)
-	var wanted: float = beam.hold_bid() / maxf(0.01, ratio) \
+	var wanted: float = beam.hold_bid(tuning) / maxf(0.01, ratio) \
 		+ float(tuning["ai"]["tractor_break_margin"])
 	me.set_alloc_units(Tractor.SINK, minf(wanted, me.power_output()))
