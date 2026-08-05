@@ -96,7 +96,7 @@ content_margin_right = 4.0
 
 [resource]
 default_font = ExtResource("font")
-default_font_size = 17
+default_font_size = 14
 Button/colors/font_color = Color(0.89, 0.867, 0.82, 1)
 Button/colors/font_hover_color = Color(0.89, 0.867, 0.82, 1)
 Button/colors/font_pressed_color = Color(0.435, 0.702, 0.643, 1)

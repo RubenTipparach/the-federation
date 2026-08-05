@@ -12,6 +12,18 @@
 # scaled bitmap face and filtering is the one thing that stops pixel type
 # reading as pixel type.
 #
+# THE IMPORT MUST STAY ON INTEGER SCALING. assets/ui/font_tactical.fnt.import
+# carries scaling_mode=1, which is Godot's FIXED_SIZE_SCALE_INTEGER_ONLY. It
+# shipped as 2 (fractional) for a while and every label in the game was being
+# resampled: the UI asked for 11, 12, 13 and 17 against a face baked at 14, so
+# almost every string on screen was drawn at 0.79x, 0.86x, 0.93x or 1.21x with
+# a filter over it, which is exactly the soft grey fringing pixel type must
+# never have. With integer scaling the only sizes that can reach the screen
+# are 14 and 28, and the scenes now ask for those two and nothing else.
+#
+# To add a size, bake it: B = 3 gives 21 and B = 4 gives 28. Do not ask the
+# importer for it.
+#
 # Lowercase maps to the same rects as uppercase. The face has no lowercase by
 # design, and pointing the codepoints at the capitals means existing UI strings
 # render as small caps instead of rendering as nothing.

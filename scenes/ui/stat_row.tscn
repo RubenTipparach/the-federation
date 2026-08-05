@@ -13,7 +13,7 @@ theme_override_constants/separation = 7
 [node name="L" type="Label" parent="."]
 custom_minimum_size = Vector2(77, 0)
 layout_mode = 2
-theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/font_size = 14
 text = "LABEL"
 
 [node name="Boxes" parent="." instance=ExtResource("1")]
@@ -24,5 +24,5 @@ size_flags_horizontal = 3
 custom_minimum_size = Vector2(94, 0)
 layout_mode = 2
 horizontal_alignment = 2
-theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/font_size = 14
 text = "0/0"

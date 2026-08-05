@@ -129,7 +129,12 @@ def theme(faction, name, skin, data):
     body = [
         "[resource]",
         "default_font = ExtResource(\"font\")",
-        "default_font_size = 17",
+        # 14, because that is the size the face is BAKED at (gen_font.py's
+        # B = 2 times a seven pixel cell) and the import scales it by whole
+        # numbers only. Ask for anything between 1x and 2x and Godot serves
+        # the nearest whole multiple anyway, so a number like 17 was never a
+        # size: it was 14 wearing a label that said 17.
+        "default_font_size = 14",
         "Button/colors/font_color = %s" % chassis_of("label"),
         "Button/colors/font_hover_color = %s" % lit_of("fg"),
         "Button/colors/font_pressed_color = %s" % lit_of("ok"),

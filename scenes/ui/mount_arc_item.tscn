@@ -27,6 +27,6 @@ text = "M1"
 
 [node name="Meta" type="Label" parent="Body"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/font_size = 14
 text = "meta"
 autowrap_mode = 2

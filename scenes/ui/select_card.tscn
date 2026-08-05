@@ -41,6 +41,6 @@ text_overrun_behavior = 1
 
 [node name="Meta" type="Label" parent="Body"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 14
 text = "meta"
 autowrap_mode = 2
