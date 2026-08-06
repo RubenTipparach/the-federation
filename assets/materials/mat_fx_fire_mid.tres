@@ -1,0 +1,17 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3]
+
+; Fire, the middle of three, and the same entry the drone's exhaust burns in,
+; so a ship's fire and a drone's fire belong to one world.
+;
+; Colour from data/palette.json (alert_hi).
+
+[ext_resource type="Shader" path="res://assets/shaders/fx_billboard.gdshader" id="1"]
+
+[resource]
+shader = ExtResource("1")
+shader_parameter/tint = Color(0.921569, 0.545098, 0.427451, 0.55)
+shader_parameter/hot = Color(0.921569, 0.545098, 0.427451, 0.55)
+shader_parameter/spin = 0.0
+shader_parameter/softness = 1.0
+shader_parameter/soft_power = 2.4
+shader_parameter/bright_at = 0.0

@@ -1,0 +1,334 @@
+[gd_scene load_steps=16 format=3]
+
+; A ship blowing up: a played flipbook and four layers of billboarded light,
+; over about two seconds.
+;
+; Its own scene rather than part of wreck.tscn, because a detonation is not only
+; something a hull does when it dies. A torpedo going off against a shield and a
+; reactor letting go both want this, and CLAUDE.md 4.1 is emphatic that the
+; second caller extends the first rather than forking it. The wreck instances
+; this and adds the plates the hull came apart into; nothing about the fire
+; lives in the wreck any more.
+;
+; Nothing is built at runtime (CLAUDE.md 5.1). Every node here is authored,
+; every mesh is a committed .obj from tools/gen_meshes.py, every material is a
+; committed .tres naming its palette entry, and the sheet is a committed .png
+; from tools/gen_explosion_flipbook.py. src/ui/explosion.gd only places, scales,
+; fades and advances what this file declares.
+;
+; TWENTY FOUR BILLOWS, which is more than it sounds like it needs. Twelve was
+; the first count and it read as twelve circles: at that many each one is big
+; enough relative to the cloud to be picked out, and a fireball made of
+; identifiable discs is worse than no fireball. Twice as many, each smaller and
+; each starting at its own moment, is what turns them into churn. Twenty embers
+; on top. The counts live here rather than in tuning.json because a count is how
+; many nodes the scene has, and a scene cannot grow one from a config file.
+
+[ext_resource type="Script" path="res://src/ui/explosion.gd" id="1"]
+[ext_resource type="ArrayMesh" path="res://assets/meshes/sphere.obj" id="2"]
+[ext_resource type="ArrayMesh" path="res://assets/meshes/quad.obj" id="14"]
+[ext_resource type="ArrayMesh" path="res://assets/meshes/billboard.obj" id="15"]
+[ext_resource type="Material" path="res://assets/materials/mat_fx_supernova.tres" id="16"]
+[ext_resource type="ArrayMesh" path="res://assets/meshes/sprite_ring.obj" id="3"]
+[ext_resource type="Texture2D" path="res://assets/textures/fx_explosion.png" id="4"]
+[ext_resource type="ArrayMesh" path="res://assets/meshes/sprite_disc.obj" id="5"]
+[ext_resource type="Material" path="res://assets/materials/mat_blast.tres" id="6"]
+[ext_resource type="Material" path="res://assets/materials/mat_fx_shock.tres" id="7"]
+[ext_resource type="Material" path="res://assets/materials/mat_fx_plasma.tres" id="8"]
+[ext_resource type="Material" path="res://assets/materials/mat_fx_fire_hot.tres" id="10"]
+[ext_resource type="Material" path="res://assets/materials/mat_fx_fire_mid.tres" id="11"]
+[ext_resource type="Material" path="res://assets/materials/mat_fx_fire_cool.tres" id="12"]
+[ext_resource type="Material" path="res://assets/materials/mat_fx_ember.tres" id="13"]
+
+[node name="Explosion" type="Node3D"]
+script = ExtResource("1")
+
+; The heart of a nova: the supernova burst, a committed .png on the
+; billboarded sprite quad. Drawn only when the nova dial is up, like the
+; plasma ring; an escort popping never shows it. See
+; assets/materials/mat_fx_supernova.tres for why it faces the camera when the
+; ring does not.
+
+[node name="Supernova" type="MeshInstance3D" parent="."]
+mesh = ExtResource("15")
+material_override = ExtResource("16")
+cast_shadow = 0
+
+[node name="Ball" type="MeshInstance3D" parent="."]
+mesh = ExtResource("2")
+material_override = ExtResource("6")
+cast_shadow = 0
+
+; The plasma shell of a capital ship's nova: the flat XZ quad, wearing a
+; committed .png, LYING ON THE BATTLE PLANE instead of facing the camera. The
+; ellipse it makes from the tactical camera's angle is what says which plane
+; the ship was flying in; see assets/materials/mat_fx_plasma.tres.
+;
+; The same quad the grid plane is drawn on, which is why that mesh grew texture
+; coordinates. One flat unit square in the repository, two things painted on it
+; (CLAUDE.md 4.1).
+;
+; Lifted clear of the deck, because the grid is at y=0 as well and two coplanar
+; surfaces flicker against each other wherever the camera lands. Well under the
+; hulls, which sit at 0.55, so it still reads as lying on the plane rather than
+; hovering over it.
+;
+; Drawn before everything else so the fire and the debris paint over it.
+
+[node name="Plasma" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.12, 0)
+mesh = ExtResource("14")
+material_override = ExtResource("8")
+cast_shadow = 0
+
+[node name="Shock" type="MeshInstance3D" parent="."]
+mesh = ExtResource("3")
+material_override = ExtResource("7")
+cast_shadow = 0
+
+; The first instant, as a played sheet rather than as stacked shapes. See
+; tools/gen_explosion_flipbook.py for why this one effect is a texture when
+; every other one in the game is tinted geometry.
+;
+; pixel_size is one over the frame's own width in pixels, so a scale of 1 is
+; one sim unit across and src/ui/explosion.gd sizes it with the same call it
+; sizes every other layer with.
+;
+; ALPHA_CUT_DISCARD, because the sheet is pixel art: every pixel in it is
+; either a palette entry or nothing, so there is no soft edge to preserve and
+; discarding buys correct sorting against the fire behind it. It also means
+; the sheet's own frames have to carry the fade, which they do.
+
+[node name="Flipbook" type="Sprite3D" parent="."]
+texture = ExtResource("4")
+hframes = 5
+vframes = 5
+billboard = 1
+pixel_size = 0.0078125
+texture_filter = 0
+alpha_cut = 1
+cast_shadow = 0
+
+[node name="Fire" type="Node3D" parent="."]
+
+[node name="F0" type="MeshInstance3D" parent="Fire"]
+mesh = ExtResource("5")
+material_override = ExtResource("10")
+cast_shadow = 0
+
+[node name="F1" type="MeshInstance3D" parent="Fire"]
+mesh = ExtResource("5")
+material_override = ExtResource("10")
+cast_shadow = 0
+
+[node name="F2" type="MeshInstance3D" parent="Fire"]
+mesh = ExtResource("5")
+material_override = ExtResource("10")
+cast_shadow = 0
+
+[node name="F3" type="MeshInstance3D" parent="Fire"]
+mesh = ExtResource("5")
+material_override = ExtResource("10")
+cast_shadow = 0
+
+[node name="F4" type="MeshInstance3D" parent="Fire"]
+mesh = ExtResource("5")
+material_override = ExtResource("10")
+cast_shadow = 0
+
+[node name="F5" type="MeshInstance3D" parent="Fire"]
+mesh = ExtResource("5")
+material_override = ExtResource("10")
+cast_shadow = 0
+
+[node name="F6" type="MeshInstance3D" parent="Fire"]
+mesh = ExtResource("5")
+material_override = ExtResource("11")
+cast_shadow = 0
+
+[node name="F7" type="MeshInstance3D" parent="Fire"]
+mesh = ExtResource("5")
+material_override = ExtResource("11")
+cast_shadow = 0
+
+[node name="F8" type="MeshInstance3D" parent="Fire"]
+mesh = ExtResource("5")
+material_override = ExtResource("11")
+cast_shadow = 0
+
+[node name="F9" type="MeshInstance3D" parent="Fire"]
+mesh = ExtResource("5")
+material_override = ExtResource("11")
+cast_shadow = 0
+
+[node name="F10" type="MeshInstance3D" parent="Fire"]
+mesh = ExtResource("5")
+material_override = ExtResource("11")
+cast_shadow = 0
+
+[node name="F11" type="MeshInstance3D" parent="Fire"]
+mesh = ExtResource("5")
+material_override = ExtResource("11")
+cast_shadow = 0
+
+[node name="F12" type="MeshInstance3D" parent="Fire"]
+mesh = ExtResource("5")
+material_override = ExtResource("11")
+cast_shadow = 0
+
+[node name="F13" type="MeshInstance3D" parent="Fire"]
+mesh = ExtResource("5")
+material_override = ExtResource("11")
+cast_shadow = 0
+
+[node name="F14" type="MeshInstance3D" parent="Fire"]
+mesh = ExtResource("5")
+material_override = ExtResource("11")
+cast_shadow = 0
+
+[node name="F15" type="MeshInstance3D" parent="Fire"]
+mesh = ExtResource("5")
+material_override = ExtResource("12")
+cast_shadow = 0
+
+[node name="F16" type="MeshInstance3D" parent="Fire"]
+mesh = ExtResource("5")
+material_override = ExtResource("12")
+cast_shadow = 0
+
+[node name="F17" type="MeshInstance3D" parent="Fire"]
+mesh = ExtResource("5")
+material_override = ExtResource("12")
+cast_shadow = 0
+
+[node name="F18" type="MeshInstance3D" parent="Fire"]
+mesh = ExtResource("5")
+material_override = ExtResource("12")
+cast_shadow = 0
+
+[node name="F19" type="MeshInstance3D" parent="Fire"]
+mesh = ExtResource("5")
+material_override = ExtResource("12")
+cast_shadow = 0
+
+[node name="F20" type="MeshInstance3D" parent="Fire"]
+mesh = ExtResource("5")
+material_override = ExtResource("12")
+cast_shadow = 0
+
+[node name="F21" type="MeshInstance3D" parent="Fire"]
+mesh = ExtResource("5")
+material_override = ExtResource("12")
+cast_shadow = 0
+
+[node name="F22" type="MeshInstance3D" parent="Fire"]
+mesh = ExtResource("5")
+material_override = ExtResource("12")
+cast_shadow = 0
+
+[node name="F23" type="MeshInstance3D" parent="Fire"]
+mesh = ExtResource("5")
+material_override = ExtResource("12")
+cast_shadow = 0
+
+[node name="Embers" type="Node3D" parent="."]
+
+[node name="E0" type="MeshInstance3D" parent="Embers"]
+mesh = ExtResource("5")
+material_override = ExtResource("13")
+cast_shadow = 0
+
+[node name="E1" type="MeshInstance3D" parent="Embers"]
+mesh = ExtResource("5")
+material_override = ExtResource("13")
+cast_shadow = 0
+
+[node name="E2" type="MeshInstance3D" parent="Embers"]
+mesh = ExtResource("5")
+material_override = ExtResource("13")
+cast_shadow = 0
+
+[node name="E3" type="MeshInstance3D" parent="Embers"]
+mesh = ExtResource("5")
+material_override = ExtResource("13")
+cast_shadow = 0
+
+[node name="E4" type="MeshInstance3D" parent="Embers"]
+mesh = ExtResource("5")
+material_override = ExtResource("13")
+cast_shadow = 0
+
+[node name="E5" type="MeshInstance3D" parent="Embers"]
+mesh = ExtResource("5")
+material_override = ExtResource("13")
+cast_shadow = 0
+
+[node name="E6" type="MeshInstance3D" parent="Embers"]
+mesh = ExtResource("5")
+material_override = ExtResource("13")
+cast_shadow = 0
+
+[node name="E7" type="MeshInstance3D" parent="Embers"]
+mesh = ExtResource("5")
+material_override = ExtResource("13")
+cast_shadow = 0
+
+[node name="E8" type="MeshInstance3D" parent="Embers"]
+mesh = ExtResource("5")
+material_override = ExtResource("13")
+cast_shadow = 0
+
+[node name="E9" type="MeshInstance3D" parent="Embers"]
+mesh = ExtResource("5")
+material_override = ExtResource("13")
+cast_shadow = 0
+
+[node name="E10" type="MeshInstance3D" parent="Embers"]
+mesh = ExtResource("5")
+material_override = ExtResource("13")
+cast_shadow = 0
+
+[node name="E11" type="MeshInstance3D" parent="Embers"]
+mesh = ExtResource("5")
+material_override = ExtResource("13")
+cast_shadow = 0
+
+[node name="E12" type="MeshInstance3D" parent="Embers"]
+mesh = ExtResource("5")
+material_override = ExtResource("13")
+cast_shadow = 0
+
+[node name="E13" type="MeshInstance3D" parent="Embers"]
+mesh = ExtResource("5")
+material_override = ExtResource("13")
+cast_shadow = 0
+
+[node name="E14" type="MeshInstance3D" parent="Embers"]
+mesh = ExtResource("5")
+material_override = ExtResource("13")
+cast_shadow = 0
+
+[node name="E15" type="MeshInstance3D" parent="Embers"]
+mesh = ExtResource("5")
+material_override = ExtResource("13")
+cast_shadow = 0
+
+[node name="E16" type="MeshInstance3D" parent="Embers"]
+mesh = ExtResource("5")
+material_override = ExtResource("13")
+cast_shadow = 0
+
+[node name="E17" type="MeshInstance3D" parent="Embers"]
+mesh = ExtResource("5")
+material_override = ExtResource("13")
+cast_shadow = 0
+
+[node name="E18" type="MeshInstance3D" parent="Embers"]
+mesh = ExtResource("5")
+material_override = ExtResource("13")
+cast_shadow = 0
+
+[node name="E19" type="MeshInstance3D" parent="Embers"]
+mesh = ExtResource("5")
+material_override = ExtResource("13")
+cast_shadow = 0

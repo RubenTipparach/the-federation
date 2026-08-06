@@ -1,13 +1,14 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://src/ui/ship_rig.gd" id="1"]
 [ext_resource type="ArrayMesh" path="res://assets/meshes/hull_placeholder.obj" id="2"]
-[ext_resource type="ArrayMesh" path="res://assets/meshes/wedge30.obj" id="3"]
+[ext_resource type="ArrayMesh" path="res://assets/meshes/arc_run.obj" id="3"]
 [ext_resource type="ArrayMesh" path="res://assets/meshes/arc_seg.obj" id="4"]
 [ext_resource type="ArrayMesh" path="res://assets/meshes/ring.obj" id="5"]
 [ext_resource type="Material" path="res://assets/materials/mat_hull_friend.tres" id="6"]
 [ext_resource type="ArrayMesh" path="res://assets/meshes/arc_glow.obj" id="7"]
 [ext_resource type="ArrayMesh" path="res://assets/meshes/turn_arc.obj" id="8"]
+[ext_resource type="PackedScene" path="res://scenes/subsystem_fire.tscn" id="9"]
 
 [node name="ShipRig" type="Node3D"]
 script = ExtResource("1")
@@ -28,79 +29,104 @@ layers = 2
 mesh = ExtResource("8")
 visible = false
 
-[node name="Wedges" type="Node3D" parent="."]
+[node name="Arcs" type="Node3D" parent="."]
 
 [node name="Shields" type="Node3D" parent="."]
 
 [node name="ShieldGlow" type="Node3D" parent="."]
 
-[node name="W0" type="MeshInstance3D" parent="Wedges"]
+; One fire per place a subsystem can sit: the six shield facings, plus the hull
+; core behind all of them. Authored rather than spawned, because there are
+; exactly seven of them and the count never changes (CLAUDE.md 5.1). A fire
+; with nothing dead in its sector simply shows nothing.
+;
+; They are children of the rig, so they turn with the ship and a fire in the
+; port quarter stays in the port quarter. Their smoke does not: see the Plume
+; note in scenes/subsystem_fire.tscn.
+
+[node name="Fires" type="Node3D" parent="."]
+
+[node name="F0" parent="Fires" instance=ExtResource("9")]
+
+[node name="F1" parent="Fires" instance=ExtResource("9")]
+
+[node name="F2" parent="Fires" instance=ExtResource("9")]
+
+[node name="F3" parent="Fires" instance=ExtResource("9")]
+
+[node name="F4" parent="Fires" instance=ExtResource("9")]
+
+[node name="F5" parent="Fires" instance=ExtResource("9")]
+
+[node name="FCore" parent="Fires" instance=ExtResource("9")]
+
+[node name="A0" type="MeshInstance3D" parent="Arcs"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, 0)
 layers = 2
 mesh = ExtResource("3")
 visible = false
 
-[node name="W1" type="MeshInstance3D" parent="Wedges"]
+[node name="A1" type="MeshInstance3D" parent="Arcs"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, 0)
 layers = 2
 mesh = ExtResource("3")
 visible = false
 
-[node name="W2" type="MeshInstance3D" parent="Wedges"]
+[node name="A2" type="MeshInstance3D" parent="Arcs"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, 0)
 layers = 2
 mesh = ExtResource("3")
 visible = false
 
-[node name="W3" type="MeshInstance3D" parent="Wedges"]
+[node name="A3" type="MeshInstance3D" parent="Arcs"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, 0)
 layers = 2
 mesh = ExtResource("3")
 visible = false
 
-[node name="W4" type="MeshInstance3D" parent="Wedges"]
+[node name="A4" type="MeshInstance3D" parent="Arcs"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, 0)
 layers = 2
 mesh = ExtResource("3")
 visible = false
 
-[node name="W5" type="MeshInstance3D" parent="Wedges"]
+[node name="A5" type="MeshInstance3D" parent="Arcs"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, 0)
 layers = 2
 mesh = ExtResource("3")
 visible = false
 
-[node name="W6" type="MeshInstance3D" parent="Wedges"]
+[node name="A6" type="MeshInstance3D" parent="Arcs"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, 0)
 layers = 2
 mesh = ExtResource("3")
 visible = false
 
-[node name="W7" type="MeshInstance3D" parent="Wedges"]
+[node name="A7" type="MeshInstance3D" parent="Arcs"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, 0)
 layers = 2
 mesh = ExtResource("3")
 visible = false
 
-[node name="W8" type="MeshInstance3D" parent="Wedges"]
+[node name="A8" type="MeshInstance3D" parent="Arcs"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, 0)
 layers = 2
 mesh = ExtResource("3")
 visible = false
 
-[node name="W9" type="MeshInstance3D" parent="Wedges"]
+[node name="A9" type="MeshInstance3D" parent="Arcs"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, 0)
 layers = 2
 mesh = ExtResource("3")
 visible = false
 
-[node name="W10" type="MeshInstance3D" parent="Wedges"]
+[node name="A10" type="MeshInstance3D" parent="Arcs"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, 0)
 layers = 2
 mesh = ExtResource("3")
 visible = false
 
-[node name="W11" type="MeshInstance3D" parent="Wedges"]
+[node name="A11" type="MeshInstance3D" parent="Arcs"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, 0)
 layers = 2
 mesh = ExtResource("3")

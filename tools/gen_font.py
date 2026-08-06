@@ -7,10 +7,26 @@
 #   font_tactical.png   the glyph atlas
 #   font_tactical.fnt   BMFont metrics, which Godot imports as a FontFile
 #
-# The face is 5x7 capitals, baked at 2x so a glyph is 10x14 device pixels at
-# the 1600x900 the game runs at. Baked rather than scaled: Godot would filter a
-# scaled bitmap face and filtering is the one thing that stops pixel type
-# reading as pixel type.
+# The face is 5x7 capitals, baked at 1x so a glyph is 5x7 device pixels and a
+# line is 9. Baked rather than scaled: Godot would filter a fractionally scaled
+# bitmap face and filtering is the one thing that stops pixel type reading as
+# pixel type.
+#
+# BAKED SMALL ON PURPOSE. Godot scales a bitmap face by whole numbers only
+# (see the import note below), so the size it is baked at is the SMALLEST it
+# can ever draw, and every other size is a multiple of it. Baked at 7 the face
+# serves 7, 14 and 21 from one atlas; baked at 14 it could only ever serve 14
+# and 28, which is why the interface could not be made smaller until this
+# changed.
+#
+# THE IMPORT MUST STAY ON INTEGER SCALING. assets/ui/font_tactical.fnt.import
+# carries scaling_mode=1, which is Godot's FIXED_SIZE_SCALE_INTEGER_ONLY. It
+# shipped as 2 (fractional) for a while and every label in the game was being
+# resampled at 0.79x, 0.86x, 0.93x or 1.21x with a filter over it, which is
+# exactly the soft grey fringing pixel type must never have.
+#
+# Ask for 7, 14 or 21 and nothing else. A request between them is rounded to
+# the nearest multiple, so it is not a size, it is a lie about a size.
 #
 # Lowercase maps to the same rects as uppercase. The face has no lowercase by
 # design, and pointing the codepoints at the capitals means existing UI strings
@@ -31,7 +47,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 OUT = os.path.join(os.path.dirname(__file__), "..", "assets", "ui")
 
 # One art pixel is this many device pixels. Must match tools/gen_ui_plates.py.
-B = 2
+B = 1
 GW, GH = 5, 7          # glyph box, in art pixels
 ADVANCE = 6            # pen movement, in art pixels: one column of air
 LINE = 9               # line height, in art pixels

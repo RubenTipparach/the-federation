@@ -7,6 +7,10 @@ extends HBoxContainer
 signal begin_battle
 signal design_selected(hull_id: String)
 signal replay_chosen(log: BattleLog)
+## The fleet roster's wheel was pressed: the player wants that ship's bridge.
+## Routed up to main like a design pick, because taking a helm redresses the
+## whole interface, and main owns the screens that have to repaint.
+signal helm_taken(index: int)
 
 const SELECT_CARD := preload("res://scenes/ui/select_card.tscn")
 const MAP_CARD := preload("res://scenes/ui/map_card.tscn")
@@ -17,6 +21,9 @@ var session: Session
 func bind_session(p_session: Session) -> void:
 	session = p_session
 	$Mid/Begin.pressed.connect(func() -> void: begin_battle.emit())
+	$Yours/V/Fleet.bind_session(session)
+	$Yours/V/Fleet.helm_taken.connect(
+		func(index: int) -> void: helm_taken.emit(index))
 	refresh()
 
 
@@ -27,6 +34,7 @@ func refresh() -> void:
 	_fill_foes()
 	_fill_maps()
 	_fill_replays()
+	$Yours/V/Fleet.refresh()
 
 
 ## The map picker: one card per recipe in data/maps.json, in file order. The

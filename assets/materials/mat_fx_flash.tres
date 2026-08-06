@@ -1,0 +1,20 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3]
+
+; The first instant of a ship coming apart: cream, the palette's brightest
+; entry, on the star mesh so the flash throws rays rather than reading as a
+; ball. Soft rimmed, so the rays fade out at their tips instead of ending in a
+; straight cut.
+;
+; Colour from data/palette.json (cream). The explosion duplicates this before
+; driving its alpha, because two ships dying at once must not share one fade.
+
+[ext_resource type="Shader" path="res://assets/shaders/fx_billboard.gdshader" id="1"]
+
+[resource]
+shader = ExtResource("1")
+shader_parameter/tint = Color(0.890196, 0.866667, 0.819608, 1.0)
+shader_parameter/hot = Color(0.890196, 0.866667, 0.819608, 1.0)
+shader_parameter/spin = 0.0
+shader_parameter/softness = 1.0
+shader_parameter/soft_power = 3.0
+shader_parameter/bright_at = 0.0

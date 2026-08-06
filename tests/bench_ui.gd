@@ -85,7 +85,7 @@ func _initialize() -> void:
 	_time("SSD, own ship", ROUNDS,
 		func() -> void: c.get_node("Right/OwnPanel/V/Display").refresh())
 	_time("SSD, target", ROUNDS,
-		func() -> void: c.get_node("Right/TargetDisplayPanel/V/Display").refresh())
+		func() -> void: c.get_node("Right/TargetPanel/V/Display").refresh())
 	_time("FightTabs.refresh (6 tabs)", ROUNDS,
 		func() -> void: c.get_node("Right/FightStation/FightTabs").refresh(me.systems, me.repair_queue))
 	_time("KeepTabs.refresh (4 tabs)", ROUNDS,

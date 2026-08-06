@@ -103,6 +103,20 @@ static func theme_path(id: String = "") -> String:
 	return THEME_FORMAT % (id if not id.is_empty() else faction())
 
 
+## The colour a named navy is FLAGGED with on anyone's console, resolved
+## without swapping the deck: the fleet roster's faction chips. Each skin's
+## lit map carries it as "mark", a role of its own rather than a reuse of the
+## accent, because two navies' accents may be neighbours (steel and verdant
+## both light teal) and a chip whose whole job is telling them apart cannot
+## be. Reading the skin's role map rather than keeping a second colour table
+## is what keeps a palette swap a one file change (CLAUDE.md 3.1).
+static func faction_mark(id: String) -> Color:
+	var data: Dictionary = _palette_file()
+	assert(data["ui_factions"].has(id), "no deck for faction: " + id)
+	var skin: Dictionary = data["ui_skins"][String(data["ui_factions"][id])]
+	return named(String(skin["lit"]["mark"]))
+
+
 ## A palette entry by its own name, rather than by the role it happens to play.
 ## Only for callers that already hold a role map of their own: the world colour
 ## lists, and nothing else. Everything about the interface goes through a role.

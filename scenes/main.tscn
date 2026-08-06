@@ -42,7 +42,7 @@ theme_override_constants/separation = 10
 
 [node name="Title" type="Label" parent="Root/TopBar"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 22
+theme_override_font_sizes/font_size = 14
 text = "THE FEDERATION"
 
 [node name="Spacer" type="Control" parent="Root/TopBar"]
@@ -70,7 +70,7 @@ size_flags_horizontal = 3
 
 [node name="Version" type="Label" parent="Root/TopBar"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/font_size = 7
 text = "prototype"
 
 ; The gear. Right end of the bar, past the tabs, because it is the least used

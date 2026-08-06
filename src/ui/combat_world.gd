@@ -6,7 +6,6 @@ extends Node3D
 ## caller clamping is how one path drifts and allows an illegal camera.
 
 const MAT_BEAM := preload("res://assets/materials/mat_beam.tres")
-const MAT_TORPEDO := preload("res://assets/materials/mat_ordnance_torpedo.tres")
 const MAT_DRONE := preload("res://assets/materials/mat_ordnance_drone.tres")
 const WRECK := preload("res://scenes/wreck.tscn")
 const ORDNANCE := preload("res://scenes/ordnance.tscn")
@@ -160,6 +159,12 @@ func follow_pivot(delta: float = 0.0) -> void:
 ## only honest thing to draw over a frozen battle.
 func update_visuals(delta: float, sim_delta: float,
 		events: Array[Dictionary]) -> void:
+	# Each rig is told who its ship is shooting at, so its arcs can light where
+	# a weapon could fire this instant. Both sides come from Battle.target_for,
+	# the same choice a shot is resolved against, so a lit arc is never the
+	# view's own opinion about who is being engaged.
+	$PlayerRig.set_target(_battle.target_for(_battle.player()))
+	$EnemyRig.set_target(_battle.target_for(_battle.enemy()))
 	$PlayerRig.refresh()
 	$EnemyRig.refresh()
 	for e in events:
@@ -179,9 +184,15 @@ func update_visuals(delta: float, sim_delta: float,
 				if facing >= 0:
 					_rig_of(on_player).flash_shield(facing)
 	_step_bolts(sim_delta)
-	_sync_drones()
+	_sync_drones(sim_delta)
+	_sync_wrecks(sim_delta)
 	$PlayerRig.update_flares(delta)
 	$EnemyRig.update_flares(delta)
+	# Battle time, not wall time. A burning subsystem is a thing in the world,
+	# so it freezes with the fight the way a torpedo in flight does, while the
+	# shield flares above are afterimages and finish regardless.
+	$PlayerRig.update_fires(sim_delta)
+	$EnemyRig.update_fires(sim_delta)
 	var fade: float = float(Catalog.tuning()["combat"]["beam_fade_sec"])
 	for i in range(3):
 		if _beam_ttl[i] > 0.0:
@@ -204,7 +215,39 @@ func _break_up(index: int, at: Vector2) -> void:
 	wreck.burst(at, rig.hull_radius(), rig.hull_material(),
 		_battle.tick * 7919 + index, rig.hull_fragments(),
 		_battle.ships[index].heading, rig.hull_draw_scale())
+	_wrecks[index] = wreck
 	rig.stand_down()
+
+
+## Which wreck belongs to which dead ship, so each frame's debris can be
+## handed to the plates that ride it.
+var _wrecks: Dictionary = {}
+
+
+## One drawn plate per piece the simulation is flying, exactly as the drones
+## work: the sim owns the pieces, so a chunk leaves the screen because it
+## expired or struck a hull in the battle, never because the view tired of it
+## (CLAUDE.md 5.2).
+func _sync_wrecks(sim_delta: float) -> void:
+	if _battle == null or _wrecks.is_empty():
+		return
+	var fade: float = float(Catalog.tuning()["wreck"]["fade_seconds"])
+	var by_owner: Dictionary = {}
+	for piece in _battle.debris:
+		if not by_owner.has(piece.owner_index):
+			by_owner[piece.owner_index] = []
+		by_owner[piece.owner_index].append(piece)
+	var stale: Array = []
+	for index in _wrecks:
+		# Untyped on purpose: assigning a freed instance to a typed Node3D
+		# throws before is_instance_valid could ever look at it.
+		var wreck = _wrecks[index]
+		if not is_instance_valid(wreck):
+			stale.append(index)
+			continue
+		wreck.sync_debris(by_owner.get(index, []), sim_delta, fade)
+	for index in stale:
+		_wrecks.erase(index)
 
 
 
@@ -230,9 +273,9 @@ func _launch_bolt(from_pos: Vector2, to_pos: Vector2, facing: int,
 	var view: Dictionary = Catalog.tuning()["view"]
 	var node: Node3D = ORDNANCE.instantiate()
 	$Ordnance.add_child(node)
-	node.wear(MAT_TORPEDO, float(view["ordnance_bolt_length"]))
+	node.wear_torpedo(float(view["ordnance_bolt_length"]))
 	var bearing: float = Sectors.bearing_between(from_pos, to_pos)
-	node.fly(from_pos, bearing, _deck_line())
+	node.fly(from_pos, bearing, _deck_line(), 0.0)
 	_bolts.append({
 		"node": node, "from": from_pos, "to": to_pos, "bearing": bearing,
 		"travelled": 0.0, "facing": facing, "on_player": on_player,
@@ -258,7 +301,7 @@ func _step_bolts(delta: float) -> void:
 			continue
 		var at: Vector2 = Vector2(bolt["from"]).lerp(Vector2(bolt["to"]),
 			float(bolt["travelled"]) / maxf(span, 0.001))
-		(bolt["node"] as Node3D).fly(at, float(bolt["bearing"]), height)
+		(bolt["node"] as Node3D).fly(at, float(bolt["bearing"]), height, delta)
 		flying.append(bolt)
 	_bolts = flying
 
@@ -266,7 +309,7 @@ func _step_bolts(delta: float) -> void:
 ## One drawn drone per drone the simulation is flying. The sim owns the list,
 ## so a drone shot down by point defense leaves the screen because it left the
 ## battle, not because the view decided it had (CLAUDE.md 5.2).
-func _sync_drones() -> void:
+func _sync_drones(sim_delta: float) -> void:
 	if _battle == null:
 		return
 	var length: float = float(Catalog.tuning()["view"]["ordnance_drone_length"])
@@ -280,9 +323,9 @@ func _sync_drones() -> void:
 		if node == null:
 			node = ORDNANCE.instantiate()
 			$Ordnance.add_child(node)
-			node.wear(MAT_DRONE, length)
+			node.wear_drone(MAT_DRONE, length)
 			_drones[seeker] = node
-		node.fly(seeker.pos, seeker.heading, height)
+		node.fly(seeker.pos, seeker.heading, height, sim_delta)
 	for seeker in _drones.keys():
 		if live.has(seeker):
 			continue

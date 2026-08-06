@@ -61,6 +61,25 @@ var tow_target: Vector2 = Vector2.ZERO
 ## resting against a rock is not damage every tick.
 var collision_grace: float = 0.0
 
+## THE BOARDING STATE. Marines come from the hull's MRNE boxes and pads from
+## its TRAN boxes, so the barracks and the transporter room are things the
+## damage model can already shoot out. Each entry in `marines` and `away` is
+## one marine's HITS TAKEN (0 to hits_to_kill); a marine at the limit is dead
+## and stays in the list so the display can show the body count. `marines` is
+## this ship's own deck, `away` is this crew's team standing on the enemy's.
+var marines: Array[int] = []
+var away: Array[int] = []
+## One recharge clock per transporter pad, index aligned with the TRAN boxes:
+## pad i is usable when its clock is 0 AND at least i+1 TRAN boxes survive, so
+## shooting the transporter room takes pads with it (docs/01 section 8).
+var pad_cycles: Array[float] = []
+## Seconds until the next volley on THIS ship's deck, running only while it is
+## contested.
+var boarding_clock: float = 0.0
+## Who owns this hull now: -1 is its own crew, otherwise the index of the ship
+## whose marines cleared the deck.
+var captured_by: int = -1
+
 ## Micrometeor damage banked but not yet worth a whole point. See
 ## Battle._apply_grind for why dust is not applied every tick.
 var grind_credit: float = 0.0
@@ -134,6 +153,10 @@ static func create(p_fit: ShipFit, p_rng: RandomNumberGenerator, ai_ship: bool =
 			"charge": 0.0,
 			"overload": false,
 		})
+	for i in range(s._boxes_max("MRNE")):
+		s.marines.append(0)
+	for i in range(s._boxes_max("TRAN")):
+		s.pad_cycles.append(0.0)
 	s.split = PowerModel.default_split(ai_ship)
 	s.parts_max = int(h.get("spare_parts", 0))
 	s.parts = s.parts_max
@@ -205,6 +228,15 @@ func total_boxes_max() -> int:
 	return n
 
 
+## Every internal box a fresh hull sails with. For callers outside a battle
+## (the fleet roster) that need the same number the sim will fight with:
+## building a throwaway state and counting it is what keeps this one
+## implementation rather than a second walk of the hull data (CLAUDE.md 4.1).
+static func full_boxes(hull_id: String) -> int:
+	return ShipState.create(ShipFit.create_default(hull_id),
+		RandomNumberGenerator.new()).total_boxes_max()
+
+
 ## Living systems in one sector, or in the core when asked for CORE.
 func systems_in(sector: int) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
@@ -241,6 +273,57 @@ func mount_disabled(index: int) -> bool:
 	return false
 
 
+## The firing envelope this ship has RIGHT NOW, grouped into contiguous runs of
+## sectors covered by exactly the same set of mounts. Each entry is
+## { "sectors": Array[int], "mounts": Array[int], "reach": float }.
+##
+## The key is the mount set rather than the reach, and that choice is what makes
+## a run honest. A mount is in a sector's set exactly when it bears into that
+## sector, so two sectors with the same set are covered by the same guns, which
+## means they share one reach and one readiness. A run can therefore be drawn as
+## a single shape at true range with no averaging and no worst case: there is no
+## reach inside it other than the one on its rim. The cost is that two runs can
+## be adjacent at the same radius where the guns change but the distance does
+## not, and the boundary between them is real information rather than a seam.
+##
+## It lives here rather than in the view because it is the runtime counterpart
+## of ShipFit.max_range_into: damaged mounts drop out, an armed mount loses the
+## far half of its envelope, and reach comes from WeaponModel like every other
+## range in the game (CLAUDE.md 4.1). The 3D rig, and any readout that later
+## wants to draw the same envelope, ask this rather than recomputing it.
+func envelope_runs() -> Array[Dictionary]:
+	var sectors_of: Dictionary = {}
+	var mounts_of: Dictionary = {}
+	for s in range(Sectors.COUNT):
+		var covering: Array[int] = []
+		for j in range(weapons_rt.size()):
+			if mount_disabled(j):
+				continue
+			if (weapons_rt[j]["weapon"] as Dictionary).is_empty():
+				continue
+			if fit.effective_field(weapons_rt[j]["mount"]).has(s):
+				covering.append(j)
+		if covering.is_empty():
+			continue
+		var key: String = str(covering)
+		if not sectors_of.has(key):
+			sectors_of[key] = []
+			mounts_of[key] = covering
+		(sectors_of[key] as Array).append(s)
+	var out: Array[Dictionary] = []
+	for key in sectors_of:
+		var covering: Array[int] = mounts_of[key]
+		var reach: float = 0.0
+		for j in covering:
+			reach = maxf(reach, WeaponModel.max_range(
+				weapons_rt[j]["weapon"], overloaded(j)))
+		# One grouping implementation, shared with the arc wheel and the sector
+		# labels, so a run drawn in 3D and a run named in text cannot disagree.
+		for run in Sectors.contiguous_runs(sectors_of[key]):
+			out.append({ "sectors": run, "mounts": covering, "reach": reach })
+	return out
+
+
 func alloc_units(sink: String) -> float:
 	return float(split.get(sink, 0.0)) * power_output()
 
@@ -261,6 +344,8 @@ func set_order(p_heading: float, p_throttle: float) -> void:
 
 func step(dt: float, tuning: Dictionary) -> void:
 	collision_grace = maxf(0.0, collision_grace - dt)
+	for i in range(pad_cycles.size()):
+		pad_cycles[i] = maxf(0.0, pad_cycles[i] - dt)
 	if not alive:
 		speed = maxf(0.0, speed - float(tuning["combat"]["dead_ship_decel"]) * dt)
 		_step_drift(dt, tuning)
@@ -724,3 +809,42 @@ func weakest_facing() -> int:
 		if shields[i] < shields[best]:
 			best = i
 	return best
+
+
+# ---- boarding ---------------------------------------------------------------
+
+
+func _boxes_max(code: String) -> int:
+	var total: int = 0
+	for sys in systems:
+		if String(sys["code"]) == code:
+			total += int(sys["boxes_max"])
+	return total
+
+
+func _boxes_now(code: String) -> int:
+	var total: int = 0
+	for sys in systems:
+		if String(sys["code"]) == code:
+			total += int(sys["boxes"])
+	return total
+
+
+static func count_alive(squad: Array[int], limit: int) -> int:
+	var n: int = 0
+	for hits in squad:
+		if hits < limit:
+			n += 1
+	return n
+
+
+## Pads that could fire right now: recharged, and still backed by a surviving
+## TRAN box. The transporter room being shot up takes the highest pads first,
+## which is arbitrary but stable, and stable is what the display needs.
+func pads_ready() -> Array[int]:
+	var live_boxes: int = _boxes_now("TRAN")
+	var out: Array[int] = []
+	for i in range(mini(pad_cycles.size(), live_boxes)):
+		if pad_cycles[i] <= 0.0:
+			out.append(i)
+	return out

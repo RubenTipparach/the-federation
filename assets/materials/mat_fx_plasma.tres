@@ -1,0 +1,45 @@
+[gd_resource type="StandardMaterial3D" load_steps=2 format=3]
+
+; The plasma shell a capital ship throws when it goes: a committed .png laid
+; FLAT ON THE BATTLE PLANE, not facing the camera.
+;
+; That orientation is the point of it. A front expanding through a plane is a
+; ring seen in perspective, and the ellipse it makes tells the eye which plane
+; the ship was flying in. Billboarded, the same ring reads as a bubble, and a
+; bubble belongs to nothing.
+;
+; BLUE, and that is the other point. Every other layer of an explosion is
+; painted in the fire colours, which are the oranges the damage report and the
+; collision chips wear. A shell in the blues reads as something else entirely:
+; not the hull burning, but the reactor's containment letting go and washing
+; out through it. A frigate's magazine cooking off does not do this, which is
+; why the ring's strength is the nova dial and a small hull shows none of it.
+;
+; A StandardMaterial3D rather than fx_billboard.gdshader, which paints every
+; other effect here. Not a fork: that shader's whole job is tinting untextured
+; geometry from its own model space radius, and this is the one effect whose
+; content is a picture. Sampling a texture from a spatial ShaderMaterial is
+; also the one thing that does not work on the gl_compatibility renderer the
+; Web target needs, while a StandardMaterial3D's own albedo map does, which is
+; what the painted hulls have been proving since the first ship.
+;
+; Additive, because it is light passing through: the debris and the fire behind
+; it stay visible as it washes over them, which is what sells it as a front
+; rather than as a lid. Alpha scales what is added, so src.ui.explosion.gd
+; fades the shell by writing albedo_color's alpha and the palette colours in
+; the texture never shift.
+;
+; Nearest filtering, because the texture is pixel art like everything else in
+; this game, and unshaded and two sided because a plasma front is not lit by
+; the sun and is the same from underneath.
+
+[ext_resource type="Texture2D" path="res://assets/textures/fx_plasma_ring.png" id="1"]
+
+[resource]
+transparency = 1
+blend_mode = 1
+cull_mode = 2
+shading_mode = 0
+albedo_color = Color(1, 1, 1, 1)
+albedo_texture = ExtResource("1")
+texture_filter = 0

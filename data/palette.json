@@ -148,6 +148,7 @@
         "dim": "bone",
         "accent": "shield",
         "accent_dim": "phos_lo",
+        "mark": "phos",
         "warn": "gold_hi",
         "weapon": "wine_hi",
         "power": "blue_hi",
@@ -192,6 +193,7 @@
         "dim": "gray_blue_light",
         "accent": "shield_hi",
         "accent_dim": "teal_gray",
+        "mark": "blue_hi",
         "warn": "gold_hi",
         "weapon": "wine_hi",
         "power": "blue_hi",
@@ -236,6 +238,7 @@
         "dim": "taupe",
         "accent": "rose_hi",
         "accent_dim": "wine_hi",
+        "mark": "wine_hi",
         "warn": "gold_hi",
         "weapon": "wine_hi",
         "power": "blue_hi",
@@ -387,6 +390,12 @@
         "gray_blue_light"
       ]
     }
+  },
+  "fx_note": "Colour ramps for the effect sprite sheets, hottest entry first. A ramp is named here rather than written into a generator so that a palette swap stays a one file change (CLAUDE.md 3.1). Entries resolve against colors and ui_colors together, because the hot end of a fire is the same orange every critical readout in the interface already wears, and naming a second one would be inventing a colour.",
+  "fx": {
+    "explosion": ["cream", "gold_hi", "alert_hi", "alert", "clay", "clay_deep", "maroon", "bark", "char"],
+    "plasma": ["cream", "blue_hi", "blue_light", "blue", "navy"],
+    "supernova": ["cream", "rose_hi", "wine_hi", "wine", "plum"]
   },
   "ramps_note": [
     "Lookup ramps for the sky shader, baked to assets/textures/sky_ramps.png by",

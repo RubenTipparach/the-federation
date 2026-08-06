@@ -411,6 +411,34 @@ exception until it is listed in this section and agreed.
   authored in the scene and configured from `data/debug.json`, so nothing is
   constructed. Agreed with the instruction to build it (2026-08-02).
 
+- **The tow distance slider, and the tow bearing dial beside it.** Section 6.2
+  bans sliders from the tactical view, and the tractor station's tow distance is
+  one anyway, by instruction (2026-08-05, asked for twice). It is the one value
+  on that screen the ban does not describe: the ban exists because allocation is
+  a whole number of reactor points that a captain trades under fire, and a slow
+  precise drag is the wrong ask for it. A tow standoff is a real continuous
+  distance rather than a count, the simulation stores it as a fraction and
+  quantises it nowhere, and it is set while manoeuvring a captured hull rather
+  than in the middle of a gun duel. The slider also carries a second mark that
+  no strip of boxes could: the handle is the order and a caret under the track
+  is where the prize ACTUALLY is, so watching the caret chase the handle is how
+  reeling in reads, with nothing having to say so in words. The bearing dial
+  above it is a painter in the same sense as the SSD ring: it is a normalized
+  circle showing direction only, with the prize always drawn on the rim
+  whatever the real range, and its content is live sim state that no static
+  node tree could describe. Both are authored nodes in the station scene; the
+  scripts paint sim state and report clicks and drags, and nothing is
+  constructed.
+
+- **The marine strip paints itself.** `src/ui/marine_strip.gd` draws a squad of
+  marines as figures with wound pips in `Control._draw()`, for the reason the
+  SSD ring and the box strips do: its content is the sim's marine arrays, a
+  roster whose length and wounds change with every boarding volley, so no
+  static node tree could describe it. The nodes are authored in
+  `scenes/ui/subsystem_panel.tscn`, the script paints only what it is handed
+  and reports nothing but pixels. Agreed with the approved marines station
+  mockup and the instruction to implement boarding (2026-08-04).
+
 **One candidate is pending a decision.** Rendering roughly 3,000 hexes with smooth zoom and
 several frequently changing per hex overlays is hard to do with statically authored nodes
 alone. `docs/06-technical-architecture.md` §9 raises this and does **not** adopt a procedural

@@ -1,7 +1,10 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="ArrayMesh" path="res://assets/meshes/ordnance.obj" id="1"]
 [ext_resource type="Script" path="res://src/ui/ordnance.gd" id="2"]
+[ext_resource type="ArrayMesh" path="res://assets/meshes/star_rays.obj" id="3"]
+[ext_resource type="ArrayMesh" path="res://assets/meshes/sprite_disc.obj" id="4"]
+[ext_resource type="ArrayMesh" path="res://assets/meshes/plume_wake.obj" id="5"]
 
 [node name="Ordnance" type="Node3D"]
 script = ExtResource("2")
@@ -9,8 +12,24 @@ script = ExtResource("2")
 [node name="Body" type="MeshInstance3D" parent="."]
 layers = 2
 mesh = ExtResource("1")
+visible = false
 
-[node name="Trail" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0, 0)
+[node name="Wake" type="MeshInstance3D" parent="."]
 layers = 2
-mesh = ExtResource("1")
+mesh = ExtResource("5")
+visible = false
+
+[node name="Star" type="Node3D" parent="."]
+visible = false
+
+[node name="Outer" type="MeshInstance3D" parent="Star"]
+layers = 2
+mesh = ExtResource("3")
+
+[node name="Rays" type="MeshInstance3D" parent="Star"]
+layers = 2
+mesh = ExtResource("3")
+
+[node name="Core" type="MeshInstance3D" parent="Star"]
+layers = 2
+mesh = ExtResource("4")

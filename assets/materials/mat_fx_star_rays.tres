@@ -1,0 +1,18 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3]
+
+; The torpedo's inner ray set, alert_hi: the red the user asked for, hot.
+; Colour from data/palette.json.
+
+[ext_resource type="Shader" path="res://assets/shaders/fx_billboard.gdshader" id="1"]
+
+; The star is a shaped mesh, so it is painted flat: softness 0 keeps its
+; points sharp, and hot equal to tint leaves the shader's hot core mix a
+; no op. Both are written out rather than left to the shader's defaults,
+; which suit a round puff of fire and would round this off and whiten it.
+
+[resource]
+shader = ExtResource("1")
+shader_parameter/tint = Color(0.922, 0.545, 0.427, 0.9)
+shader_parameter/hot = Color(0.922, 0.545, 0.427, 0.9)
+shader_parameter/softness = 0.0
+shader_parameter/spin = 0.0

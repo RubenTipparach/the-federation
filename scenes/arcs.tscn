@@ -19,7 +19,7 @@ layout_mode = 2
 
 [node name="Head" type="Label" parent="WheelPanel/V"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 7
 text = "FIRING ARCS"
 theme_type_variation = &"HeaderLabel"
 
@@ -44,7 +44,7 @@ theme_override_constants/separation = 7
 
 [node name="Head" type="Label" parent="Right/MountsPanel/V"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 7
 text = "MOUNTS"
 theme_type_variation = &"HeaderLabel"
 
@@ -71,13 +71,13 @@ theme_override_constants/separation = 5
 
 [node name="Head" type="Label" parent="Right/DerivedPanel/V"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 7
 text = "DERIVED"
 theme_type_variation = &"HeaderLabel"
 
 [node name="Body" type="Label" parent="Right/DerivedPanel/V"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 14
+theme_override_font_sizes/font_size = 7
 text = "stats"
 
 [node name="OverridePanel" type="PanelContainer" parent="Right"]
@@ -89,7 +89,7 @@ theme_override_constants/separation = 7
 
 [node name="Head" type="Label" parent="Right/OverridePanel/V"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 7
 text = "OVERRIDE DEMO"
 theme_type_variation = &"HeaderLabel"
 

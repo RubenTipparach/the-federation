@@ -320,6 +320,18 @@ def gear(c):     # settings: an eight tooth gear with an open hub
               24 + 19 * math.sin(a), 24 - 19 * math.cos(a), 7)
 
 
+def helm(c):     # take the helm: a ship's wheel, ring, hub, and eight handles
+    # Chrome rather than hardware, like the gear: the fleet roster's select
+    # button wears it. Handles reach 21 for the reason the gear's teeth stop
+    # at 19 plus their own half thickness: a bar centres its width on its end
+    # point, and a tip flattened against the canvas edge reads as a misprint.
+    c.disc(24, 24, 15, 11)
+    c.disc(24, 24, 5)
+    for i in range(8):
+        a = math.radians(i * 45)
+        c.bar(24, 24, 24 + 21 * math.sin(a), 24 - 21 * math.cos(a), 4)
+
+
 ICONS = {
     "PH-1": ph1, "PH-3": ph3, "PHOT": phot, "DISR": disr, "LNCE": lnce,
     "DRN": drn, "BRDG": brdg, "WARP": warp, "IMP": imp, "AUXP": auxp,
@@ -327,7 +339,7 @@ ICONS = {
     "LAB": lab, "MRNE": mrne, "HULL": hull, "ARMR": armr,
     "SHLD": shld, "SENS": sens, "RPR": rpr, "LIFE": life, "CARGO": cargo,
     "TRSH": trsh,
-    "GEAR": gear,
+    "GEAR": gear, "HELM": helm,
 }
 
 

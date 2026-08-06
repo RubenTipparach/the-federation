@@ -27,7 +27,7 @@ theme_override_constants/separation = 7
 
 [node name="Head" type="Label" parent="Left/HullPanel/V"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 7
 text = "HULL"
 theme_type_variation = &"HeaderLabel"
 
@@ -43,13 +43,13 @@ layout_mode = 2
 
 [node name="Head" type="Label" parent="Left/CrewPanel/V"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 7
 text = "CREW"
 theme_type_variation = &"HeaderLabel"
 
 [node name="Body" type="Label" parent="Left/CrewPanel/V"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 14
+theme_override_font_sizes/font_size = 7
 text = "HELM 62   GUN 71
 ENG 58   TAC 44
 QUALITY VETERAN
@@ -70,13 +70,13 @@ theme_override_constants/separation = 7
 
 [node name="Head" type="Label" parent="Left/DesignsPanel/V"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 7
 text = "SAVED DESIGNS"
 theme_type_variation = &"HeaderLabel"
 
 [node name="Empty" type="Label" parent="Left/DesignsPanel/V"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 7
 text = "None saved."
 
 [node name="Scroll" type="ScrollContainer" parent="Left/DesignsPanel/V"]
@@ -94,7 +94,7 @@ theme_override_constants/separation = 7
 custom_minimum_size = Vector2(0, 36)
 layout_mode = 2
 focus_mode = 0
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 7
 text = "SAVE THIS DESIGN"
 
 [node name="Center" type="PanelContainer" parent="."]
@@ -117,7 +117,7 @@ layout_mode = 2
 [node name="Title" type="Label" parent="Center/V/Head"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 7
 text = "SHIP SYSTEM DISPLAY"
 theme_type_variation = &"HeaderLabel"
 text_overrun_behavior = 1
@@ -178,7 +178,7 @@ theme_override_constants/separation = 10
 
 [node name="Head" type="Label" parent="Right/BudgetsPanel/V"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 7
 text = "FITTING BUDGETS"
 theme_type_variation = &"HeaderLabel"
 
@@ -196,7 +196,7 @@ layout_mode = 2
 
 [node name="ArcSummary" type="Label" parent="Right/BudgetsPanel/V"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 7
 text = "arcs"
 
 [node name="MountsPanel" type="PanelContainer" parent="Right"]
@@ -209,7 +209,7 @@ theme_override_constants/separation = 7
 
 [node name="Head" type="Label" parent="Right/MountsPanel/V"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 7
 text = "MOUNTS"
 theme_type_variation = &"HeaderLabel"
 

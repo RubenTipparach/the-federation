@@ -22,6 +22,8 @@ const LogLib = preload("res://src/sim/battle_log.gd")
 const RepairLib = preload("res://src/sim/repair_model.gd")
 const TerrainLib = preload("res://src/sim/terrain.gd")
 const TractorLib = preload("res://src/sim/tractor.gd")
+const BoardingLib = preload("res://src/sim/boarding.gd")
+const SessionLib = preload("res://src/ui/session.gd")
 
 var checks: int = 0
 var failures: int = 0
@@ -56,6 +58,9 @@ func _initialize() -> void:
 	test_movement_and_weapons()
 	test_battle_and_ai()
 	test_contacts()
+	test_debris()
+	test_boarding()
+	test_fleet()
 	test_seekers()
 	test_shields()
 	test_repairs()
@@ -762,7 +767,12 @@ func test_tractors() -> void:
 	var ratio: float = TractorLib.tonnage(foe) / TractorLib.tonnage(me)
 	near(beam.break_bid(), foe.alloc_units("tractor") * ratio,
 		"the prisoner's shove is weighted by the tonnage ratio")
-	ok(beam.break_bid() > beam.hold_bid(),
+	# Weight for weight: the standoff is put on the neutral middle step so the
+	# tonnage ratio is the only thing being compared. Off that step the plan's
+	# own multiplier is in the grip, which is the point of the plan and would
+	# make this a test of two things at once.
+	beam.standoff = 0.5
+	ok(beam.break_bid() > beam.hold_bid(tuning),
 		"the heavier ship out-shoves an equal bid")
 
 	# Losing the auction does not snap the beam at once: the holder has
@@ -820,19 +830,33 @@ func test_tractors() -> void:
 	var m_tug: float = TractorLib.tonnage(tug)
 	var m_prize: float = TractorLib.tonnage(prize)
 	var common: Vector2 = Vector2(0, 20.0) * m_tug / (m_tug + m_prize)
+	# Parked exactly on her commanded station, so the momentum sharing is the
+	# only term left in the tow and can be checked on its own. A prize off her
+	# station also gets the work that drags her onto it, which the plan block
+	# below tests separately.
+	prize.pos = tow_duel.tractor_on(tug).station_point(tuning)
 	tow_duel._step_tractors(1.0 / 10.0, tuning)
 	near(prize.tow_target.y, common.y,
 		"a held ship is asked for the pair's common momentum")
 	near(tug.tow_target.y, common.y - 20.0, "and so is the holder, from the other side")
 
+	var towed_from: float = prize.pos.y
 	for _i in range(200):
 		for s in tow_duel.ships:
 			s.tow_target = Vector2.ZERO
 		tow_duel._step_tractors(1.0 / 20.0, tuning)
+		# The holder is kept under way. Without an order its speed bleeds off
+		# to the throttle it was never given, and a tow behind a ship that has
+		# coasted to a stop proves nothing about towing.
+		tug.set_order(tug.heading, 1.0)
 		prize.set_order(prize.heading, 0.0)
 		for s in tow_duel.ships:
 			s.step(1.0 / 20.0, tuning)
-	ok(prize.pos.y > 26.0, "and it is dragged along behind the ship holding it")
+	ok(prize.pos.y > towed_from + 2.0,
+		"and it is dragged along behind the ship holding it")
+	near(tug.pos.distance_to(prize.pos),
+		tow_duel.tractor_on(tug).standoff_range(tuning),
+		"still riding the station the plan gave it", 4.0)
 	# Attitude is deliberately untouched: taking a ship's arcs away takes the
 	# game away, and 5D says the beam holds position, not heading.
 	prize.set_order(90.0, 0.0)
@@ -865,7 +889,8 @@ func test_tractors() -> void:
 	catch.speed = 0.0
 	winch.set_alloc_units("tractor", 10.0)
 	ok(reel_duel.apply_command(0, "tractor_latch", [1]), "the winch takes hold")
-	ok(reel_duel.apply_command(0, "tractor_mode", [TractorLib.MODE_REEL]),
+	var reel_beam = reel_duel.tractor_on(winch)
+	ok(reel_duel.apply_command(0, "tractor_plan", [reel_beam.bearing, 0.05]),
 		"and can be told to pull the catch closer (5D)")
 	var gap_before: float = winch.pos.distance_to(catch.pos)
 	var winch_start: Vector2 = winch.pos
@@ -881,6 +906,75 @@ func test_tractors() -> void:
 	ok(winch.pos.distance_to(catch.pos) < gap_before - 4.0, "reeling closes the range")
 	ok(catch_start.distance_to(catch.pos) > winch_start.distance_to(winch.pos) * 2.0,
 		"and the light ship is the one that actually travels")
+
+	# ---- the tow plan: a bearing off the nose and a standoff ----
+	# The trade the plan exists for: reach far and hold weakly, or bring her in
+	# and hold hard. Halfway out is exactly neutral, which is what makes the
+	# default plan a reading a captain can measure the others against.
+	var plan_duel = BattleLib.create_duel(FitLib.create_default("wayfarer"), "kestrel", 31)
+	var hauler = plan_duel.player()
+	var catch2 = plan_duel.enemy()
+	hauler.pos = Vector2.ZERO
+	hauler.heading = 0.0
+	catch2.pos = Vector2(0.0, 60.0)
+	hauler.set_alloc_units("tractor", 10.0)
+	ok(plan_duel.apply_command(0, "tractor_latch", [1]), "the beam takes hold")
+	var plan = plan_duel.tractor_on(hauler)
+	near(plan.bearing, 0.0, "a fresh beam adopts the bearing it found her on")
+	near(plan.standoff, TractorLib.frac_for_range(60.0, tuning),
+		"and the fraction of range it found her at")
+
+	plan.standoff = 0.5
+	near(plan.grip_multiplier(tuning), 1.0,
+		"halfway out is exactly neutral grip", 0.001)
+	plan.standoff = 0.0
+	var close_grip: float = plan.hold_bid(tuning)
+	plan.standoff = 1.0
+	var far_grip: float = plan.hold_bid(tuning)
+	ok(close_grip > far_grip * 2.0,
+		"holding her close grips far harder than holding her out")
+	near(far_grip, TractorLib.bid_of(hauler) * float(t["grip_far"]),
+		"and the far end is the tuned floor times the bid")
+	ok(TractorLib.clamp_frac(0.0, tuning) > 0.0,
+		"no order is a zero standoff")
+	near(TractorLib.clamp_frac(9.0, tuning), 1.0,
+		"and none reaches past the beam")
+	# The floor is the hulls' own contact circle, not a share of range: the
+	# closest the slider can be dragged would otherwise station her prize
+	# inside a heavy ship's collision radius and grind it to scrap for free.
+	plan.standoff = 0.0
+	ok(plan.standoff_range(tuning) > hauler.contact_distance(catch2),
+		"and the closest station clears both hulls")
+
+	# The station is a point on the HOLDER: turning the hull swings the prize
+	# around with it, which is what makes steering her into a rock piloting.
+	plan.standoff = 0.5
+	plan.bearing = 90.0
+	var station: Vector2 = plan.station_point(tuning)
+	near(station.x, plan.standoff_range(tuning),
+		"bearing 090 stations her off the starboard beam", 0.01)
+	near(station.y, 0.0, "and level with the bow", 0.01)
+	hauler.heading = 180.0
+	near(plan.station_point(tuning).x, -plan.standoff_range(tuning),
+		"and the station swings with the holder's heading", 0.01)
+
+	# The prize is worked toward her station, wherever the plan puts her.
+	hauler.heading = 0.0
+	plan.bearing = 0.0
+	plan.standoff = 0.12
+	var gap_start: float = hauler.pos.distance_to(catch2.pos)
+	for _i in range(200):
+		for s in plan_duel.ships:
+			s.tow_target = Vector2.ZERO
+		plan_duel._step_tractors(1.0 / 20.0, tuning)
+		hauler.set_order(hauler.heading, 0.0)
+		catch2.set_order(catch2.heading, 0.0)
+		for s in plan_duel.ships:
+			s.step(1.0 / 20.0, tuning)
+	var gap_end: float = hauler.pos.distance_to(catch2.pos)
+	ok(gap_end < gap_start, "a shorter standoff drags her in")
+	near(gap_end, plan.standoff_range(tuning),
+		"and she settles ON the commanded standoff rather than through it", 6.0)
 
 	# ---- holding needs an emitter, breaking does not ----
 	ok(not TractorLib.emitter_ready(catch), "the Talon carries no tractor")
@@ -1093,7 +1187,7 @@ func test_damage() -> void:
 	print("\n== damage model ==")
 	var ship = _fresh_ship()
 	var boxes_before: int = ship.total_boxes()
-	eq(boxes_before, 70, "wayfarer starts with 70 internal boxes")
+	eq(boxes_before, 75, "wayfarer starts with 75 internal boxes")
 
 	# 16 into a 24 shield: absorbed fully, nothing inside is touched.
 	ship.apply_damage(0.0, 16.0)
@@ -1623,3 +1717,244 @@ func test_battle_and_ai() -> void:
 	# heading counter clockwise, an ordered heading left of the foe bearing.
 	near(SectorsLib.turn_delta(0.0, ai_ship.ordered_heading), -60.0,
 		"ai turns to present the stronger neighbor facing", 0.5)
+
+
+func test_debris() -> void:
+	print("\n== debris ==")
+	var combat: Dictionary = CatalogLib.tuning()["combat"]
+	var count: int = int(combat["debris_count"])
+	var dt: float = 1.0 / 30.0
+
+	# A kill spawns the wreckage. The hull is beaten down outside the step so
+	# the step itself is what notices the death, exactly as a battle would.
+	var duel = BattleLib.create_duel(FitLib.create_default("wayfarer"), "bloodletter", 11)
+	var victim = duel.enemy()
+	# Well apart, so the survivor is not standing in the blast for the spawn
+	# checks below.
+	# Apart but inside the arena, which clamps positions each step: a spawn
+	# point written outside it would be dragged to the rim and the checks
+	# below would measure the clamp, not the debris.
+	duel.player().pos = Vector2(-150.0, -150.0)
+	victim.pos = Vector2(150.0, 150.0)
+	while victim.alive:
+		victim.apply_damage(0.0, 50.0)
+	duel.step(dt)
+	ok(duel.over, "the battle is decided when the hull comes apart")
+	eq(duel.debris.size(), count, "and the dead ship sheds every piece of itself")
+	ok(duel.debris_active(), "which the battle reports as still flying")
+
+	var spawn: Array[Vector2] = []
+	for piece in duel.debris:
+		spawn.append(piece.pos)
+		near(piece.pos.distance_to(Vector2(150.0, 150.0)), 0.0,
+			"a piece starts where the ship died", 6.0)
+	duel.step(dt)
+	var moved: int = 0
+	for i in range(duel.debris.size()):
+		if duel.debris[i].pos.distance_to(spawn[i]) > 0.001:
+			moved += 1
+	eq(moved, count, "the verdict does not stop the wreckage: every piece flies on")
+
+	# A piece is a hazard. Park the survivor on one and it is struck through
+	# the same collision path ramming uses, and the piece is spent on the hit.
+	var before: int = duel.debris.size()
+	var target = duel.player()
+	target.collision_grace = 0.0
+	target.pos = duel.debris[0].pos
+	var struck: int = 0
+	for e in duel.step(dt):
+		if String(e.get("hazard", "")) == "debris":
+			struck += 1
+	eq(struck, 1, "a chunk that reaches a hull strikes it")
+	eq(duel.debris.size(), before - 1, "and shatters on it")
+	ok(_hurt(target) > 0.0, "the survivor pays for standing in the wreck")
+
+	# Time is the other way out.
+	for piece in duel.debris:
+		piece.age = piece.ttl - dt * 0.5
+	duel.step(dt)
+	eq(duel.debris.size(), 0, "a piece that outlives its clock is gone")
+	ok(not duel.debris_active(), "and the battle knows the sky is clear")
+
+	# The same seed throws the same wreck. Two battles, identical orders,
+	# stepped identically: every piece lands in the same place, which is what
+	# a replay showing the same debris field depends on.
+	var one = _debris_run(17)
+	var two = _debris_run(17)
+	eq(one.size(), two.size(), "the same seed sheds the same count")
+	var same: bool = true
+	for i in range(one.size()):
+		if one[i].distance_to(two[i]) > 0.0001:
+			same = false
+	ok(same, "and flies every piece down the same path")
+
+
+## Kill the enemy, step a while, and report where the pieces got to.
+func _debris_run(seed_value: int) -> Array[Vector2]:
+	var duel = BattleLib.create_duel(FitLib.create_default("wayfarer"), "bloodletter", seed_value)
+	duel.player().pos = Vector2(-150.0, -150.0)
+	var victim = duel.enemy()
+	victim.pos = Vector2(150.0, 150.0)
+	while victim.alive:
+		victim.apply_damage(0.0, 50.0)
+	for i in range(40):
+		duel.step(1.0 / 30.0)
+	var out: Array[Vector2] = []
+	for piece in duel.debris:
+		out.append(piece.pos)
+	return out
+
+
+func test_boarding() -> void:
+	print("\n== boarding ==")
+	var combat: Dictionary = CatalogLib.tuning()["combat"]
+	var limit: int = int(combat["hits_to_kill"])
+	var dt: float = 1.0 / 30.0
+
+	var duel = BattleLib.create_duel(FitLib.create_default("wayfarer"), "bloodletter", 21)
+	var me = duel.player()
+	var foe = duel.enemy()
+	eq(me.marines.size(), 4, "a crew's marines are its MRNE boxes")
+	eq(me.pad_cycles.size(), 3, "and its pads are its TRAN boxes")
+	eq(foe.marines.size(), 5, "the enemy cruiser garrisons five")
+
+	# Out of range, then in range but shielded, then legal: the check names
+	# each refusal, the same contract every fire_check follows.
+	me.pos = Vector2.ZERO
+	me.heading = 0.0
+	foe.pos = Vector2(0.0, 200.0)
+	foe.heading = 0.0
+	eq(String(BoardingLib.beam_check(me, foe, combat)["reason"]), "range",
+		"too far to beam")
+	foe.pos = Vector2(0.0, 30.0)
+	var facing: int = SectorsLib.facing_of_relative_bearing(
+		SectorsLib.relative_bearing(
+			SectorsLib.bearing_between(foe.pos, me.pos), foe.heading))
+	ok(foe.shields[facing] > 0.0, "the facing toward us starts shielded")
+	eq(String(BoardingLib.beam_check(me, foe, combat)["reason"]), "shielded",
+		"and a raised shield refuses the beam")
+	foe.shields[facing] = 0.0
+	eq(String(BoardingLib.beam_check(me, foe, combat)["reason"]), "ready",
+		"a downed facing opens the door")
+
+	# EACH PAD HAS ITS OWN CYCLE: sending two spends two pads and leaves the
+	# third ready, so a third man can follow at once while the first two pads
+	# recharge alone.
+	ok(duel.apply_command(0, "beam", [2]), "two marines beam over")
+	eq(me.away.size(), 2, "and stand on the enemy deck")
+	eq(me.marines.size(), 2, "leaving two at home")
+	eq(me.pads_ready().size(), 1, "two pads are cycling, one is not")
+	ok(duel.apply_command(0, "beam", [2]), "the last ready pad still fires")
+	eq(me.away.size(), 3, "sending the one marine it could")
+	eq(me.pads_ready().size(), 0, "and now every pad is cycling")
+	ok(not duel.apply_command(0, "beam", [1]), "with no pad ready the beam refuses")
+
+	# The pads come back on their own clocks.
+	for i in range(int(float(combat["pad_cycle_sec"]) * 30.0) + 2):
+		me.step(dt, CatalogLib.tuning())
+	eq(me.pads_ready().size(), 3, "every pad recharges on its own clock")
+
+	# The deck fight: volleys on the interval until one side is done. The foe
+	# is softened so the fight resolves inside the test's patience; what is
+	# being proved is the loop, not the odds.
+	for i in range(foe.marines.size()):
+		foe.marines[i] = limit - 1
+	var guard: int = 0
+	while not duel.over and guard < 3000:
+		duel.step(dt)
+		guard += 1
+	ok(duel.over, "the deck fight ends the battle")
+	eq(duel.winner, 0, "the raiders' side takes the ship")
+	eq(foe.captured_by, 0, "which the hull records")
+	ok(ShipLib.count_alive(foe.marines, limit) == 0, "no defender left standing")
+
+	# Same seed, same fight: the volley dice come from the battle's own rng.
+	var first = _boarding_run(33)
+	var second = _boarding_run(33)
+	eq(str(first), str(second), "the same seed fights the same deck fight")
+
+	# Recall: the away team comes home through the same pads, wounds and all,
+	# even when nobody is left on the home deck to send.
+	var back = BattleLib.create_duel(FitLib.create_default("kestrel"), "bloodletter", 9)
+	var crew = back.player()
+	var host = back.enemy()
+	crew.pos = Vector2.ZERO
+	host.pos = Vector2(0.0, 25.0)
+	host.heading = 0.0
+	var f2: int = SectorsLib.facing_of_relative_bearing(
+		SectorsLib.relative_bearing(
+			SectorsLib.bearing_between(host.pos, crew.pos), host.heading))
+	host.shields[f2] = 0.0
+	ok(back.apply_command(0, "beam", [2]), "the team goes over")
+	for i in range(int(float(combat["pad_cycle_sec"]) * 30.0) + 2):
+		crew.step(dt, CatalogLib.tuning())
+	var aboard: int = crew.away.size()
+	ok(back.apply_command(0, "recall", []), "and can be recalled")
+	eq(crew.away.size(), 0, "the deck over there is empty again")
+	eq(crew.marines.size(), 4, "and everyone is home")
+	ok(aboard == 2, "both of them came back")
+
+
+## Beam a team over and let the fight run a fixed number of steps, reporting
+## every marine's wounds on both sides.
+func _boarding_run(seed_value: int) -> Array:
+	var combat: Dictionary = CatalogLib.tuning()["combat"]
+	var duel = BattleLib.create_duel(FitLib.create_default("wayfarer"), "bloodletter", seed_value)
+	var me = duel.player()
+	var foe = duel.enemy()
+	me.pos = Vector2.ZERO
+	foe.pos = Vector2(0.0, 30.0)
+	foe.heading = 0.0
+	var facing: int = SectorsLib.facing_of_relative_bearing(
+		SectorsLib.relative_bearing(
+			SectorsLib.bearing_between(foe.pos, me.pos), foe.heading))
+	foe.shields[facing] = 0.0
+	duel.apply_command(0, "beam", [3])
+	for i in range(600):
+		duel.step(1.0 / 30.0)
+		if duel.over:
+			break
+	return [me.marines.duplicate(), me.away.duplicate(),
+		foe.marines.duplicate(), foe.away.duplicate(), duel.over, duel.winner]
+
+
+## The fleet roster: what a session records when ships are won, refit, and
+## flown. UI side state, but pure RefCounted arithmetic with no scene under
+## it, so it is tested here beside the sim it counts boxes with.
+func test_fleet() -> void:
+	print("\n== fleet roster ==")
+	var s = SessionLib.create()
+	eq(s.fleet.size(), 1, "a new session sails with its flagship on the roster")
+	eq(s.helm, 0, "and the helm is the flagship")
+	var full: int = ShipLib.full_boxes("wayfarer")
+	eq(int(s.fleet[0]["hull"]), full, "the flagship arrives whole")
+	eq(int(s.fleet[0]["hull_max"]), full, "with hull_max the sim's own count")
+	ok(not bool(s.fleet[0]["engines_out"]), "and her engines online")
+
+	s.add_prize("bloodletter", 21, 39, false)
+	eq(s.fleet.size(), 2, "a capture joins the roster")
+	ok(bool(s.fleet[1]["prize"]), "marked as a prize")
+	eq(int(s.fleet[1]["hull"]), 21, "carrying the damage she was taken with")
+
+	s.take_helm(1)
+	eq(s.helm, 1, "taking a helm moves the helm")
+	eq(s.fit.hull_id, "bloodletter", "and the fit becomes that hull's")
+
+	var custom = FitLib.create_default("bloodletter")
+	s.fit = custom
+	s.take_helm(1)
+	ok(s.fit == custom, "re-taking the held helm keeps the dressed fit")
+	s.take_helm(9)
+	eq(s.helm, 1, "an index off the roster is refused")
+
+	s.refit(FitLib.create_default("kestrel"))
+	eq(String(s.fleet[1]["hull_id"]), "kestrel", "a refit replaces the helm row")
+	eq(int(s.fleet[1]["hull"]), ShipLib.full_boxes("kestrel"),
+		"and the new hull arrives whole")
+	ok(not bool(s.fleet[1]["prize"]), "a refit hull is not a prize")
+
+	s.add_prize("talon", 10, 40, true)
+	ok(bool(s.fleet[2]["engines_out"]), "a dead drive is recorded at capture")
+	s.add_prize("kestrel", 5, 34, false)
+	s.add_prize("kestrel", 5, 34, false)
+	eq(s.fleet.size(), 5, "a capture past the berth count is still recorded")

@@ -112,6 +112,7 @@ func bind_session(p_session: Session) -> void:
 	$Mid/Actions/Disengage.pressed.connect(_end_battle.bind("Disengaged"))
 	$Mid/ViewPanel/Stack/EndOverlay/P/V/Return.pressed.connect(
 		func() -> void: battle_ended.emit())
+	$Mid/ViewPanel/Stack/EndOverlay/P/V/TakeHelm.pressed.connect(_on_take_helm)
 
 	var throttle: Control = $Left/ShipPanel/V/Throttle/Boxes
 	# Both of these are controls, not readouts, so their empty boxes are drawn
@@ -144,8 +145,10 @@ func bind_session(p_session: Session) -> void:
 		panel.regen_facing_picked.connect(_on_regen_facing_picked)
 		panel.tractor_latch_requested.connect(_on_tractor_latch)
 		panel.tractor_release_requested.connect(_on_tractor_release)
-		panel.tractor_mode_picked.connect(_on_tractor_mode)
+		panel.tractor_plan_picked.connect(_on_tractor_plan)
 		panel.tractor_bid_picked.connect(_on_power_picked.bind(Tractor.SINK))
+		panel.beam_requested.connect(_on_beam_requested)
+		panel.recall_requested.connect(_on_recall_requested)
 
 	# The own ship display is where a repair is ordered. The target's is the
 	# same component with detail and editing off, which is what stops an
@@ -250,7 +253,7 @@ func _bind_displays() -> void:
 		return
 	var me: ShipState = battle.player()
 	$Right/OwnPanel/V/Display.bind_ship(me, true, true)
-	$Right/TargetDisplayPanel/V/Display.bind_ship(battle.target_for(me), false, false)
+	$Right/TargetPanel/V/Display.bind_ship(battle.target_for(me), false, false)
 	# A tractor beam is a relationship between two ships, so the panel that draws
 	# it needs the battle. Everything else it draws comes from the one ship.
 	$Right/FightStation/FightPanel.battle = battle
@@ -327,7 +330,10 @@ func _physics_process(delta: float) -> void:
 	if replay_log != null:
 		events = _step_replay(delta)
 		sim_delta = delta
-	elif not paused and not battle.over:
+	elif not paused and (not battle.over or battle.debris_active()):
+		# The battle steps past its own verdict while wreckage is still
+		# flying: the pieces are sim objects that can strike the survivor, so
+		# their coda is battle time, not an afterimage.
 		events = battle.step(delta)
 		sim_delta = delta
 	# The rig update is gated as well as timed. It was timed only, which made
@@ -348,7 +354,7 @@ func _physics_process(delta: float) -> void:
 			for line in e["log"]:
 				_note(String(line))
 		if String(e["type"]) == "end":
-			_show_end(int(e["winner"]))
+			_show_end(int(e["winner"]), "", String(e.get("reason", "")))
 	_apply_debug()
 	# The HUD repaint is throttled separately from the simulation, which keeps
 	# stepping at full rate: that is what makes the switch measure interface
@@ -652,6 +658,38 @@ func _on_power_picked(level: int, sink: String) -> void:
 ## The three tractor orders. Like every other order on this screen they go
 ## through Battle.apply_command, so a recording sees them and a replay repeats
 ## them (docs/11).
+## The boarding orders, through the one command door like everything else.
+func _on_beam_requested(count: int) -> void:
+	if battle != null:
+		battle.apply_command(0, "beam", [count])
+
+
+func _on_recall_requested() -> void:
+	if battle != null:
+		battle.apply_command(0, "recall", [])
+
+
+## A captured hull joins the session's fleet, carrying the damage it was
+## taken with and whether it can still move itself: docs/01 section 8's
+## aftermath, recorded for the fleet roster.
+func _record_prize(prize: ShipState) -> void:
+	if session == null:
+		return
+	var engines_out: bool = prize._boxes_now("IMP") <= 0 \
+		or prize._boxes_now("WARP") <= 0
+	session.add_prize(prize.fit.hull_id, prize.total_boxes(),
+		prize.total_boxes_max(), engines_out)
+
+
+## Stand on the captured bridge: the prize just recorded becomes the session's
+## ship, which also dresses the interface in its navy (session.faction reads
+## the hull), and the screen returns to the skirmish setup flying it.
+func _on_take_helm() -> void:
+	if session != null:
+		session.take_helm(session.fleet.size() - 1)
+	battle_ended.emit()
+
+
 func _on_tractor_latch() -> void:
 	if battle == null:
 		return
@@ -666,9 +704,9 @@ func _on_tractor_release() -> void:
 		battle.apply_command(0, "tractor_release", [])
 
 
-func _on_tractor_mode(mode: String) -> void:
+func _on_tractor_plan(bearing: float, standoff: float) -> void:
 	if battle != null:
-		battle.apply_command(0, "tractor_mode", [mode])
+		battle.apply_command(0, "tractor_plan", [bearing, standoff])
 
 
 ## Throttle is stored as a 0 to 1 fraction, so the notch count is the only
@@ -781,13 +819,29 @@ func _save_recording() -> void:
 		_note("Battle recorded to %s" % [path.get_file()])
 
 
-func _show_end(winner: int, reason: String = "") -> void:
+func _show_end(winner: int, reason: String = "", outcome: String = "") -> void:
 	_save_recording()
 	var overlay: CenterContainer = $Mid/ViewPanel/Stack/EndOverlay
 	overlay.visible = true
 	var result: Label = overlay.get_node("P/V/Result")
 	var detail: Label = overlay.get_node("P/V/Detail")
-	if not reason.is_empty():
+	overlay.get_node("P/V/TakeHelm").visible = false
+	if outcome == "captured" and winner == 0:
+		# The prize. Taking its helm is offered here, at the moment of the
+		# capture, because that is when a captain decides whose bridge to
+		# stand on.
+		var prize: ShipState = battle.enemy()
+		result.text = "SHIP CAPTURED"
+		Paint.tint(result, "font_color", Palette.OK)
+		detail.text = "%s is yours. Her crew is done fighting." % String(
+			prize.fit.hull()["name"])
+		overlay.get_node("P/V/TakeHelm").visible = true
+		_record_prize(prize)
+	elif outcome == "captured":
+		result.text = "SHIP LOST"
+		Paint.tint(result, "font_color", Palette.CRIT)
+		detail.text = "%s is taken. The boarding party holds the bridge." 			% String(battle.player().fit.hull()["name"])
+	elif not reason.is_empty():
 		result.text = reason.to_upper()
 		Paint.tint(result, "font_color", Palette.AMBER)
 		detail.text = "The engagement is broken off."
@@ -799,7 +853,11 @@ func _show_end(winner: int, reason: String = "") -> void:
 		result.text = "SHIP LOST"
 		Paint.tint(result, "font_color", Palette.CRIT)
 		detail.text = "%s is destroyed." % String(battle.player().fit.hull()["name"])
-	paused = true
+	# NOT paused. The verdict already stops everything that fights: with the
+	# battle over, step() runs only the debris afterlife, and pausing here
+	# would freeze the wreckage mid air under the result panel. The player
+	# can still pause with escape, and stepping ends on its own when the last
+	# piece is gone.
 
 
 # ---- hud ---------------------------------------------------------------------
@@ -922,7 +980,7 @@ func _refresh_hud() -> void:
 
 	if DebugFlags.on("target_ssd") and _feed.moved([HudFeed.FOE]):
 		t = HudProfile.open("target_ssd")
-		$Right/TargetDisplayPanel/V/Display.refresh()
+		$Right/TargetPanel/V/Display.refresh()
 		HudProfile.close("target_ssd", t)
 
 	# The station panels serve all ten stations and the open one is not known

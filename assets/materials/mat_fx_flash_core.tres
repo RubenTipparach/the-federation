@@ -1,0 +1,18 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3]
+
+; The white hot centre of the flash: the same cream as the rays it sits inside,
+; on a disc, so the middle of the explosion saturates while the rays are still
+; readable as rays.
+;
+; Colour from data/palette.json (cream).
+
+[ext_resource type="Shader" path="res://assets/shaders/fx_billboard.gdshader" id="1"]
+
+[resource]
+shader = ExtResource("1")
+shader_parameter/tint = Color(0.890196, 0.866667, 0.819608, 1.0)
+shader_parameter/hot = Color(0.890196, 0.866667, 0.819608, 1.0)
+shader_parameter/spin = 0.0
+shader_parameter/softness = 1.0
+shader_parameter/soft_power = 2.4
+shader_parameter/bright_at = 0.0

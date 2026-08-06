@@ -11,6 +11,15 @@ var time: float = 0.0
 var over: bool = false
 var winner: int = -1
 var seekers: Array[Seeker] = []
+## Chunks of any ship that has come apart, still flying. In the sim rather
+## than the view because they deal collision damage (CLAUDE.md 5.2): a piece
+## of hull is a hazard to whoever is standing next to the blast.
+var debris: Array[Debris] = []
+## The dice every boarding roll comes from, seeded from the battle's own seed
+## at creation: a replay must fight the same deck fight to the same corpse
+## count, and drawing from a fresh rng per volley would tie the outcome to
+## call order instead of to the seed.
+var rolls: RandomNumberGenerator = RandomNumberGenerator.new()
 
 ## What is in the arena besides the ships. Always present: an "open" battle
 ## flies in an empty Terrain rather than in a null one, so nothing downstream
@@ -58,6 +67,7 @@ static func create_duel(player_fit: ShipFit, enemy_hull_id: String, seed_value: 
 	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 	rng.seed = seed_value
 	b.seed_value = seed_value
+	b.rolls.seed = seed_value + 4241
 	var starts: Array[Vector2] = Battle.start_positions()
 
 	var player: ShipState = ShipState.create(player_fit, rng, false)
@@ -125,6 +135,15 @@ func set_target(ship: ShipState, target: ShipState) -> void:
 ## so their beams never flashed while identical AI shots did.
 func step(dt: float) -> Array[Dictionary]:
 	if over:
+		# THE AFTERLIFE. The battle is decided the moment a hull comes apart,
+		# but its pieces are still flying, and the winner is usually standing
+		# right next to the blast. Debris keeps stepping, and keeps striking,
+		# after the verdict: fly in close for the kill and you eat the wreck.
+		# Nothing else moves, so a replay that stops at the end tick has lost
+		# only this coda.
+		_step_debris(dt, Catalog.tuning())
+		time += dt
+		tick += 1
 		return _drain()
 	var tuning: Dictionary = Catalog.tuning()
 
@@ -139,10 +158,24 @@ func step(dt: float) -> Array[Dictionary]:
 	_step_seekers(dt, tuning)
 	_step_terrain(dt)
 	_step_contacts()
+	_step_debris(dt, tuning)
+	_step_boarding(dt, tuning)
 
 	_keep_in_arena(tuning)
 
 	for i in range(ships.size()):
+		if ships[i].captured_by >= 0 and not over:
+			over = true
+			winner = ships[i].captured_by
+			tractors.clear()
+			_events.append({
+				"type": "captured", "ship": i, "by": winner, "at": ships[i].pos,
+				"log": ["%s CAPTURED, colors struck" % String(
+					ships[i].fit.hull()["name"]).to_upper()],
+			})
+			_events.append({ "type": "end", "winner": winner,
+				"reason": "captured" })
+			break
 		if not ships[i].alive:
 			over = true
 			winner = 1 - i
@@ -157,6 +190,8 @@ func step(dt: float) -> Array[Dictionary]:
 				"type": "destroyed", "ship": i, "at": ships[i].pos,
 				"log": ["%s BREAKING UP" % String(ships[i].fit.hull()["name"]).to_upper()],
 			})
+			debris.append_array(Debris.burst(ships[i], i,
+				Catalog.tuning()["combat"], seed_value + tick * 7919 + i))
 			_events.append({ "type": "end", "winner": winner })
 			break
 	time += dt
@@ -263,7 +298,7 @@ func latch_tractor(attacker: ShipState, target: ShipState) -> bool:
 			return false
 	if not bool(Tractor.latch_check(attacker, target, tuning)["ok"]):
 		return false
-	tractors.append(Tractor.create(attacker, target))
+	tractors.append(Tractor.create(attacker, target, tuning))
 	_events.append({
 		"type": "tractor", "state": "latched",
 		"holder_player": attacker == player(),
@@ -398,6 +433,155 @@ func _step_contacts() -> void:
 			_collide(b, pos_a, "ship", base * 2.0 * mass_a / total)
 
 
+## The wreckage in flight: coast, expire, and strike whoever is in the way.
+##
+## A piece that hits a hull is spent on it: it shatters against the plating it
+## just damaged, so one chunk is one hit. The ship's own collision grace, the
+## same one ramming and terrain use, is what stops a cloud of pieces from
+## machine gunning a hull every tick.
+##
+## A strike can kill. When it does after the battle is already decided, the
+## verdict stands (the battle was won when the enemy hull came apart, and what
+## the wreck does to the winner afterwards is physics, not judgement), but the
+## view still gets its "destroyed" event, so the second hull comes apart on
+## screen like the first, sheds its own debris, and the comm log tells the
+## story.
+func _step_debris(dt: float, tuning: Dictionary) -> void:
+	if debris.is_empty():
+		return
+	var combat: Dictionary = tuning["combat"]
+	var drag: float = float(combat["debris_drag"])
+	var flying: Array[Debris] = []
+	# Pieces shed by a ship a strike kills THIS tick. Collected separately and
+	# folded in at the end, because appending to the list being walked would
+	# either step them a tick early or lose them when the list is rebuilt.
+	var shed: Array[Debris] = []
+	for piece in debris:
+		piece.step(dt, drag)
+		if piece.expired():
+			continue
+		var struck: bool = false
+		for i in range(ships.size()):
+			var ship: ShipState = ships[i]
+			if not ship.alive or ship.collision_grace > 0.0:
+				continue
+			if piece.pos.distance_to(ship.pos) > ship.radius() + piece.radius:
+				continue
+			_collide(ship, piece.pos, "debris", piece.damage)
+			struck = true
+			if not ship.alive:
+				_events.append({
+					"type": "destroyed", "ship": i, "at": ship.pos,
+					"log": ["%s BREAKING UP" % String(
+						ship.fit.hull()["name"]).to_upper()],
+				})
+				shed.append_array(Debris.burst(ship, i, combat,
+					seed_value + tick * 7919 + i))
+			break
+		if not struck:
+			flying.append(piece)
+	flying.append_array(shed)
+	debris = flying
+
+
+func debris_active() -> bool:
+	return not debris.is_empty()
+
+
+## Send up to `count` of a crew's marines to the enemy deck. Every check is
+## Boarding's, so the button and the sim can never disagree about what a legal
+## transport is (CLAUDE.md 4.1).
+func beam_marines(actor: int, count: int) -> bool:
+	if over:
+		return false
+	var from: ShipState = ships[actor]
+	var to: ShipState = ships[1 - actor]
+	var combat: Dictionary = Catalog.tuning()["combat"]
+	if not bool(Boarding.beam_check(from, to, combat)["ok"]):
+		return false
+	var sent: int = Boarding.beam(from, mini(count, from.pads_ready().size()),
+		combat)
+	if sent <= 0:
+		return false
+	# A fresh team resets the deck's volley clock, so a fight always starts a
+	# full interval after the first boots land.
+	if ShipState.count_alive(to.away, int(combat["hits_to_kill"])) == 0:
+		to.boarding_clock = float(combat["boarding_interval_sec"])
+	_events.append({
+		"type": "boarding", "ship": 1 - actor, "by": actor,
+		"log": ["%d MARINES ABOARD %s" % [sent,
+			String(to.fit.hull()["name"]).to_upper()]],
+	})
+	return true
+
+
+## Bring the away team home. The same machinery in reverse: each marine coming
+## back takes a recharged pad, and the wounded come back wounded.
+func recall_marines(actor: int) -> bool:
+	if over:
+		return false
+	var from: ShipState = ships[actor]
+	var to: ShipState = ships[1 - actor]
+	var combat: Dictionary = Catalog.tuning()["combat"]
+	var limit: int = int(combat["hits_to_kill"])
+	if ShipState.count_alive(from.away, limit) <= 0:
+		return false
+	if not bool(Boarding.beam_check(from, to, combat, false)["ok"]):
+		return false
+	var pads: Array[int] = from.pads_ready()
+	var back: int = 0
+	for k in range(from.away.size() - 1, -1, -1):
+		if back >= pads.size():
+			break
+		if from.away[k] >= limit:
+			continue
+		from.marines.append(from.away[k])
+		from.away.remove_at(k)
+		from.pad_cycles[pads[back]] = float(combat["pad_cycle_sec"])
+		back += 1
+	if back <= 0:
+		return false
+	_events.append({
+		"type": "boarding", "ship": actor, "by": actor,
+		"log": ["%d MARINES RECALLED" % back],
+	})
+	return true
+
+
+## The deck fights. Each contested deck has its own clock; every interval both
+## sides trade a simultaneous volley (Boarding.volley), and a deck whose last
+## defender falls with an attacker still standing changes hands, which ends
+## the battle: losing your own deck is losing the ship.
+func _step_boarding(dt: float, tuning: Dictionary) -> void:
+	var combat: Dictionary = tuning["combat"]
+	var limit: int = int(combat["hits_to_kill"])
+	for i in range(ships.size()):
+		var deck: ShipState = ships[i]
+		var raiders: ShipState = ships[1 - i]
+		if not deck.alive or deck.captured_by >= 0:
+			continue
+		if ShipState.count_alive(raiders.away, limit) <= 0:
+			continue
+		deck.boarding_clock -= dt
+		if deck.boarding_clock > 0.0:
+			continue
+		deck.boarding_clock = float(combat["boarding_interval_sec"])
+		var fight: Dictionary = Boarding.volley(deck, raiders.away, rolls, combat)
+		var lines: Array[String] = [
+			"BOARDING %s: raiders %d shots %d hit, crew %d shots %d hit" % [
+				String(deck.fit.hull()["name"]).to_upper(),
+				int(fight["att_shots"]), int(fight["att_hits"]),
+				int(fight["def_shots"]), int(fight["def_hits"])],
+		]
+		_events.append({
+			"type": "boarding", "ship": i, "by": 1 - i, "log": lines,
+		})
+		if ShipState.count_alive(deck.marines, limit) == 0 				and ShipState.count_alive(raiders.away, limit) > 0:
+			deck.captured_by = 1 - i
+			# The verdict itself is spoken by the end-of-step loop, so capture
+			# by volley and capture by anything else ever added share one exit.
+
+
 ## Pay for one collision: the grace, the speed lost, the damage from the
 ## bearing it arrived on, and the line the comm log prints.
 func _collide(ship: ShipState, with_pos: Vector2, kind: String, amount: float) -> void:
@@ -467,13 +651,23 @@ func apply_command(actor: int, kind: String, args: Array, record: bool = true) -
 				ok = latch_tractor(ship, ships[on])
 		"tractor_release":
 			ok = release_tractor(ship)
-		"tractor_mode":
+		"beam":
+			ok = beam_marines(actor, int(args[0]))
+		"recall":
+			ok = recall_marines(actor)
+		"tractor_plan":
 			var beam: Tractor = tractor_on(ship)
-			# Only the holder chooses. The prisoner does not get to decide whether
-			# it is being reeled in.
-			if beam != null and beam.holder == ship and beam.mode != String(args[0]):
-				beam.mode = String(args[0])
-				ok = true
+			# Only the holder plans. The prisoner does not get to decide where
+			# it is being dragged to.
+			if beam != null and beam.holder == ship:
+				var want_brg: float = Sectors.wrap_deg(float(args[0]))
+				var want_off: float = Tractor.clamp_frac(
+					float(args[1]), Catalog.tuning())
+				if not is_equal_approx(beam.bearing, want_brg) \
+						or not is_equal_approx(beam.standoff, want_off):
+					beam.bearing = want_brg
+					beam.standoff = want_off
+					ok = true
 	# Only what actually happened is written down. A fire order that found no
 	# weapon bearing, or a transfer the shields refused, changed nothing, and
 	# recording it would make a replay differ from the battle it came from by

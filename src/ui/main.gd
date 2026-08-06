@@ -32,6 +32,7 @@ func _ready() -> void:
 	$Root/Content/Fitting.design_chosen.connect(_on_design_loaded)
 	$Root/Content/Arcs.design_changed.connect(_on_design_changed)
 	$Root/Content/Skirmish.design_selected.connect(_on_design_selected)
+	$Root/Content/Skirmish.helm_taken.connect(_on_helm_taken)
 	$Root/Content/Skirmish.begin_battle.connect(_on_begin_battle)
 	$Root/Content/Combat.battle_ended.connect(_on_battle_ended)
 
@@ -112,7 +113,7 @@ func _on_settings_leave() -> void:
 ## screen because main owns the session and the three other screens that have
 ## to repaint (CLAUDE.md 4.2).
 func _on_design_loaded(fit: ShipFit) -> void:
-	session.fit = fit
+	session.refit(fit)
 	_wear_deck()
 	$Root/Content/Fitting.refresh_from_session()
 	$Root/Content/Arcs.refresh()
@@ -146,10 +147,19 @@ func _on_design_changed() -> void:
 
 func _on_design_selected(hull_id: String) -> void:
 	if hull_id != session.fit.hull_id:
-		session.fit = ShipFit.create_default(hull_id)
+		session.refit(ShipFit.create_default(hull_id))
 	# The hull names the navy and the navy names the deck, so picking a ship is
 	# also picking a console. Done before the screens repaint, so they repaint
 	# once, in the skin they are about to be wearing.
+	_wear_deck()
+	$Root/Content/Fitting.refresh_from_session()
+	$Root/Content/Skirmish.refresh()
+
+
+## The fleet roster's wheel: the session moves to that ship's bridge, and the
+## deck follows the hull exactly the way a design pick's does.
+func _on_helm_taken(index: int) -> void:
+	session.take_helm(index)
 	_wear_deck()
 	$Root/Content/Fitting.refresh_from_session()
 	$Root/Content/Skirmish.refresh()
@@ -166,6 +176,10 @@ func _on_replay_chosen(log: BattleLog) -> void:
 
 
 func _on_battle_ended() -> void:
+	# The session's hull may have changed on the way out (a prize taken), and
+	# the deck follows the hull.
+	Palette.use_faction(session.faction())
+	$Root/Content/Fitting.refresh_from_session()
 	show_tab("Skirmish")
 
 

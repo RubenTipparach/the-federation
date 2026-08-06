@@ -1,0 +1,32 @@
+[gd_resource type="StandardMaterial3D" load_steps=3 format=3]
+
+; The burning inside of a blown open ship: the shared paint every fragment's
+; cap surface wears, whichever hull the fragment was cut from. The outside of
+; a ship is its identity and each hull paints its own atlas; the inside is
+; wreckage, and wreckage looks like wreckage whoever built the ship.
+;
+; Same construction as the hull materials: a diffuse map for the char and a
+; lights map for what still glows, run through the material's own emission
+; path. The generator paints the diffuse PALETTE BLACK under every glowing
+; texel, so the scene's light has nothing to act on there and the hot spots
+; are the emission alone: fully emissive, unlit, the same colour from any
+; angle, which is how something that is itself a light source behaves. The
+; multiplier is above 1 because these hot spots ARE fire seen through torn
+; plating, not windows, and pushing the ramp's top toward white is the only
+; brightness a renderer without bloom can add.
+;
+; tools/gen_debris_interior.py writes both maps from the palette's explosion
+; ramp, and src/ui/wreck.gd puts this on surface 1 of each fragment, which is
+; the "interior" usemtl group shiplib's fragment cutter writes the caps into.
+
+[ext_resource type="Texture2D" path="res://assets/textures/fx_debris_interior.png" id="1"]
+[ext_resource type="Texture2D" path="res://assets/textures/fx_debris_interior_lights.png" id="2"]
+
+[resource]
+albedo_texture = ExtResource("1")
+texture_filter = 0
+roughness = 0.9
+metallic = 0.0
+emission_enabled = true
+emission_energy_multiplier = 1.6
+emission_texture = ExtResource("2")

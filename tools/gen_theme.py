@@ -41,9 +41,9 @@ FONT = "res://assets/ui/font_tactical.fnt"
 # not: those describe art baked at B = 2 blocks, and 1.2 times 2 is not a whole
 # number of pixels, so scaling them would resample pixel art at 1.25 and soften
 # every border the skin has. Content margin is layout, texture margin is art.
-PLATE_CONTENT = (12, 6, 12, 6)
-HEADER_CONTENT = (17, 2, 17, 2)
-BUTTON_CONTENT = (10, 5, 10, 5)
+PLATE_CONTENT = (8, 4, 8, 4)
+HEADER_CONTENT = (10, 1, 10, 1)
+BUTTON_CONTENT = (7, 3, 7, 3)
 
 
 def rgb_of(name, colors, ui_colors):
@@ -129,7 +129,11 @@ def theme(faction, name, skin, data):
     body = [
         "[resource]",
         "default_font = ExtResource(\"font\")",
-        "default_font_size = 17",
+        # 7, because that is the size the face is BAKED at and the import
+        # scales it by whole numbers only, so 7, 14 and 21 are the only sizes
+        # that exist. Anything between them is rounded to the nearest, which
+        # makes it a label on a size rather than a size.
+        "default_font_size = 7",
         "Button/colors/font_color = %s" % chassis_of("label"),
         "Button/colors/font_hover_color = %s" % lit_of("fg"),
         "Button/colors/font_pressed_color = %s" % lit_of("ok"),

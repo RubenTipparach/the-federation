@@ -21,3 +21,8 @@ __pycache__/
 # OS noise
 .DS_Store
 Thumbs.db
+
+# Claude Code session scratch: worktrees, transcripts, agent state. None of
+# it belongs in the repository, and a workflow that runs in worktrees will
+# otherwise commit three checkouts of the project into itself.
+.claude/

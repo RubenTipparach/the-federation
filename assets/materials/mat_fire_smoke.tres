@@ -1,0 +1,29 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3]
+
+; A puff of smoke off a burning subsystem, left in world space where it was
+; made so it trails behind a ship under way.
+;
+; taupe_deep at the rim and taupe through the middle, from data/palette.json.
+; PALE, not sooty. The first cut used gray_blue at half strength with a
+; softness of 1, which put almost the whole disc below a tenth of full cover
+; and made a plume that was provably being drawn and provably invisible: space
+; is darker than any real smoke, so smoke over it has to be lit by the fire
+; under it or there is nothing to see.
+;
+; occlude 0.85 rather than 0: smoke is the one thing here that must COVER.
+; Additive smoke would brighten the hull it drifts over, which reads as more
+; fire rather than as less ship.
+
+[ext_resource type="Shader" path="res://assets/shaders/fx_billboard.gdshader" id="1"]
+
+[resource]
+render_priority = 1
+shader = ExtResource("1")
+shader_parameter/tint = Color(0.5647, 0.4863, 0.4588, 1.0)
+shader_parameter/hot = Color(0.6863, 0.6196, 0.5804, 1.0)
+shader_parameter/hot_focus = 1.5
+shader_parameter/spin = 0.0
+shader_parameter/occlude = 0.85
+shader_parameter/soft_power = 2.0
+shader_parameter/softness = 1.0
+shader_parameter/billboard = true

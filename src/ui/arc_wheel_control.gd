@@ -71,16 +71,17 @@ func _draw() -> void:
 		var rr: float = _radius_for_range(rng, r0, r_max)
 		draw_arc(center, rr, 0.0, TAU, 64, Palette.LINE, 1.0)
 		draw_string(font, center + Vector2(4, -rr + 12), str(int(rng)),
-			HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Palette.DIM)
+			HORIZONTAL_ALIGNMENT_LEFT, -1, Paint.TYPE_SIZE, Palette.DIM)
 
 	# Sector spokes and bearing labels.
 	for i in range(Sectors.COUNT):
 		var d: Vector2 = _dir(float(i) * Sectors.SECTOR_DEG)
 		draw_line(center + d * r0, center + d * r_max, Palette.LINE, 1.0)
 		var mid: Vector2 = _dir(float(i) * Sectors.SECTOR_DEG + Sectors.SECTOR_DEG * 0.5)
-		draw_string(font, center + mid * (r_max + 10.0) + Vector2(-12, 4),
+		var brg_w: float = Paint.type_width(4)
+		draw_string(font, center + mid * (r_max + 10.0) + Vector2(-brg_w * 0.5, 4),
 			"%03d" % (i * int(Sectors.SECTOR_DEG)),
-			HORIZONTAL_ALIGNMENT_CENTER, 26, 9, Palette.DIM)
+			HORIZONTAL_ALIGNMENT_CENTER, brg_w, Paint.TYPE_SIZE, Palette.DIM)
 
 	# Shield facing bands outside, so arcs read against facings.
 	for f in range(Sectors.FACING_COUNT):
@@ -88,8 +89,10 @@ func _draw() -> void:
 		var a1: float = deg_to_rad(f * 60.0 + 25.0) - PI * 0.5
 		draw_arc(center, r_max + 22.0, a0, a1, 16, Palette.CYAN_DIM, 4.0)
 		var mid: Vector2 = _dir(f * 60.0)
-		draw_string(font, center + mid * (r_max + 36.0) + Vector2(-10, 4),
-			Sectors.facing_mark(f), HORIZONTAL_ALIGNMENT_CENTER, 22, 11, Palette.CYAN)
+		var fm_w: float = Paint.type_width(2)
+		draw_string(font, center + mid * (r_max + 36.0) + Vector2(-fm_w * 0.5, 4),
+			Sectors.facing_mark(f), HORIZONTAL_ALIGNMENT_CENTER, fm_w,
+			Paint.TYPE_SIZE, Palette.CYAN)
 
 	# Blind bearings, hatched critical.
 	var blind: Array[int] = _fit.blind_sectors()
@@ -127,5 +130,6 @@ func _draw() -> void:
 	# Hub.
 	draw_circle(center, r0 - 5.0, Palette.PANEL_2)
 	draw_arc(center, r0 - 5.0, 0.0, TAU, 32, Palette.LINE, 1.0)
-	draw_string(font, center + Vector2(-26, 4), "BOW 000",
-		HORIZONTAL_ALIGNMENT_CENTER, 56, 9, Palette.DIM)
+	var bow_w: float = Paint.type_width(8)
+	draw_string(font, center + Vector2(-bow_w * 0.5, 4), "BOW 000",
+		HORIZONTAL_ALIGNMENT_CENTER, bow_w, Paint.TYPE_SIZE, Palette.DIM)

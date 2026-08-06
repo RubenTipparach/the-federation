@@ -1,0 +1,25 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3]
+
+; The shock front: a ring racing out ahead of the fire and gone before it. Pale
+; rather than orange, because a front is compressed gas rather than burning
+; gas, and because a cream ring stays legible crossing the orange billow it
+; just left behind.
+;
+; soft_center sits at the middle of sprite_ring.obj's band (its inner rim is at
+; 0.90 of the radius), so the ring is brightest along the band and fades to
+; both edges. That is what makes it read as a moving front rather than as a
+; drawn circle.
+;
+; Colour from data/palette.json (cream).
+
+[ext_resource type="Shader" path="res://assets/shaders/fx_billboard.gdshader" id="1"]
+
+[resource]
+shader = ExtResource("1")
+shader_parameter/tint = Color(0.890196, 0.866667, 0.819608, 0.8)
+shader_parameter/hot = Color(0.890196, 0.866667, 0.819608, 0.8)
+shader_parameter/spin = 0.0
+shader_parameter/softness = 1.0
+shader_parameter/soft_power = 1.4
+shader_parameter/bright_at = 0.95
+shader_parameter/fade_over = 0.06
