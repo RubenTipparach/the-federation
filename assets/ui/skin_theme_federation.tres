@@ -36,9 +36,9 @@ texture_margin_top = 6.0
 texture_margin_right = 10.0
 texture_margin_bottom = 6.0
 content_margin_left = 10.0
-content_margin_top = 1.0
+content_margin_top = 6.0
 content_margin_right = 10.0
-content_margin_bottom = 1.0
+content_margin_bottom = 6.0
 
 [sub_resource type="StyleBoxTexture" id="button_normal"]
 texture = ExtResource("button_normal")
@@ -47,9 +47,9 @@ texture_margin_top = 6.0
 texture_margin_right = 6.0
 texture_margin_bottom = 6.0
 content_margin_left = 7.0
-content_margin_top = 3.0
+content_margin_top = 4.0
 content_margin_right = 7.0
-content_margin_bottom = 3.0
+content_margin_bottom = 4.0
 
 [sub_resource type="StyleBoxTexture" id="button_hover"]
 texture = ExtResource("button_hover")
@@ -58,9 +58,9 @@ texture_margin_top = 6.0
 texture_margin_right = 6.0
 texture_margin_bottom = 6.0
 content_margin_left = 7.0
-content_margin_top = 3.0
+content_margin_top = 4.0
 content_margin_right = 7.0
-content_margin_bottom = 3.0
+content_margin_bottom = 4.0
 
 [sub_resource type="StyleBoxTexture" id="button_pressed"]
 texture = ExtResource("button_pressed")
@@ -69,9 +69,9 @@ texture_margin_top = 6.0
 texture_margin_right = 6.0
 texture_margin_bottom = 6.0
 content_margin_left = 7.0
-content_margin_top = 3.0
+content_margin_top = 4.0
 content_margin_right = 7.0
-content_margin_bottom = 3.0
+content_margin_bottom = 4.0
 
 [sub_resource type="StyleBoxTexture" id="button_disabled"]
 texture = ExtResource("button_disabled")
@@ -80,9 +80,9 @@ texture_margin_top = 6.0
 texture_margin_right = 6.0
 texture_margin_bottom = 6.0
 content_margin_left = 7.0
-content_margin_top = 3.0
+content_margin_top = 4.0
 content_margin_right = 7.0
-content_margin_bottom = 3.0
+content_margin_bottom = 4.0
 
 [sub_resource type="StyleBoxFlat" id="slider"]
 bg_color = Color(0.078, 0.122, 0.145, 1)

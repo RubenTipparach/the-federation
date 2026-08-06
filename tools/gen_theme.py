@@ -42,8 +42,12 @@ FONT = "res://assets/ui/font_tactical.fnt"
 # number of pixels, so scaling them would resample pixel art at 1.25 and soften
 # every border the skin has. Content margin is layout, texture margin is art.
 PLATE_CONTENT = (8, 4, 8, 4)
-HEADER_CONTENT = (10, 1, 10, 1)
-BUTTON_CONTENT = (7, 3, 7, 3)
+# The header bar is a BAR: the padding is what makes it one, so it does not
+# shrink with the type the way the plate's does. At 7 pixel caps a single
+# pixel above and below left a strip barely taller than the letters, which
+# read as a rule with words on it rather than as a header.
+HEADER_CONTENT = (10, 6, 10, 6)
+BUTTON_CONTENT = (7, 4, 7, 4)
 
 
 def rgb_of(name, colors, ui_colors):
