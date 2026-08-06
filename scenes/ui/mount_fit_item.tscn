@@ -12,15 +12,15 @@ theme_override_constants/separation = 4
 
 [node name="Title" type="Label" parent="Body"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 14
+theme_override_font_sizes/font_size = 7
 text = "M1  Fore"
 
 [node name="Meta" type="Label" parent="Body"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 14
+theme_override_font_sizes/font_size = 7
 text = "field"
 autowrap_mode = 2
 
 [node name="Weapon" type="OptionButton" parent="Body"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 14
+theme_override_font_sizes/font_size = 7

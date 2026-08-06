@@ -115,7 +115,11 @@ func refresh() -> void:
 			top += int(sys["boxes_max"])
 		var label: Label = $Side/Families.get_node("F%d" % f)
 		label.visible = top > 0
-		label.text = "%s   %d / %d" % [family.to_upper(), cur, top]
+		# Tight, because this column is what is left of the panel after the
+		# shield ring beside it. CONTROL is the longest family name and a
+		# battlecruiser's boxes run to two digits each, so the spaces around
+		# the slash are what pushed "11 / 11" off the edge.
+		label.text = "%s %d/%d" % [family.to_upper(), cur, top]
 		var whole: bool = top > 0 and cur >= top
 		Paint.tint(label, "font_color",
 			Palette.family_color(family) if whole else (

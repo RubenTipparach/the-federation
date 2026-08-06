@@ -17,18 +17,18 @@ theme_override_constants/separation = 7
 
 [node name="Tag" type="Label" parent="V/Head"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 14
+theme_override_font_sizes/font_size = 7
 text = "1"
 
 [node name="Title" type="Label" parent="V/Head"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 14
+theme_override_font_sizes/font_size = 7
 text = "SECTOR"
 
 [node name="Arc" type="Label" parent="V/Head"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 14
+theme_override_font_sizes/font_size = 7
 text = "000-000"
 
 [node name="Systems" type="GridContainer" parent="V"]

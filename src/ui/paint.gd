@@ -26,16 +26,17 @@ extends RefCounted
 ## Do not hand roll the comparison at a call site: a second implementation is
 ## how one of them stops matching.
 
-## THE ONE SIZE THE FACE HAS. tools/gen_font.py bakes the tactical face at 14
-## device pixels and assets/ui/font_tactical.fnt.import scales it by whole
-## numbers only, so 14 and 28 are the only sizes that can reach the screen.
+## THE SIZE THE INTERFACE READS AT. tools/gen_font.py bakes the tactical face
+## at 7 device pixels and assets/ui/font_tactical.fnt.import scales it by whole
+## numbers only, so 7, 14 and 21 are the only sizes that can reach the screen
+## and 7 is the body of every panel.
 ## Every painted string asks for this rather than inventing a size: a
 ## draw_string that asks for 9 does not get 9, it gets 14 in a box measured
 ## for 9, which is how the shield readouts ended up clipped to "24/".
-const TYPE_SIZE: int = 14
-## One glyph's advance at TYPE_SIZE: the 5x7 cell plus its column of air,
-## baked at 2x. A painted string needs this to size its own clip box.
-const TYPE_ADVANCE: float = 12.0
+const TYPE_SIZE: int = 7
+## One glyph's advance at TYPE_SIZE: the 5x7 cell plus its column of air. A
+## painted string needs this to size its own clip box.
+const TYPE_ADVANCE: float = 6.0
 
 
 ## How wide `chars` glyphs of the face are, for the width a draw_string clips

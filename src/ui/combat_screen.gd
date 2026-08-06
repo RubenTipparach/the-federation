@@ -253,7 +253,7 @@ func _bind_displays() -> void:
 		return
 	var me: ShipState = battle.player()
 	$Right/OwnPanel/V/Display.bind_ship(me, true, true)
-	$Right/TargetDisplayPanel/V/Display.bind_ship(battle.target_for(me), false, false)
+	$Right/TargetPanel/V/Display.bind_ship(battle.target_for(me), false, false)
 	# A tractor beam is a relationship between two ships, so the panel that draws
 	# it needs the battle. Everything else it draws comes from the one ship.
 	$Right/FightStation/FightPanel.battle = battle
@@ -980,7 +980,7 @@ func _refresh_hud() -> void:
 
 	if DebugFlags.on("target_ssd") and _feed.moved([HudFeed.FOE]):
 		t = HudProfile.open("target_ssd")
-		$Right/TargetDisplayPanel/V/Display.refresh()
+		$Right/TargetPanel/V/Display.refresh()
 		HudProfile.close("target_ssd", t)
 
 	# The station panels serve all ten stations and the open one is not known
