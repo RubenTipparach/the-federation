@@ -109,28 +109,28 @@ theme_override_constants/separation = 2
 
 [node name="F0" type="Label" parent="Side/Families"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 clip_text = true
 text_overrun_behavior = 3
 text = "WEAPON"
 
 [node name="F1" type="Label" parent="Side/Families"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 clip_text = true
 text_overrun_behavior = 3
 text = "POWER"
 
 [node name="F2" type="Label" parent="Side/Families"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 clip_text = true
 text_overrun_behavior = 3
 text = "CONTROL"
 
 [node name="F3" type="Label" parent="Side/Families"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 clip_text = true
 text_overrun_behavior = 3
 text = "HULL"

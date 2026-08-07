@@ -28,12 +28,12 @@ layout_mode = 2
 [node name="Title" type="Label" parent="V/Head"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 text = "STATION"
 
 [node name="Badge" type="Label" parent="V/Head"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 text = "LIVE"
 
 [node name="Tow" type="VBoxContainer" parent="V"]
@@ -46,14 +46,14 @@ layout_mode = 2
 [node name="L" type="Label" parent="V/Tow/BrgHead"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 text = "TOW BEARING"
 
 [node name="R" type="Label" parent="V/Tow/BrgHead"]
 layout_mode = 2
 custom_minimum_size = Vector2(96, 0)
 horizontal_alignment = 2
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 clip_text = true
 text_overrun_behavior = 3
 text = ""
@@ -71,14 +71,14 @@ layout_mode = 2
 [node name="L" type="Label" parent="V/Tow/DistHead"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 text = "TOW DISTANCE"
 
 [node name="R" type="Label" parent="V/Tow/DistHead"]
 layout_mode = 2
 custom_minimum_size = Vector2(120, 0)
 horizontal_alignment = 2
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 clip_text = true
 text_overrun_behavior = 3
 text = ""
@@ -128,14 +128,14 @@ layout_mode = 2
 [node name="L" type="Label" parent="V/Tug/Labels"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 text = "GRIP"
 
 [node name="R" type="Label" parent="V/Tug/Labels"]
 layout_mode = 2
 size_flags_horizontal = 3
 horizontal_alignment = 2
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 text = "SHOVE"
 
 [node name="Bar" type="Control" parent="V/Tug"]
@@ -150,7 +150,7 @@ layout_mode = 2
 [node name="L" type="Label" parent="V/Tug/Reading"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 clip_text = true
 text_overrun_behavior = 3
 text = ""
@@ -159,7 +159,7 @@ text = ""
 layout_mode = 2
 size_flags_horizontal = 3
 horizontal_alignment = 2
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 clip_text = true
 text_overrun_behavior = 3
 text = ""
@@ -181,7 +181,7 @@ layout_mode = 2
 [node name="L" type="Label" parent="V/Tug/Note"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 clip_text = true
 text_overrun_behavior = 3
 text = ""
@@ -190,7 +190,7 @@ text = ""
 layout_mode = 2
 size_flags_horizontal = 3
 horizontal_alignment = 2
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 clip_text = true
 text_overrun_behavior = 3
 text = ""
@@ -201,7 +201,7 @@ theme_override_constants/separation = 4
 
 [node name="HomeHead" type="Label" parent="V/Boarding"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 clip_text = true
 text_overrun_behavior = 3
 text = "ABOARD"
@@ -224,14 +224,14 @@ size_flags_vertical = 4
 [node name="L" type="Label" parent="V/Boarding/AboardHead"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 clip_text = true
 text_overrun_behavior = 3
 text = "ABOARD"
 
 [node name="Taken" type="Label" parent="V/Boarding/AboardHead"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 text = "[CAPTURED]"
 
 [node name="Ours" type="Control" parent="V/Boarding"]
@@ -248,7 +248,7 @@ script = ExtResource("4")
 
 [node name="Verdict" type="Label" parent="V/Boarding"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 clip_text = true
 text_overrun_behavior = 3
 text = ""
@@ -261,14 +261,14 @@ theme_override_constants/separation = 5
 layout_mode = 2
 size_flags_horizontal = 3
 focus_mode = 0
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 text = "BEAM"
 
 [node name="Recall" type="Button" parent="V/BoardCmds"]
 layout_mode = 2
 size_flags_horizontal = 3
 focus_mode = 0
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 text = "RECALL"
 
 [node name="Cmds" type="HBoxContainer" parent="V"]
@@ -279,7 +279,7 @@ theme_override_constants/separation = 5
 layout_mode = 2
 size_flags_horizontal = 3
 focus_mode = 0
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 text = "LATCH"
 
 [node name="Picker" type="HBoxContainer" parent="V"]
@@ -289,7 +289,7 @@ theme_override_constants/separation = 4
 [node name="PickLabel" type="Label" parent="V/Picker"]
 custom_minimum_size = Vector2(62, 0)
 layout_mode = 2
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 text = "REGEN"
 
 [node name="P0" type="Button" parent="V/Picker"]
@@ -297,7 +297,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 toggle_mode = true
 focus_mode = 0
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 text = "A"
 
 [node name="P1" type="Button" parent="V/Picker"]
@@ -305,7 +305,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 toggle_mode = true
 focus_mode = 0
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 text = "B"
 
 [node name="P2" type="Button" parent="V/Picker"]
@@ -313,7 +313,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 toggle_mode = true
 focus_mode = 0
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 text = "C"
 
 [node name="P3" type="Button" parent="V/Picker"]
@@ -321,7 +321,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 toggle_mode = true
 focus_mode = 0
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 text = "D"
 
 [node name="P4" type="Button" parent="V/Picker"]
@@ -329,7 +329,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 toggle_mode = true
 focus_mode = 0
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 text = "E"
 
 [node name="P5" type="Button" parent="V/Picker"]
@@ -337,7 +337,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 toggle_mode = true
 focus_mode = 0
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 text = "F"
 
 [node name="Queue" type="VBoxContainer" parent="V"]
@@ -347,11 +347,11 @@ theme_override_constants/separation = 4
 [node name="Total" type="Label" parent="V"]
 layout_mode = 2
 autowrap_mode = 2
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 text = ""
 
 [node name="Fix" type="Button" parent="V"]
 layout_mode = 2
 focus_mode = 0
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 text = "QUEUE REPAIR"

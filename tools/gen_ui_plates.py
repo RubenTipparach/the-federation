@@ -41,12 +41,12 @@ OUT = os.path.join(HERE, "..", "assets", "ui", "skin")
 # The art block. Everything below is measured in blocks and multiplied by this,
 # so the whole skin rescales from one number if the game's resolution changes.
 #
-# ONE is not arbitrary: it has to match tools/gen_font.py's B, or the chassis
-# and the type are drawn on two different pixel grids and the interface stops
-# reading as one piece of pixel art. It was 2 against a face baked at 2; when
-# the face was rebaked at 1 this had to follow, and until it did every bevel
-# was two device pixels thick beside a letter stroke one pixel thick.
-B = 1
+# This has to match the SCALE THE TYPE IS DRAWN AT, or the chassis and the
+# letters sit on two different pixel grids and the interface stops reading as
+# one piece of pixel art. The face is baked at 7 (gen_font.py) and the
+# interface asks for 14, which is 2x, so a letter's stroke is two device
+# pixels and a bevel must be two as well.
+B = 2
 
 
 # Nine patch margins in art blocks, keyed by texture. gen_theme.py imports
@@ -236,11 +236,21 @@ def header(R):
             if edge:
                 blocks(p, i, j, 1, 1, R["outline"])
                 continue
+            # Lit from the top left, shaded to the bottom right, which is the
+            # plate's convention and has to be the header's too. The left
+            # column had no bevel at all: the bar was shaded down its right
+            # edge and flat down its left, so it read as half a bar.
             top = j == 1 or i + j == cut + 1
+            left = i == 1
             low = j == h - 2 or i == w - 2
-            blocks(p, i, j, 1, 1,
-                   R["bevel_hi"] if (top and j <= 2) else
-                   (R["bevel_lo"] if low else R["face"]))
+            tone = R["face"]
+            if top and j <= 2:
+                tone = R["bevel_hi"]
+            elif left:
+                tone = R["bevel_hi_2"]
+            elif low:
+                tone = R["bevel_lo"]
+            blocks(p, i, j, 1, 1, tone)
     # NO FLECKS ON THE BAR. They were moved out of the vertical stretch band
     # once, which fixed them being drawn as vertical bars, but row 1 columns
     # 6 to 17 are still inside the HORIZONTAL stretch band: a nine patch
