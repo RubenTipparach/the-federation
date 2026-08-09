@@ -30,9 +30,9 @@ PALETTE = os.path.join(HERE, "..", "data", "palette.json")
 OUT = os.path.join(HERE, "..", "docs", "images", "worlds")
 NATIVE = os.path.join(OUT, "native")
 
-VARIANTS = ["terran", "ice", "barren", "gas"]
+VARIANTS = ["terran", "jungle", "volcanic", "ice", "barren", "gas", "moon"]
 SEEDS = 3
-SLOTS = ["low", "mid", "high", "rim"]
+SLOTS = ["abyss", "sea", "shore", "land", "peak", "cap", "rim", "glow"]
 
 PAD = 24
 GAP = 24
@@ -113,7 +113,10 @@ def main():
     os.makedirs(OUT, exist_ok=True)
 
     for variant in VARIANTS:
-        roles = [worlds[variant][slot] for slot in SLOTS]
+        # A world with no polar cap and no glowing ground names neither, and an
+        # empty name has no swatch to draw.
+        roles = [worlds[variant][slot] for slot in SLOTS
+                 if worlds[variant][slot]]
         out = os.path.join(OUT, "%s.png" % variant)
         plate(variant, roles, colors, ground).save(out)
         print("wrote docs/images/worlds/%s.png  (%s)"

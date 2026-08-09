@@ -1,38 +1,49 @@
 // The shader every world in the tactical view is drawn with.
 //
-// This is Simple Spatial Planet by Nolkaloid
-// (https://godotshaders.com/shader/simple-spatial-planet/, CC0) with two
-// changes and nothing else. The unmodified original is beside it as
-// simple_spatial_planet.gdshader so the difference stays one readable diff, and
-// docs/14 records both.
+// The sphere tracing half of this is Simple Spatial Planet by Nolkaloid
+// (https://godotshaders.com/shader/simple-spatial-planet/, CC0). The surface
+// half is ours. The unmodified original is committed beside it as
+// simple_spatial_planet.gdshader, and docs/14 records what came from where.
 //
-// WHAT IT DOES, in one line: it ignores the mesh it is drawn on and ray traces
-// a sphere instead. The mesh is only a volume to get fragments generated in.
-// That is why the limb is a true circle at any zoom, why the surface compresses
-// correctly toward the edge, and why the mesh needs no texture coordinates,
-// which matters here because assets/meshes/sphere.obj has none.
+// WHAT IS THE AUTHOR'S: the ray sphere intersection, the depth write, the
+// fresnel rim, and the whorley band function. It ignores the mesh it is drawn
+// on and traces a sphere in the fragment stage, which is why the limb is a true
+// circle at any zoom, why the surface compresses correctly toward the edge, and
+// why the mesh needs no texture coordinates. That last one matters here:
+// assets/meshes/sphere.obj has none.
 //
-// THE TWO CHANGES:
+// WHAT IS OURS, and why:
 //
-//   1. THE DEPTH WRITE IS OPENGL'S. The original writes
-//      `DEPTH = clipPos.z/clipPos.w`, which is Vulkan's 0 to 1 convention.
-//      This project runs gl_compatibility (project.godot), where the range is
-//      -1 to 1, so every fragment was rejected and a planet rendered as
-//      nothing at all. The line here is
-//      `DEPTH = (clipPos.z/clipPos.w) * 0.5 + 0.5;`.
+//   1. AN OPENGL DEPTH WRITE. The original writes `DEPTH = clipPos.z/clipPos.w`,
+//      which is Vulkan's 0 to 1 convention. This project runs gl_compatibility,
+//      where clip depth is -1 to 1, so every fragment was rejected and a planet
+//      rendered as nothing at all.
 //
-//   2. THE SURFACE COLOUR IS RAMPED. The original writes the raw whorley noise
-//      vector straight to ALBEDO and has no colour input of any kind, so every
-//      world it draws is the same red and cyan marble whatever it is meant to
-//      be. Here the noise becomes a height and the height picks from a three
-//      colour ramp, so a terran world and an ice world differ. The colours come
-//      from data/palette.json through src/ui/planet_body.gd.
+//   2. A GROUND HEIGHT FIELD, which is the important one. The author's whorley
+//      function is a flow field: it makes horizontal belts, so every world it
+//      draws is a gas giant whatever colours it is given. Ours is a fractal
+//      gradient noise evaluated in the world's local space with a domain warp,
+//      which makes CONTINENTS. `bands` mixes between the two, so a gas giant
+//      asks for the author's function and a rocky world asks for ours.
 //
-// Everything else, including the ray sphere intersection and the whorley
-// function that gives the bands their shape, is the author's.
+//   3. A SEA, WITH A COASTLINE. Height below `seaLevel` is water and above it is
+//      ground, and the boundary is sharp rather than a gradient, because a
+//      shoreline is the single feature that tells a player a world has oceans.
+//
+//   4. POLAR CAPS. Ice is a function of latitude rather than of height, with the
+//      ground noise roughening its edge so it is not a drawn-on circle.
+//
+//   5. A LAVA GLOW. Where `glowColor` is not black, the lowest ground emits, so
+//      a volcanic world lights its own fissures on the night side.
+//
+// Every colour named below comes from data/palette.json through
+// src/ui/planet_body.gd, and every number from data/tuning.json. Nothing here
+// is written in the shader.
 
 shader_type spatial;
 render_mode cull_front;
+
+// ---- the author's sphere ----------------------------------------------------
 
 bool solveQuadratic( float a, float b, float c, inout float x0, inout float x1 )
 { //https://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-sphere-intersection.html
@@ -104,23 +115,107 @@ vec3 transform( mat4 mtx, vec3 vec ){	return (mtx*vec4(vec,1.0)).rgb - mtx[3].rg
 
 float fresnel( float val, vec3 normal, vec3 view, float str ){ return clamp( mix( val, 0.0, dot(normal,view)*str ), 0.0, 1.0 );}
 
-uniform float radius = 256.0;
+// ---- our ground -------------------------------------------------------------
+
+// The usual fract-multiply hash. No sine, because the sine version bands
+// visibly on some drivers and this runs over most of the screen.
+vec3 hash33( vec3 p )
+{
+	p = fract(p * vec3(0.1031, 0.1030, 0.0973));
+	p += dot(p, p.yxz + 33.33);
+	return fract((p.xxy + p.yxx) * p.zyx) * 2.0 - 1.0;
+}
+
+// Gradient noise, which is what gives blobs rather than the streaks a flow
+// field gives. Roughly -0.7 to 0.7.
+float gnoise( vec3 p )
+{
+	vec3 i = floor(p);
+	vec3 f = fract(p);
+	vec3 u = f * f * (3.0 - 2.0 * f);
+	float n000 = dot(hash33(i + vec3(0,0,0)), f - vec3(0,0,0));
+	float n100 = dot(hash33(i + vec3(1,0,0)), f - vec3(1,0,0));
+	float n010 = dot(hash33(i + vec3(0,1,0)), f - vec3(0,1,0));
+	float n110 = dot(hash33(i + vec3(1,1,0)), f - vec3(1,1,0));
+	float n001 = dot(hash33(i + vec3(0,0,1)), f - vec3(0,0,1));
+	float n101 = dot(hash33(i + vec3(1,0,1)), f - vec3(1,0,1));
+	float n011 = dot(hash33(i + vec3(0,1,1)), f - vec3(0,1,1));
+	float n111 = dot(hash33(i + vec3(1,1,1)), f - vec3(1,1,1));
+	return mix(mix(mix(n000, n100, u.x), mix(n010, n110, u.x), u.y),
+		mix(mix(n001, n101, u.x), mix(n011, n111, u.x), u.y), u.z);
+}
+
+// Four octaves. Five is visibly better on a still image and costs a fifth more
+// per fragment over a body that can fill a quarter of the screen, which is the
+// wrong trade for a game that has to run in a browser.
+float fbm( vec3 p )
+{
+	float sum = 0.0;
+	float amp = 0.5;
+	for( int i = 0; i < 4; i++ )
+	{
+		sum += gnoise(p) * amp;
+		p *= 2.03;
+		amp *= 0.5;
+	}
+	return sum;
+}
+
+// ---- what a world is, as data -----------------------------------------------
+
+uniform float radius = 50.0;
 uniform float rimRetraction = 4.0;
 uniform float rimBrightness = 1.0;
 uniform vec3 rimColor : source_color = vec3(0.7,0.5,0.3);
-uniform float animationSpeed = 0.25;
+uniform float animationSpeed = 0.004;
 uniform float distortionStrength = 0.3;
-// Added by change 2: the surface ramp, low ground to high ground, and where
-// the low band ends. Every one of these is a data/palette.json entry.
-uniform vec3 groundLow : source_color = vec3(0.10, 0.26, 0.46);
-uniform vec3 groundMid : source_color = vec3(0.24, 0.45, 0.36);
-uniform vec3 groundHigh : source_color = vec3(0.62, 0.66, 0.49);
-uniform float groundSplit : hint_range(0.0, 1.0) = 0.46;
-// How wide the bands are, and a per world offset into the noise so two worlds
-// in one arena are not the same world twice. The offset enters where TIME does,
-// which is free: it is the same field read at a different place.
 uniform vec2 bandScale = vec2(20.0, 5.0);
 uniform float worldSeed = 0.0;
+
+// 0 draws continents, 1 draws the author's belts, and a gas giant is the only
+// thing that wants 1.
+uniform float bands : hint_range(0.0, 1.0) = 0.0;
+// How large the continents are, and how far the noise is dragged sideways
+// before it is read. Warp is what turns round blobs into coastlines.
+uniform float groundScale = 2.4;
+uniform float groundWarp = 0.6;
+
+// The five colours of the ground, deepest to highest.
+uniform vec3 abyssColor : source_color = vec3(0.06, 0.13, 0.22);
+uniform vec3 seaColor : source_color = vec3(0.14, 0.32, 0.45);
+uniform vec3 shoreColor : source_color = vec3(0.37, 0.49, 0.55);
+uniform vec3 landColor : source_color = vec3(0.37, 0.48, 0.33);
+uniform vec3 peakColor : source_color = vec3(0.64, 0.62, 0.49);
+// Where the water stops, how hard the shoreline is, and how much of the ramp
+// above it is lowland before the peaks start.
+uniform float seaLevel : hint_range(0.0, 1.0) = 0.5;
+uniform float coast : hint_range(0.001, 0.3) = 0.02;
+uniform float landBand : hint_range(0.05, 1.0) = 0.4;
+
+// Ice by latitude. capStart 1.0 or above means no cap at all.
+uniform vec3 capColor : source_color = vec3(0.89, 0.87, 0.82);
+uniform float capStart : hint_range(0.0, 2.0) = 2.0;
+uniform float capFuzz : hint_range(0.01, 0.5) = 0.09;
+
+// Emissive ground below glowLevel. Black means none, which is every world but
+// the volcanic one.
+uniform vec3 glowColor : source_color = vec3(0.0, 0.0, 0.0);
+uniform float glowLevel : hint_range(0.0, 1.0) = 0.25;
+
+vec3 groundRamp( float h )
+{
+	float shelf = seaLevel * 0.55;
+	if( h < shelf ) return mix(abyssColor, seaColor, smoothstep(0.0, shelf, h));
+	// The coastline: a narrow band rather than a gradient, so a world with a sea
+	// reads as having one.
+	if( h < seaLevel + coast )
+		return mix(seaColor, shoreColor,
+			smoothstep(seaLevel - coast, seaLevel + coast, h));
+	float top = seaLevel + coast + landBand;
+	if( h < top ) return mix(shoreColor, landColor,
+		smoothstep(seaLevel + coast, top, h));
+	return mix(landColor, peakColor, smoothstep(top, 1.0, h));
+}
 
 void fragment()
 {
@@ -135,21 +230,49 @@ void fragment()
 		vec3 worldPos = CAMERA_POSITION_WORLD+(rayDir*t);
 		vec3 dir = normalize(worldPos-NODE_POSITION_WORLD);
 		// Depth is calculated using the world position of the intersection.
-		// CHANGE 1: mapped into OpenGL's -1 to 1 clip range.
+		// OURS: mapped into OpenGL's -1 to 1 clip range.
 		vec4 clipPos = PROJECTION_MATRIX * VIEW_MATRIX * vec4(worldPos, 1);
 		DEPTH = (clipPos.z/clipPos.w) * 0.5 + 0.5;
 		// The direction from the center is transformed back into view space to serve the normal
 		NORMAL = transform( VIEW_MATRIX, dir );
-		// Dir is then moved into local space to respect rotation of the node for texturing
-		dir = transform( inverse(MODEL_MATRIX), dir );
-		// CHANGE 2: the noise becomes a height, and the height picks a colour
-		// from the ramp, rather than being painted as a colour itself.
-		vec3 n = whorleyOnSphere( dir, worldSeed + TIME*animationSpeed, bandScale, vec2(distortionStrength) );
-		float height = clamp( (n.x + n.y + n.z) / 3.0 * 0.5 + 0.5, 0.0, 1.0 );
-		ALBEDO = height < groundSplit
-			? mix(groundLow, groundMid, height / max(0.001, groundSplit))
-			: mix(groundMid, groundHigh, (height - groundSplit) / max(0.001, 1.0 - groundSplit));
-		EMISSION = fresnel(0.25,NORMAL,VIEW,rimRetraction)*rimColor*rimBrightness;
+		// Dir is then moved into local space to respect rotation of the node for texturing.
+		// NORMALIZED, which the original did not need to be: it fed this only to
+		// uvOnSphere, which is two atans and so does not care about length. The
+		// inverse model matrix undoes the mesh's SCALE as well as its rotation,
+		// and that mesh is scaled to the world's radius, so what comes back here
+		// is about a sixtieth of a unit long. Read a noise field at that and
+		// every fragment lands in the same cell, which draws a plain ball.
+		dir = normalize( transform( inverse(MODEL_MATRIX), dir ) );
+
+		float spin = worldSeed + TIME * animationSpeed;
+
+		// OURS: the ground. A warped fractal read on the sphere's own
+		// direction vector, so it wraps with no seam and no pole pinch.
+		vec3 p = dir * groundScale + vec3(worldSeed);
+		vec3 warp = vec3(
+			gnoise(p + vec3(3.7, 1.3, 8.2)),
+			gnoise(p + vec3(9.1, 6.4, 2.8)),
+			gnoise(p + vec3(5.3, 7.9, 4.1)));
+		float land = fbm(p + warp * groundWarp) * 1.35 + 0.5;
+
+		// The author's belts, for the one world that wants them.
+		vec3 belt = whorleyOnSphere( dir, spin, bandScale, vec2(distortionStrength) );
+		float banded = clamp((belt.x + belt.y + belt.z) / 3.0 * 0.5 + 0.5, 0.0, 1.0);
+
+		float height = clamp(mix(land, banded, bands), 0.0, 1.0);
+		vec3 albedo = groundRamp(height);
+
+		// OURS: the polar cap, roughened by the same noise so its edge is
+		// ragged rather than drawn on with a compass.
+		float lat = abs(dir.y) + (height - 0.5) * 0.22;
+		albedo = mix(albedo, capColor,
+			smoothstep(capStart - capFuzz, capStart + capFuzz, lat));
+
+		ALBEDO = albedo;
+
+		// OURS: fissures. Only where a world was given a glow colour.
+		vec3 glow = glowColor * smoothstep(glowLevel, 0.0, height);
+		EMISSION = fresnel(0.25,NORMAL,VIEW,rimRetraction)*rimColor*rimBrightness + glow;
 		ALPHA = 1.0;
 	}
 	else ALPHA = 0.0;

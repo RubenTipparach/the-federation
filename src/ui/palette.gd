@@ -137,7 +137,13 @@ static func world_color(variant: String, slot: String) -> Color:
 	assert(worlds.has(variant), "no world palette for variant: " + variant)
 	var roles: Dictionary = worlds[variant]
 	assert(roles.has(slot), "world %s names no %s colour" % [variant, slot])
-	return named(String(roles[slot]))
+	var role: String = String(roles[slot])
+	# An empty name means the world HAS none of that thing: no polar cap, no
+	# glowing fissures. Black is what switches those off in the shader, and it
+	# is a real answer rather than a missing one, so it is not an assert.
+	if role.is_empty():
+		return Color(0.0, 0.0, 0.0)
+	return named(role)
 
 
 static var BG: Color:

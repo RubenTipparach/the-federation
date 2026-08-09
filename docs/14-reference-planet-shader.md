@@ -40,53 +40,77 @@ Three consequences, all of them useful:
    mesh covers, so `scenes/terrain/planet.tscn` scales it past the world it
    holds. `terrain_view.mesh_slack` in `data/tuning.json` is that margin.
 
-The surface is a whorley function evaluated in the world's local space, so it is
-procedural: no textures, no memory, and it turns with the world rather than
-sliding across it.
+The surface is evaluated in the world's local space, so it is procedural: no
+textures, no memory, and it turns with the world rather than sliding across it.
 
 ---
 
-## 2. The two changes
+## 2. What is the author's, and what is ours
 
 The unmodified original is committed beside ours as
 `simple_spatial_planet.gdshader` and nothing loads it. The game runs
-`planet.gdshader`, which is that file with two changes and no others. Keeping
-both is what makes the diff readable and what lets the shader be updated from
-upstream.
+`planet.gdshader`. Keeping both is what makes the diff readable and what lets
+the sphere half be updated from upstream.
 
-**1. The depth write is OpenGL's.** The original writes
-`DEPTH = clipPos.z/clipPos.w`, which is Vulkan's 0 to 1 convention. This project
-runs `gl_compatibility` (`project.godot`), where clip depth is -1 to 1, so every
-fragment was rejected and a planet rendered as nothing whatsoever. Ours is
-`DEPTH = (clipPos.z/clipPos.w) * 0.5 + 0.5;`. This was diagnosed by rendering an
-unshaded control sphere in the same frame, which appeared, so the mesh and the
-camera were not at fault.
+**The author's:** the ray-sphere intersection, the depth write, the fresnel rim,
+and the whorley band function.
 
-**2. The surface colour is ramped.** The original writes the raw whorley noise
-vector straight to `ALBEDO` and has **no colour input of any kind**. Every world
-it draws is therefore the same red and cyan marble whatever it is meant to be,
-and varying the only two things it exposes, the rim colour and the distortion,
-does not change that. Ours turns the noise into a height and ramps the height
-through three colours. That is the entire difference between a terran world and
-an ice world here.
+**Ours, and why each one had to be:**
 
-Everything else, including the ray-sphere intersection and the whorley function
-that gives the bands their shape, is the author's.
+**1. An OpenGL depth write.** The original writes `DEPTH = clipPos.z/clipPos.w`,
+which is Vulkan's 0 to 1 convention. This project runs `gl_compatibility`
+(`project.godot`), where clip depth is -1 to 1, so every fragment was rejected
+and a planet rendered as nothing whatsoever. Diagnosed by rendering an unshaded
+control sphere in the same frame, which appeared, so the mesh and the camera
+were not at fault.
+
+**2. A ground height field.** This is the one that matters. The author's whorley
+function is a flow field: it produces horizontal belts, so **every world it
+draws is a gas giant** whatever colours it is handed. No amount of tuning
+changes that, because the banding is the function. Ours is a fractal gradient
+noise evaluated on the sphere's own direction vector with a domain warp, which
+produces continents. A `bands` uniform mixes between the two, so a gas giant
+asks for the author's and every rocky world asks for ours.
+
+The direction fed to that noise is **normalized**, which the original did not
+need. It passed `dir` only to `uvOnSphere`, two atans that do not care about
+length. `inverse(MODEL_MATRIX)` undoes the mesh's scale as well as its rotation,
+and that mesh is scaled to the world's radius, so what arrives is about a
+sixtieth of a unit long. Read a noise field at that scale and every fragment
+lands in the same cell, which draws a plain ball. That was the first thing this
+change got wrong.
+
+**3. A sea with a coastline.** Height below `seaLevel` is water, above it is
+ground, and the boundary is a narrow band rather than a gradient. A shoreline is
+the single feature that tells a player at a glance that a world has oceans.
+
+**4. Polar caps.** Ice is a function of latitude rather than of height, with the
+ground noise roughening its edge so it is not a circle drawn on with a compass.
+
+**5. A lava glow.** Where a world's palette names a `glow` colour, the lowest
+ground emits, so a volcanic world lights its own fissures on the night side.
+
+The noise is four octaves of gradient noise with a single-octave domain warp.
+Five octaves is visibly better on a still image and costs a fifth more per
+fragment over a body that can fill a quarter of the screen, which is the wrong
+trade for a game that has to run in a browser.
 
 ---
 
 ## 3. The colours are ours, but not every pixel is
 
-`data/palette.json` `worlds` gives each variant four palette roles: `low`, `mid`
-and `high` for the surface ramp, and `rim` for the limb. `data/tuning.json`
-`terrain_view.planets` gives each variant its shape: how far the bands are
-warped, where low ground gives way to middle ground, how many bands wrap around
-and across, the atmosphere at the limb, and how fast it turns.
+`data/palette.json` `worlds` gives each variant eight palette roles: `abyss`,
+`sea`, `shore`, `land` and `peak` for the surface ramp, `cap` for the ice, `rim`
+for the limb, and `glow` for emissive ground. An empty name means the world has
+none of that thing. `data/tuning.json` `terrain_view.planets` gives each variant
+its shape: continent size, warp, sea level, coastline hardness, cap latitude,
+glow depth, the belt controls for the one world that uses them, the limb, and
+the spin.
 
 **The shader blends between those colours**, so a world is not made only of
 palette entries the way the ships and the panels are. That is a real departure
 from CLAUDE.md 3.1 and it is listed as an exception in section 7 of that file,
-agreed on 2026-08-09. What the palette still decides is which four colours a
+agreed on 2026-08-09. What the palette still decides is which colours a
 world is built from; what it no longer decides is every pixel.
 
 ---

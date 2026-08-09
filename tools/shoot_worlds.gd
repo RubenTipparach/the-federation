@@ -19,7 +19,8 @@ extends SceneTree
 
 const OUT := "res://docs/images/worlds/native/"
 const PLANET := preload("res://scenes/terrain/planet.tscn")
-const VARIANTS := ["terran", "ice", "barren", "gas"]
+const VARIANTS := ["terran", "jungle", "volcanic", "ice", "barren",
+	"gas", "moon"]
 const SPOTS := [Vector2(-260.0, 140.0), Vector2(310.0, -90.0), Vector2(70.0, 420.0)]
 
 const SIZE := 360
@@ -92,6 +93,10 @@ func _initialize() -> void:
 			# The well ring is edge on from here and paints a hairline across
 			# the plate. A concept plate is about the world, not its well.
 			planet.get_node("Field").visible = false
+			# The gas giant's ring reaches nearly twice its body, so at this
+			# framing it is a plate across the shot rather than a ring. It gets
+			# its own wider frame below.
+			planet.get_node("Ring").visible = false
 			await _shoot("%s-%d" % [variant, s])
 			written += 1
 			planet.queue_free()

@@ -568,6 +568,46 @@ func test_terrain() -> void:
 	ok(contained, "every feature lands inside the arena, field and all")
 	ok(clear_of_spawns, "nothing is placed on top of a starting position")
 	ok(bodies_apart, "solid bodies never overlap each other")
+
+	# Moons. A moon is a planet with no well, which is what keeps it on one
+	# collision rule and one scene instead of becoming a second kind of thing.
+	var moons_seen: int = 0
+	var moons_are_solid: bool = true
+	var moons_have_no_well: bool = true
+	var moons_are_smaller: bool = true
+	for seed_value in [1, 2, 3, 17, 31, 900, 4242]:
+		var b = BattleLib.create_duel(FitLib.create_default("kestrel"),
+			"talon", seed_value, "orbit")
+		var world: Dictionary = {}
+		for f in b.terrain.features:
+			if String(f.get("variant", "")) != "moon":
+				world = f
+		for f in b.terrain.features:
+			if String(f.get("variant", "")) != "moon":
+				continue
+			moons_seen += 1
+			if String(f["kind"]) != TerrainLib.KIND_PLANET:
+				moons_are_solid = false
+			if float(f["body"]) <= 0.0:
+				moons_are_solid = false
+			if float(f["field"]) != 0.0:
+				moons_have_no_well = false
+			if float(f["body"]) >= float(world["body"]):
+				moons_are_smaller = false
+			# The one that matters: standing on a moon must not tug, because a
+			# moon carries no well at all.
+			var just_outside: Vector2 = Vector2(f["pos"]) \
+				+ Vector2(float(f["body"]) + 1.0, 0.0)
+			var pull_here: Vector2 = b.terrain.pull_at(just_outside)
+			var without_moon: Vector2 = (Vector2(world["pos"]) - just_outside)
+			if pull_here.length() > 0.0 and not without_moon.is_zero_approx():
+				# Any pull here has to point at the WORLD, never at the moon.
+				if absf(pull_here.normalized().angle_to(without_moon.normalized())) > 0.001:
+					moons_have_no_well = false
+	ok(moons_seen > 0, "the orbit map places moons")
+	ok(moons_are_solid, "a moon is a solid planet body like any other")
+	ok(moons_have_no_well, "a moon has no gravity well and tugs nothing")
+	ok(moons_are_smaller, "a moon is smaller than the world it belongs to")
 	ok(opens_with_lock, "no map begins with the two sides unable to see each other")
 
 	# Every feature a recipe can produce must have a scene that draws it. A

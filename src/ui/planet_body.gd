@@ -2,29 +2,58 @@ extends Node3D
 
 ## A world: a real sphere, ray traced by the shader rather than modelled.
 ##
-## The art is Simple Spatial Planet, vendored under assets/vendor/simple_planet
-## and documented in docs/14. It is a spatial shader that ignores the mesh it is
-## drawn on and intersects a sphere analytically, so the limb is a true circle
-## at any zoom and the surface compresses correctly toward the edge. The mesh is
-## only a volume to get fragments generated in, which is why it is drawn
-## slightly larger than the world it contains and why it needs no texture
-## coordinates.
+## The art is assets/vendor/simple_planet, documented in docs/14. It is a
+## spatial shader that ignores the mesh it is drawn on and intersects a sphere
+## analytically, so the limb is a true circle at any zoom and the surface
+## compresses correctly toward the edge. The mesh is only a volume to get
+## fragments generated in, which is why it is drawn slightly larger than the
+## world it contains and why it needs no texture coordinates.
 ##
-## ONE scene draws all four world types, because one shader does: what separates
-## a gas giant from an ice world here is four colours and six numbers, and both
-## of those are data (data/palette.json worlds, data/tuning.json
-## terrain_view.planets). This replaced four scenes wrapping four different
-## vendored shaders, and CLAUDE.md 4.1 is the reason it is one now.
+## ONE scene draws every kind of world, because one shader does: what separates
+## a volcanic world from an ice one is eight colours and fifteen numbers, and
+## both of those are data (data/palette.json worlds, data/tuning.json
+## terrain_view.planets). Adding a world type touches those two files and
+## data/maps.json, and nothing here.
 ##
 ## This is the same `place(feature)` seam TerrainField calls on every other
-## feature scene. Nothing here is constructed: the mesh, its material and the
-## well ring are all authored in the scene, and this script sets sizes, colours
-## and a seed.
+## feature scene. Nothing is constructed: the mesh, its material and the rings
+## are all authored in the scene, and this script sets sizes, colours and a
+## seed.
 
-## The gas giant's ring is drawn, the other three worlds have none. It is a
-## committed mesh in the scene rather than anything procedural; this only says
-## who gets to show theirs.
+## Which worlds are drawn with a ring. It is a committed mesh in the scene; this
+## only says who gets to show theirs.
 const RINGED: Array[String] = ["gas"]
+
+## The colour slots the shader takes, and the uniform each one feeds. Written
+## once here so a slot cannot be added to the palette file and quietly not
+## reach the shader.
+const COLOR_SLOTS: Dictionary = {
+	"abyss": "abyssColor",
+	"sea": "seaColor",
+	"shore": "shoreColor",
+	"land": "landColor",
+	"peak": "peakColor",
+	"cap": "capColor",
+	"rim": "rimColor",
+	"glow": "glowColor",
+}
+
+## The shape numbers, and the uniform each one feeds.
+const SHAPE_VALUES: Dictionary = {
+	"bands": "bands",
+	"ground_scale": "groundScale",
+	"ground_warp": "groundWarp",
+	"sea_level": "seaLevel",
+	"coast": "coast",
+	"land_band": "landBand",
+	"cap_start": "capStart",
+	"cap_fuzz": "capFuzz",
+	"glow_level": "glowLevel",
+	"distortion": "distortionStrength",
+	"rim_retraction": "rimRetraction",
+	"rim_brightness": "rimBrightness",
+	"spin": "animationSpeed",
+}
 
 
 func place(feature: Dictionary) -> void:
@@ -44,23 +73,20 @@ func place(feature: Dictionary) -> void:
 
 	var mat: ShaderMaterial = ball.material_override
 	mat.set_shader_parameter("radius", body)
-	mat.set_shader_parameter("groundLow", Palette.world_color(variant, "low"))
-	mat.set_shader_parameter("groundMid", Palette.world_color(variant, "mid"))
-	mat.set_shader_parameter("groundHigh", Palette.world_color(variant, "high"))
-	mat.set_shader_parameter("rimColor", Palette.world_color(variant, "rim"))
-	mat.set_shader_parameter("groundSplit", float(shape["split"]))
-	mat.set_shader_parameter("distortionStrength", float(shape["distortion"]))
+	for slot in COLOR_SLOTS:
+		mat.set_shader_parameter(StringName(COLOR_SLOTS[slot]),
+			Palette.world_color(variant, String(slot)))
+	for key in SHAPE_VALUES:
+		mat.set_shader_parameter(StringName(SHAPE_VALUES[key]),
+			float(shape[key]))
 	mat.set_shader_parameter("bandScale",
 		Vector2(float(shape["band_x"]), float(shape["band_y"])))
-	mat.set_shader_parameter("rimRetraction", float(shape["rim_retraction"]))
-	mat.set_shader_parameter("rimBrightness", float(shape["rim_brightness"]))
-	mat.set_shader_parameter("animationSpeed", float(shape["spin"]))
 
 	# Seeded from where the world sits, so two worlds in one arena differ and a
 	# replay shows the same world twice. The simulation places the feature, so
-	# its position is already reproducible. The seed enters the shader where
-	# TIME does, which costs nothing: it reads the same noise field somewhere
-	# else.
+	# its position is already reproducible. The seed offsets the noise field
+	# rather than feeding a generator, which costs nothing: it is the same
+	# field read somewhere else.
 	var hashed: int = absi(int(at.x * 31.0) ^ int(at.y * 17.0))
 	mat.set_shader_parameter("worldSeed", float(hashed % 977) * 0.37)
 
@@ -72,12 +98,15 @@ func place(feature: Dictionary) -> void:
 		var ring_mat: StandardMaterial3D = ring.material_override
 		# Alpha stays where the scene set it: how solid a ring is, is art. Only
 		# its hue follows the world it belongs to.
-		var hue: Color = Palette.world_color(variant, "mid")
+		var hue: Color = Palette.world_color(variant, "land")
 		hue.a = ring_mat.albedo_color.a
 		ring_mat.albedo_color = hue
 
 	var field: Node3D = get_node_or_null("Field")
 	if field != null:
 		var span: float = float(feature["field"])
-		field.scale = Vector3(span, 1.0, span)
+		# A moon's well is small enough to be noise on the display, and the
+		# simulation gives it none, so it simply has no ring.
+		field.visible = span > 0.0
+		field.scale = Vector3(maxf(span, 0.001), 1.0, maxf(span, 0.001))
 		field.position.y = float(view["field_y"])

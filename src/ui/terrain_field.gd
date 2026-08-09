@@ -21,9 +21,12 @@ const SCENES: Dictionary = {
 	"nebula": preload("res://scenes/terrain/nebula.tscn"),
 	"asteroid": preload("res://scenes/terrain/asteroid.tscn"),
 	"planet/terran": preload("res://scenes/terrain/planet.tscn"),
+	"planet/jungle": preload("res://scenes/terrain/planet.tscn"),
+	"planet/volcanic": preload("res://scenes/terrain/planet.tscn"),
 	"planet/ice": preload("res://scenes/terrain/planet.tscn"),
 	"planet/barren": preload("res://scenes/terrain/planet.tscn"),
 	"planet/gas": preload("res://scenes/terrain/planet.tscn"),
+	"planet/moon": preload("res://scenes/terrain/planet.tscn"),
 }
 
 

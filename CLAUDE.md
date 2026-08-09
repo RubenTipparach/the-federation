@@ -384,9 +384,9 @@ exception until it is listed in this section and agreed.
   repository where section 3.1 does not hold pixel for pixel, and it is here
   because it was asked for (2026-08-09): the pixel art worlds were not wanted,
   and a shaded sphere blends by construction. `data/palette.json` `worlds` still
-  decides the four colours each world is built from, `low`, `mid`, `high` and
-  `rim`, and no fifth colour enters from anywhere; what the palette no longer
-  decides is every pixel between them. Nothing else moved: the ships, the
+  decides every colour each world is built from, the five of its surface ramp
+  plus its cap, its limb and its glow, and no other colour enters from
+  anywhere; what the palette no longer decides is the pixels between them. Nothing else moved: the ships, the
   panels, the icons and the effects are all still palette exact, and
   `tools/shiplib.py` `verify()` still fails a build over one stray colour.
   `tools/gen_world_plates.py` used to run the same gate over the rendered

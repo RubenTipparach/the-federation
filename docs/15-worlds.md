@@ -1,8 +1,8 @@
 # 15. Worlds
 
-Concept for each of the four worlds an arena can hold. What the world is, what
-the player reads off it in the two seconds they will spend looking at it, what
-it does to a ship, and which palette entries it is built from.
+Concept for each kind of world an arena can hold. What the world is, what the
+player reads off it in the two seconds they will spend looking at it, what it
+does to a ship, and which palette entries it is built from.
 
 Every picture here is the real thing. `tools/shoot_worlds.gd` instances the same
 `scenes/terrain/planet.tscn` a battle instances, calls the same `place()`, and
@@ -19,18 +19,18 @@ sections 3 and 4. This document is the concept.
 
 ---
 
-## 1. One world, off centre
+## 1. Seven kinds, one of them per battle
 
-![The four worlds](images/worlds/lineup.png)
+![The seven worlds](images/worlds/lineup.png)
 
-An arena holds **exactly one** world today. `data/maps.json` gives the High
-Orbit recipe a count of `[1, 1]`, and the battle seed picks which of the four
-looks it wears. So a player who fights ten orbit battles sees ten worlds and one
-of them at a time, never two together. That is a deliberate starting point
-rather than a limit of the art: a second body would double the number of wells a
-captain has to keep in their head, and the well is the whole point of the map.
+Left to right: terran, jungle, volcanic, ice, barren, gas giant, moon.
 
-**What a world does, whichever one it is.** All four are mechanically identical,
+An arena holds **one** world, plus whatever moons it has caught.
+`data/maps.json` gives the High Orbit recipe a count of `[1, 1]` and a moon
+count of `[0, 2]`, and the battle seed picks which look the world wears. So a
+player who fights ten orbit battles sees ten different systems, one at a time.
+
+**What a world does, whichever one it is.** They are all mechanically identical,
 and that is on purpose for now.
 
 | | |
@@ -45,28 +45,33 @@ own, which is what keeps it stable at any timestep and therefore replayable. A
 captain who ignores it does not fall out of the sky; they arrive somewhere they
 did not steer for, with their firing arcs pointed at nothing.
 
-**The look carries no mechanics.** An ice world pulls exactly as hard as a gas
-giant. Whether that stays true is section 6.
+**A world is data, not code.** Eight colours in `data/palette.json` `worlds` and
+fifteen numbers in `data/tuning.json` `terrain_view.planets`. An eighth kind of
+world is an entry in those two files plus its name in `data/maps.json`. There is
+no new scene and no new script, because one scene and one shader draw all of
+them.
 
-**What a world is made of, as data.** Four colours and six numbers, and nothing
-else. `data/palette.json` `worlds` names the colours as palette roles;
-`data/tuning.json` `terrain_view.planets` holds the shape. A fifth kind of world
-is an entry in those two files, not a line of code and not a new scene.
-
-| Slot | What it paints |
+| Colour slot | What it paints |
 |---|---|
-| `low` | the ground below the split: ocean, deep ice, the floor of a crater field |
-| `mid` | the ground above it |
-| `high` | the peaks of the ramp |
+| `abyss` | the deepest water, or on a volcanic world the lava itself |
+| `sea` | shallower water |
+| `shore` | the coast, the first ground above the waterline |
+| `land` | the bulk of the ground |
+| `peak` | the highest ground |
+| `cap` | polar ice. An empty name means the world has none. |
 | `rim` | the atmosphere at the limb, which is emissive rather than lit |
+| `glow` | ground that emits light. Empty on every world but the volcanic one. |
 
 | Number | What it changes |
 |---|---|
-| `distortion` | how hard the surface bands are warped. Low is banded weather, high is marbled ground. Past about 0.6 it stops making coastlines and starts making noise. |
-| `split` | where low ground gives way to middle ground, so how much ocean there is |
-| `band_x`, `band_y` | how many bands wrap around the world and across it |
+| `bands` | 0 draws continents, 1 draws belts. Only the gas giant wants 1. |
+| `ground_scale`, `ground_warp` | how large the continents are, and how far the noise is dragged before it is read. Warp is what turns blobs into coastlines. |
+| `sea_level`, `coast`, `land_band` | where the water stops, how hard the shoreline is, how much of the ground above it is lowland |
+| `cap_start`, `cap_fuzz` | the latitude the ice begins at and how ragged its edge is. 2.0 means never. |
+| `glow_level` | how much of the lowest ground emits |
+| `distortion`, `band_x`, `band_y` | the shape of the belts, read only when `bands` is above 0 |
 | `rim_retraction`, `rim_brightness` | how tight and how bright the atmosphere is |
-| `spin` | how fast it turns. Zero stands still. |
+| `spin` | how fast the world turns. Zero stands still. |
 
 ---
 
@@ -74,96 +79,153 @@ is an entry in those two files, not a line of code and not a new scene.
 
 ![Three terran worlds and the colours they are built from](images/worlds/terran.png)
 
-**The concept: somebody lives here.** This is the only world of the four that
-implies a reason for the battle. If two fleets are fighting in its well, they
-are fighting over it. Nothing in the simulation says so yet, and the art is
-doing that work on its own.
+**The concept: somebody lives here.** The only world that implies a reason for
+the battle. If two fleets are fighting in its well, they are fighting over it.
+Nothing in the simulation says so yet, and the art is doing that work alone.
 
-**What it reads as at a glance:** deep blue with green and pale land wrapped
-through it, the most colour of any of the four. In a tactical view it is the one
-world that competes with the ships for attention, which is the argument for
-keeping it rare rather than making it the default.
+**What it reads as at a glance:** ocean, with continents on it and ice at both
+poles. It is the busiest of the four rocky worlds and the one that competes with
+the ships for attention, which is the argument for keeping it rare.
 
-`blue` ocean, `green` land, `olive_light` on the heights, `blue_hi` at the limb.
-Its split is the highest of the four at 0.58, which is what puts most of the
-surface under water.
+`navy` and `blue` water, a `teal_gray` coast, `green` land, `olive_light`
+uplands, `cream` caps, `blue_hi` atmosphere. Its sea level is 0.53, the highest
+of any world, which is what puts most of the surface under water.
 
 ---
 
-## 3. Ice
+## 3. Jungle
+
+![Three jungle worlds and the colours they are built from](images/worlds/jungle.png)
+
+**The concept: terran, but further along.** Warmer, wetter, and grown over. The
+water is inland rather than oceanic: lakes and river basins in a continuous
+canopy rather than continents in a sea.
+
+**What it reads as at a glance:** green, edge to edge, with teal water caught in
+the low ground. No ice at all, which is the fastest way to tell it from a terran
+world at a distance.
+
+`teal_deep` and `teal` water, `phos_lo` under the canopy, `green` and
+`green_light` above it, and a `phos` haze at the limb. Its sea level is 0.42
+against terran's 0.53, and it has the finest detail of any world at
+`ground_scale` 3.2.
+
+---
+
+## 4. Volcanic
+
+![Three volcanic worlds and the colours they are built from](images/worlds/volcanic.png)
+
+**The concept: a world still cooling.** Dark rock cut by fissures that have not
+closed. It is the only world in the game that emits its own light, so it is the
+only one with a lit side and a still visible night side.
+
+**What it reads as at a glance:** almost black, with `alert_hi` running through
+the low ground. That glow is emissive, so it survives the terminator: a volcanic
+world on its night side is a dark disc with orange cracks in it.
+
+`alert_hi` in the deepest ground, `clay` on the cooling crust, `bark` and `char`
+rock, `taupe_deep` ash on the peaks, `alert` at the limb. Its sea level is 0.30,
+so most of it is rock and the lava is confined to the lowest third.
+
+---
+
+## 5. Ice
 
 ![Three ice worlds and the colours they are built from](images/worlds/ice.png)
 
 **The concept: a world that used to be terran, or never quite got there.** The
-sheet is the surface, and the darker teal is what shows through where it has
-thinned. It is the quietest of the four and the easiest to read a ship
-silhouette against, because most of it is one bright value.
+sheet reaches almost to the equator and the sea shows through where it has not
+closed over.
 
-**What it reads as at a glance:** bright, cold, low contrast. A hull crossing in
-front of it is a dark shape on white, which is the clearest read in the game.
+**What it reads as at a glance:** bright and cold, mostly one value. A hull
+crossing in front of it is a dark shape on white, which is the clearest read in
+the game.
 
-`teal_deep` under, `gray_blue_light` over, `cream` on the heights, and
-`shield_hi` at the limb. That last one is borrowed from the interface pool
-deliberately, so a frozen world's atmosphere matches the colour a shield is
-drawn in elsewhere.
+`navy_deep` and `blue` water, `gray_blue` and `gray_blue_light` ice, `cream` at
+the top and for the caps, `shield_hi` at the limb. Its `cap_start` is 0.42
+against terran's 0.80, which is what brings the ice down to the tropics.
 
 ---
 
-## 4. Barren
+## 6. Barren
 
 ![Three barren worlds and the colours they are built from](images/worlds/barren.png)
 
 **The concept: nothing happened here and nothing will.** No air worth the name,
-so the limb is nearly unlit: its `rim_brightness` is 0.5 where every other world
-is above 1.3, and that difference alone is what makes it read as airless.
+so the limb is nearly unlit: `rim_brightness` 0.45 where every other world is
+above 1.0, and that one number is what makes it read as airless.
 
-**What it reads as at a glance:** a rock. `char`, `taupe_deep` and `taupe`, no
-hue in it at all. It is the only world with no bright value, so it recedes
-rather than competing, which makes it the right default for a fight about
-something other than the planet.
+**What it reads as at a glance:** a rock. `char` through `taupe`, no hue in it
+anywhere. The only world with no bright value, so it recedes rather than
+competing, which makes it the right default for a fight about something other
+than the planet.
 
 ---
 
-## 5. Gas giant
+## 7. Gas giant
 
 ![Three gas giants and the colours they are built from](images/worlds/gas.png)
 
-**The concept: the one world that is unmistakably not a place to land.** Banded
-weather all the way down, and a ring.
+**The concept: the one world that is unmistakably not a place to land.**
 
 ![The gas giant with its ring, framed wide enough to show it](images/worlds/native/gas-ring.png)
 
-**What it reads as at a glance:** big, striped, warm where every other world is
-cool. `clay_deep` in the deep bands, `gold` and `gold_hi` above them. Its
-`band_y` is 4 against terran's 8, which is what keeps its weather in wide
-horizontal belts rather than breaking it into continents.
+It is the only world with `bands` at 1, which is what puts it on a different
+surface generator from every other world: the vendored whorley flow field rather
+than our continent noise. Warm where every other world is cool: `clay_deep` in
+the deep belts, `bronze`, `gold_deep`, `gold` and `gold_hi` above them.
 
-**The ring is a committed mesh, not part of the shader.** It is
+**The ring is a committed mesh, not part of the shader.**
 `assets/meshes/planet_ring.obj`, a flat annulus written by `tools/gen_meshes.py`
-like every other mesh in the game, tilted in the scene and scaled by
-`terrain_view.ring_span` to nearly twice the body's radius. It takes its colour
-from the world's `mid` role and its transparency from the scene, and it is
-hidden on the other three worlds.
+like every other mesh, tilted in the scene and scaled by `terrain_view.ring_span`
+to nearly twice the body's radius. It takes its colour from the world's `land`
+role and its transparency from the scene, and no other world shows one.
 
 **The ring still does nothing.** The simulation knows about the body and the
-well, and nothing else. A ship flies through the ring with no effect at all,
-which is the one place on this page where the art promises something the rules
-do not deliver. Section 6 has the options.
+well, and nothing else. A ship flies through it with no effect, which is the one
+place on this page where the art promises something the rules do not deliver.
+Section 9 has the options.
 
 ---
 
-## 6. What is not built
+## 8. Moons
 
-**Worlds turn, barely.** Every variant has a `spin` between 0.002 and 0.010,
-which is slow enough that a world visibly moves over a long battle and never
-pulls the eye during a gun duel. It costs nothing: the shader reads the same
-noise field at a different offset. If it turns out to be distracting, the number
-to set to zero is in `data/tuning.json`.
+![Three moons and the colours they are built from](images/worlds/moon.png)
 
-**Looks carry no rules.** The four are mechanically identical, so the variant is
-decoration. The obvious next step is to let each one bend one number: a gas
-giant with a wider, weaker well; a barren rock with a tighter, sharper one; an
-ice world whose surface is survivable where the others are not. That is a
+**The concept: something the world caught.** A moon is not decoration painted
+into the scene: `src/sim/terrain.gd` places it, so it is solid, it collides for
+the same damage the world does, and a replay puts it in the same place.
+
+**A moon is a planet with no well.** Same feature kind, same collision rule,
+same scene, and a field radius of zero, which is exactly what `pull_at()` reads
+as "this one does not tug". That is deliberately not a second kind of feature:
+one code path, one answer to what happens when a hull touches it.
+
+Between zero and two per world, at 16 to 30 percent of its radius, sitting
+between 45 and 85 percent of the way out to the edge of its well. All of that is
+in the High Orbit recipe in `data/maps.json`. They keep clear of the starting
+positions and of each other, using the same acceptance test every solid body
+uses.
+
+`ink` and `char` in the crater floors, `gunmetal` and `taupe_deep` on the
+ground, `bone` on the ridges. It is the finest surface in the game at
+`ground_scale` 4.2, and its `rim_brightness` of 0.15 is the lowest, because a
+moon has no atmosphere at all.
+
+**Nothing orbits.** The arena is a still frame: a moon is placed once at a
+bearing drawn from the battle seed and stays there, like every rock in the
+belt. Moving them would put the view and the simulation in disagreement about
+where a solid body is, which is the one thing terrain must never do.
+
+---
+
+## 9. What is not built
+
+**Looks carry no rules.** Every world pulls and kills identically, so the
+variant is decoration. The obvious next step is to let each one bend one number:
+a gas giant with a wider, weaker well; a barren rock with a tighter, sharper
+one; a volcanic world that damages a hull sitting too close. That is a
 `data/maps.json` change and a `Terrain` change, not an art change, and it wants
 its own design pass rather than an implementer's guess.
 
@@ -171,13 +233,9 @@ its own design pass rather than an implementer's guess.
 the rule that already exists, or the gas giant should be drawn without one.
 Drawing a hazard that is not a hazard teaches a player the wrong thing.
 
-**An arena holds one world.** Two would give a captain a choice of wells to
-fight in, which is a genuinely different map rather than the same map twice. It
-costs one number in `data/maps.json` and a look at whether the placement rules
-still keep the starting positions clear.
+**Moons do not move and have no wells.** Both are defensible now and both are
+the first things to revisit if the orbit map ever needs more than one gravity
+well to think about.
 
-**Terran does not read as terran yet.** It is the weakest of the four: the
-whorley function bands everything, and warping it hard enough to break the bands
-into continents also breaks it into noise. Getting real coastlines means either
-a second noise term in the shader or accepting that these are weather worlds
-rather than mapped ones.
+**An arena holds one world.** Two would give a captain a choice of wells to
+fight in, which is a genuinely different map rather than the same map twice.
