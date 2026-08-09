@@ -204,6 +204,23 @@ float planetDist(vec3 ro, vec3 rd, float turn) {
 	return sphIntersect(ro, rd, vec3(0.0), 1.0 + planetNoise(at));
 }
 
+// THE HEIGHT A WORLD IS PAINTED WITH, whichever field that is: the author's
+// terrain on a rocky world, our belts on a gas giant. It exists because the
+// colour and the normal have to read the SAME field. They did not: the ramp
+// switched to the belts when `bands` came up, and the normal went on
+// differencing terrain that a gas giant never shows, so its bands were painted
+// flat onto a smooth ball and lit by an invisible landscape. One function,
+// two callers (CLAUDE.md 4.1).
+float surfaceHeight(vec3 dirLocal, float turn) {
+	vec3 turnedDir = rotateY(turn) * dirLocal;
+	float terrain = 5.0 * planetNoise(turnedDir);
+	if (bands <= 0.0) {
+		return terrain;
+	}
+	float belt = beltHeight(normalize(turnedDir), turn) * iceLevel * 1.6;
+	return mix(terrain, belt, bands);
+}
+
 // The author's idea, our arithmetic (change 8). He gets the normal by
 // differencing the ray sphere intersection itself, three more traces around the
 // hit. That is elegant and it is written for his coordinate convention: ported
@@ -215,16 +232,17 @@ float planetDist(vec3 ro, vec3 rd, float turn) {
 // HEIGHT rather than the distance, along two tangents, and bends the sphere
 // normal by that slope. Same terrain, same mountains catching the same light,
 // and the direction cannot be wrong because it starts from the outward normal.
-vec3 planetNormal(vec3 p, float turn) {
+vec3 planetNormal(vec3 p, float turn, float here) {
+	if (reliefStrength <= 0.0) {
+		return normalize(p);
+	}
 	vec3 outward = normalize(p);
 	vec3 pole = abs(outward.y) > 0.99 ? vec3(1.0, 0.0, 0.0) : vec3(0.0, 1.0, 0.0);
 	vec3 tanU = normalize(cross(pole, outward));
 	vec3 tanV = cross(outward, tanU);
-	mat3 turned = rotateY(turn);
 	float e = 0.02;
-	float here = planetNoise(turned * outward);
-	float du = (planetNoise(turned * normalize(outward + tanU * e)) - here) / e;
-	float dv = (planetNoise(turned * normalize(outward + tanV * e)) - here) / e;
+	float du = (surfaceHeight(normalize(outward + tanU * e), turn) - here) / e;
+	float dv = (surfaceHeight(normalize(outward + tanV * e), turn) - here) / e;
 	return normalize(outward - (tanU * du + tanV * dv) * reliefStrength);
 }
 
@@ -261,10 +279,9 @@ void fragment() {
 		DEPTH = (clipPos.z / clipPos.w) * 0.5 + 0.5;
 
 		vec3 turned = rotateY(turn) * hit;
-		float altitude = 5.0 * planetNoise(turned);
-
 		// Change 4: a gas giant has no coastline, so its height is the belts.
-		altitude = mix(altitude, beltHeight(normalize(turned), turn) * iceLevel * 1.6, bands);
+		// One call, because the normal below reads the same number.
+		float altitude = surfaceHeight(hit, turn);
 
 		// The author's ramp, with change 3: every colour is a palette role.
 		float half_transition = transitionWidth / 2.0;
@@ -291,7 +308,7 @@ void fragment() {
 			albedo = mix(albedo, cloudColor, density);
 		}
 
-		vec3 normal = planetNormal(hit, turn);
+		vec3 normal = planetNormal(hit, turn, altitude);
 		float lit = dot(normal, normalize(sunDirection));
 		// The author's softened terminator: the power is not physical and it
 		// reads better than the straight lambert it replaces.
