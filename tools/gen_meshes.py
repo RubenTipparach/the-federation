@@ -182,6 +182,19 @@ def ring():
     o.write("ring.obj", "Unit range ring band")
 
 
+def planet_ring():
+    """A gas giant's ring: a wide flat annulus, not the hairline the range
+    rings use. Unit OUTER radius, so src/ui/planet_body.gd scales it by the
+    reach it wants and the inner edge lands clear of the world's limb.
+
+    Two sided is the shader's business rather than the mesh's: the material
+    turns culling off, so one band of triangles serves both the top of the ring
+    and the underside seen from below the combat plane."""
+    o = Obj()
+    flat_band(o, 0, 360, 0.74, 1.0, 96)
+    o.write("planet_ring.obj", "Unit gas giant ring band, 0.74 to 1.0 across")
+
+
 def quad():
     """A unit quad lying flat on the battle plane, facing up.
 
@@ -560,6 +573,7 @@ def main():
     arc_glow()
     turn_arc()
     ring()
+    planet_ring()
     quad()
     billboard()
     disc()

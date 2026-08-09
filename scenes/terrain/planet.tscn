@@ -1,0 +1,68 @@
+[gd_scene load_steps=7 format=3]
+
+; A world. One scene draws all four kinds, because one shader does.
+;
+; Body is a sphere the shader does not actually use as geometry: Simple Spatial
+; Planet (assets/vendor/simple_planet, docs/14) ray traces a sphere and only
+; needs fragments generated somewhere in front of it, which is why the mesh is
+; scaled larger than the world it holds. It is a committed .obj either way.
+;
+; Ring is the gas giant's, hidden on every other world. It is a committed mesh
+; of its own rather than the well's hairline ring, because a gas giant's ring is
+; a wide band and the well's is a line.
+;
+; Field is the ring marking where the well starts, and it lies on the combat
+; plane rather than facing the camera, because unlike the planet a well is
+; genuinely flat.
+;
+; Every colour and every number here is set from data by src/ui/planet_body.gd:
+; the values below are only what the editor shows before a battle places one.
+
+[ext_resource type="Script" path="res://src/ui/planet_body.gd" id="1"]
+[ext_resource type="ArrayMesh" path="res://assets/meshes/sphere.obj" id="2"]
+[ext_resource type="Shader" path="res://assets/vendor/simple_planet/planet.gdshader" id="3"]
+[ext_resource type="ArrayMesh" path="res://assets/meshes/ring.obj" id="4"]
+[ext_resource type="ArrayMesh" path="res://assets/meshes/planet_ring.obj" id="6"]
+[ext_resource type="Material" path="res://assets/materials/mat_well_ring.tres" id="5"]
+
+[sub_resource type="ShaderMaterial" id="planet"]
+shader = ExtResource("3")
+shader_parameter/radius = 50.0
+shader_parameter/rimRetraction = 4.0
+shader_parameter/rimBrightness = 1.5
+shader_parameter/rimColor = Color(0.494, 0.663, 0.812, 1)
+shader_parameter/animationSpeed = 0.004
+shader_parameter/distortionStrength = 0.3
+shader_parameter/groundLow = Color(0.141, 0.322, 0.451, 1)
+shader_parameter/groundMid = Color(0.373, 0.482, 0.325, 1)
+shader_parameter/groundHigh = Color(0.635, 0.624, 0.494, 1)
+shader_parameter/groundSplit = 0.46
+shader_parameter/bandScale = Vector2(20, 5)
+shader_parameter/worldSeed = 0.0
+
+[sub_resource type="StandardMaterial3D" id="ring"]
+transparency = 1
+shading_mode = 0
+cull_mode = 2
+albedo_color = Color(0.651, 0.533, 0.29, 0.45)
+
+[node name="Planet" type="Node3D"]
+script = ExtResource("1")
+
+[node name="Body" type="MeshInstance3D" parent="."]
+mesh = ExtResource("2")
+material_override = SubResource("planet")
+cast_shadow = 0
+extra_cull_margin = 16384.0
+
+[node name="Ring" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.966, 0.259, 0, -0.259, 0.966, 0, 0, 0)
+mesh = ExtResource("6")
+material_override = SubResource("ring")
+cast_shadow = 0
+visible = false
+
+[node name="Field" type="MeshInstance3D" parent="."]
+mesh = ExtResource("4")
+material_override = ExtResource("5")
+cast_shadow = 0

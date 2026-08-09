@@ -393,9 +393,31 @@
   },
   "fx_note": "Colour ramps for the effect sprite sheets, hottest entry first. A ramp is named here rather than written into a generator so that a palette swap stays a one file change (CLAUDE.md 3.1). Entries resolve against colors and ui_colors together, because the hot end of a fire is the same orange every critical readout in the interface already wears, and naming a second one would be inventing a colour.",
   "fx": {
-    "explosion": ["cream", "gold_hi", "alert_hi", "alert", "clay", "clay_deep", "maroon", "bark", "char"],
-    "plasma": ["cream", "blue_hi", "blue_light", "blue", "navy"],
-    "supernova": ["cream", "rose_hi", "wine_hi", "wine", "plum"]
+    "explosion": [
+      "cream",
+      "gold_hi",
+      "alert_hi",
+      "alert",
+      "clay",
+      "clay_deep",
+      "maroon",
+      "bark",
+      "char"
+    ],
+    "plasma": [
+      "cream",
+      "blue_hi",
+      "blue_light",
+      "blue",
+      "navy"
+    ],
+    "supernova": [
+      "cream",
+      "rose_hi",
+      "wine_hi",
+      "wine",
+      "plum"
+    ]
   },
   "ramps_note": [
     "Lookup ramps for the sky shader, baked to assets/textures/sky_ramps.png by",
@@ -485,46 +507,30 @@
     ]
   },
   "worlds": {
-    "_note": "Colours for the pixel planet shaders vendored from Deep-Fold (docs/14). Each entry is the ordered list that world type's set_colors expects, and the vendored script decides where the slices fall. The shaders never blend: every pixel they emit is exactly one of these, dithered against its neighbour, so a world is made of palette entries and nothing else (CLAUDE.md 3.1). Within each band the order is lit side first, shadow last.",
-    "terran": [
-      "teal_gray",
-      "blue_light",
-      "blue",
-      "olive_light",
-      "green_light",
-      "green",
-      "teal_deep",
-      "cream",
-      "bone",
-      "taupe",
-      "gray_blue"
-    ],
-    "ice": [
-      "cream",
-      "bone",
-      "gray_blue_light",
-      "shield_hi",
-      "teal",
-      "teal_deep",
-      "cream",
-      "bone",
-      "gray_blue_light",
-      "gray_blue"
-    ],
-    "barren": [
-      "taupe",
-      "taupe_deep",
-      "moss_gray",
-      "drab_deep",
-      "char"
-    ],
-    "gas": [
-      "gold_hi",
-      "gold",
-      "bronze",
-      "clay_deep",
-      "bark",
-      "plum"
-    ]
+    "_note": "How each world is coloured, as palette role names (CLAUDE.md 3.1). The planet shader ramps a surface height through low, mid and high, and lights the limb with rim. These four names are the whole look of a world: adding a fifth kind of world is an entry here, never code (CLAUDE.md 5.4). The shape of a world, as opposed to its colour, is terrain_view.planets in data/tuning.json. NOTE that the shader BLENDS between these, so a world is not made only of palette entries the way the ships and the panels are; that is the documented exception in CLAUDE.md section 7.",
+    "terran": {
+      "low": "blue",
+      "mid": "green",
+      "high": "olive_light",
+      "rim": "blue_hi"
+    },
+    "ice": {
+      "low": "teal_deep",
+      "mid": "gray_blue_light",
+      "high": "cream",
+      "rim": "shield_hi"
+    },
+    "barren": {
+      "low": "char",
+      "mid": "taupe_deep",
+      "high": "taupe",
+      "rim": "taupe_deep"
+    },
+    "gas": {
+      "low": "clay_deep",
+      "mid": "gold",
+      "high": "gold_hi",
+      "rim": "gold_hi"
+    }
   }
 }

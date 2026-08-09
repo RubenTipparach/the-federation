@@ -380,6 +380,20 @@ exception until it is listed in this section and agreed.
   scene children, with code doing rotation in 30 degree steps, scaling, and authored
   material selection only. This is the placement pattern section 7 anticipated and it
   keeps section 5.1 intact rather than excepting it.
+- **A world blends between its palette colours.** This is the one place in the
+  repository where section 3.1 does not hold pixel for pixel, and it is here
+  because it was asked for (2026-08-09): the pixel art worlds were not wanted,
+  and a shaded sphere blends by construction. `data/palette.json` `worlds` still
+  decides the four colours each world is built from, `low`, `mid`, `high` and
+  `rim`, and no fifth colour enters from anywhere; what the palette no longer
+  decides is every pixel between them. Nothing else moved: the ships, the
+  panels, the icons and the effects are all still palette exact, and
+  `tools/shiplib.py` `verify()` still fails a build over one stray colour.
+  `tools/gen_world_plates.py` used to run the same gate over the rendered
+  worlds and no longer does, with a comment saying why, so nobody restores the
+  check and concludes the art is broken. See `docs/14-reference-planet-shader.md`
+  section 3.
+
 - **Terrain is committed meshes in committed scenes, placed by code.** The three
   feature scenes under `scenes/terrain/` are authored `.tscn` files instancing
   `sphere.obj`, `disc.obj`, and `ring.obj` from `tools/gen_meshes.py`, with authored
@@ -514,15 +528,14 @@ from proportion rather than detail, class read from part count, and silhouette
 designed for a top down camera. It names the models it was drawn from and states
 plainly that none of them are in this repository.
 
-**Worlds are drawn by someone else's shaders, under licence.** The planets in the
-tactical view use Deep-Fold's PixelPlanets, MIT licensed, vendored under
-`assets/vendor/pixel_planets/` with its LICENSE beside it.
-`docs/14-reference-pixel-planets.md` records what was taken, the three mechanical
-changes made to it, and why shaders that never blend between their colours are the
-one kind that can satisfy section 3.1.
+**Worlds are drawn by someone else's shader, under licence.** The planets in the
+tactical view use Simple Spatial Planet by Nolkaloid, CC0, vendored under
+`assets/vendor/simple_planet/` with its licence beside it.
+`docs/14-reference-planet-shader.md` records how it works, the two changes made to
+it, the three shaders tried and rejected alongside it, and what it replaced.
 
 This is a different relationship from the one above. Federation Commander is a design
-we read and reimplement; PixelPlanets is code we run. Vendored code keeps its licence
+we read and reimplement; the planet shader is code we run. Vendored code keeps its licence
 file, keeps its upstream API, and is not quietly rewritten, so the diff against the
 original stays readable and it can be updated.
 

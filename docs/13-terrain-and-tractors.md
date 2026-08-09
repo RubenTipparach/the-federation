@@ -185,25 +185,23 @@ than instantly.
 
 A planet is drawn as one of `terran`, `ice`, `barren`, or `gas`, chosen by the battle seed
 like everything else, so a replay shows the same world. The list lives in
-`data/maps.json` beside the recipe, and adding a fourth kind is an entry there
-plus a scene to draw it.
+`data/maps.json` beside the recipe, and adding a fifth kind is an entry there
+plus four colours and six numbers. There is no new scene and no new code: one
+scene and one shader draw all of them.
 
-They are pixel art, drawn by shaders vendored from Deep-Fold under the MIT
-licence and documented in
-[14-reference-pixel-planets.md](14-reference-pixel-planets.md). Those shaders are
-2D, so each world renders into its own small viewport and is shown on a card that
-faces the camera. That is not an approximation of a sphere: a sphere projects to a
-circle from every direction, so a camera facing card is exactly the shape of one.
-What it buys is that a planet is now made of the same chunky pixels as the ships
-and the panels.
+They are real spheres, drawn by a shader vendored under CC0 and documented in
+[14-reference-planet-shader.md](14-reference-planet-shader.md). It ray traces a
+sphere rather than shading the mesh it is drawn on, so the limb is a true circle
+at any zoom, the surface compresses correctly toward the edge, and the world can
+turn.
 
-They never blend between their colours, which is why they can be used at all here:
-feed them palette entries and every pixel they emit is a palette entry
-(CLAUDE.md 3.1). The lists live in `data/palette.json` under `worlds`.
+What each world looks like is [15-worlds.md](15-worlds.md). Colours come from
+`data/palette.json` under `worlds`; shape comes from `data/tuning.json` under
+`terrain_view.planets`.
 
 Nothing about this is gameplay: a gas giant pulls and kills exactly like a rock
-one. The variant is what it looks like, which is why it is a whole authored
-scene per kind rather than a material the code swaps in.
+one. The variant is only what it looks like, which is why it is data rather than
+a scene of its own.
 
 ### 4.4 A planet is not cover
 

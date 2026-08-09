@@ -11,9 +11,21 @@
     "_arc_note": "The firing envelope in the 3D view, drawn at TRUE weapon reach: the rim of a run IS how far those guns shoot, so there is no separate scale to learn and no rosette to translate. What made a true scale arc unreadable before was that it was a filled slab most of the width of the arena, so the fill is now almost nothing and the shape is carried by a wire outline. Sectors covered by the same set of weapons are outlined ONCE as a run (ShipState.envelope_runs), which turns twelve nested wedges into four to six shapes on a typical hull.",
     "_arc_state_note": "Three states of the same outline, because the colour is already saying friend or foe and a second colour axis would fight it. fitted is an outline you can see the battle through, ready means a weapon covering that run could fire at the current target this instant, and hover is the run belonging to the weapon the player is pointing at in the ship display. fill is the alpha of the wash inside the run, line the alpha of the outline, and px its weight in PIXELS rather than sim units, so a 288 unit run and a 160 unit one are drawn with the same pen at any zoom.",
     "arc_states": {
-      "fitted": { "fill": 0.07, "line": 0.42, "px": 1.4 },
-      "ready": { "fill": 0.17, "line": 1.0, "px": 2.6 },
-      "hover": { "fill": 0.26, "line": 1.0, "px": 4.6 }
+      "fitted": {
+        "fill": 0.07,
+        "line": 0.42,
+        "px": 1.4
+      },
+      "ready": {
+        "fill": 0.17,
+        "line": 1.0,
+        "px": 2.6
+      },
+      "hover": {
+        "fill": 0.26,
+        "line": 1.0,
+        "px": 4.6
+      }
     },
     "_arc_fill_note": "fill above is the alpha at the ship, and arc_fill_edge is what is left of it at the rim. It thins with distance because the reach is carried by the outline rather than by the wash, and a flat fill has to choose between being invisible from inside the sector and being a slab most of the arena wide out at the rim. Fading it is how one number stops having to be both.",
     "arc_fill_edge": 0.22,
@@ -205,10 +217,50 @@
     "placement_tries": 60
   },
   "terrain_view": {
-    "_comment": "How terrain is drawn, as opposed to what it does. The simulation owns every position and radius; only the vertical proportion of a cloud and the floor on a drawn rock are view decisions, and they live here rather than in an inspector field (CLAUDE.md 5.4).",
+    "_comment": "How terrain is drawn, as opposed to what it does. The simulation owns every position and radius; only the vertical proportion of a cloud, the floor on a drawn rock, and the shape of a world are view decisions, and they live here rather than in an inspector field (CLAUDE.md 5.4). planets holds one entry per world variant: distortion is how far the surface bands are warped, split is where low ground gives way to middle ground, band_x and band_y are how many bands wrap around and across, rim_retraction and rim_brightness are the atmosphere at the limb, and spin is how fast the world turns (0 stands still). Colour is the worlds role map in data/palette.json.",
     "nebula_flatten": 0.5,
     "body_min_radius": 5.5,
-    "field_y": 0.3
+    "field_y": 0.3,
+    "mesh_slack": 1.2,
+    "ring_span": 1.9,
+    "planets": {
+      "terran": {
+        "distortion": 0.52,
+        "split": 0.58,
+        "band_x": 10.0,
+        "band_y": 8.0,
+        "rim_retraction": 4.0,
+        "rim_brightness": 1.5,
+        "spin": 0.004
+      },
+      "ice": {
+        "distortion": 0.5,
+        "split": 0.38,
+        "band_x": 11.0,
+        "band_y": 8.0,
+        "rim_retraction": 4.0,
+        "rim_brightness": 1.3,
+        "spin": 0.003
+      },
+      "barren": {
+        "distortion": 0.34,
+        "split": 0.42,
+        "band_x": 13.0,
+        "band_y": 13.0,
+        "rim_retraction": 6.0,
+        "rim_brightness": 0.5,
+        "spin": 0.002
+      },
+      "gas": {
+        "distortion": 0.4,
+        "split": 0.5,
+        "band_x": 16.0,
+        "band_y": 4.0,
+        "rim_retraction": 4.0,
+        "rim_brightness": 1.6,
+        "spin": 0.01
+      }
+    }
   },
   "tractor": {
     "_comment": "docs/13 section 6. The bid is whatever the tractor power sink holds, so there is no separate currency. break_seconds is how long the breaker must stay ahead before the beam snaps, which is what makes the struggle readable instead of a coin flip on one tick.",
@@ -231,8 +283,18 @@
   },
   "repair": {
     "_comment": "Federation Commander 5G3 prices a repair by what kind of box it is, weapons dearest and hull cheapest. The ordering is theirs, the numbers are ours. seconds_per_box is our replacement for their per turn repair points, because a real time game has no Repair Phase to spend them in. 5G3 also says shields cannot be repaired this way, which is why there is no shield entry: they are bought with energy instead (combat.shield_energy_per_box).",
-    "parts_per_box": { "weapon": 4, "power": 3, "control": 2, "hull": 1 },
-    "seconds_per_box": { "weapon": 9.0, "power": 7.0, "control": 5.0, "hull": 3.0 }
+    "parts_per_box": {
+      "weapon": 4,
+      "power": 3,
+      "control": 2,
+      "hull": 1
+    },
+    "seconds_per_box": {
+      "weapon": 9.0,
+      "power": 7.0,
+      "control": 5.0,
+      "hull": 3.0
+    }
   },
   "power": {
     "sinks": [

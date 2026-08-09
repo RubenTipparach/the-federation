@@ -12,18 +12,18 @@ extends Node3D
 ## through a second painter that could disagree with this one.
 
 ## Keyed by kind, and by "kind/variant" where a kind comes in more than one
-## look. A variant is a whole authored scene rather than a material swapped in
-## by code, because what differs between a gas giant and an ice world is not
-## only its colour: they are drawn by different shaders layered differently, the
-## gas giant carries a ring three times its own width, and the barren world has
-## no weather at all. That belongs in the scene that draws it (CLAUDE.md 5.2).
+## look. The four worlds all name the same scene: one shader draws every kind of
+## world now, and what separates a gas giant from an ice world is four colours
+## and six numbers, both of them data. They stay listed one by one rather than
+## collapsing to "planet", because scene_for() naming a variant nothing can draw
+## is how a typo in data/maps.json is caught (CLAUDE.md 4.1).
 const SCENES: Dictionary = {
 	"nebula": preload("res://scenes/terrain/nebula.tscn"),
 	"asteroid": preload("res://scenes/terrain/asteroid.tscn"),
-	"planet/terran": preload("res://scenes/terrain/planet_terran.tscn"),
-	"planet/ice": preload("res://scenes/terrain/planet_ice.tscn"),
-	"planet/barren": preload("res://scenes/terrain/planet_barren.tscn"),
-	"planet/gas": preload("res://scenes/terrain/planet_gas.tscn"),
+	"planet/terran": preload("res://scenes/terrain/planet.tscn"),
+	"planet/ice": preload("res://scenes/terrain/planet.tscn"),
+	"planet/barren": preload("res://scenes/terrain/planet.tscn"),
+	"planet/gas": preload("res://scenes/terrain/planet.tscn"),
 }
 
 
