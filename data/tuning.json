@@ -217,7 +217,7 @@
     "placement_tries": 60
   },
   "terrain_view": {
-    "_comment": "How terrain is drawn, as opposed to what it does. The simulation owns every position and radius; only the vertical proportion of a cloud, the floor on a drawn rock, and the shape of a world are view decisions, and they live here rather than in an inspector field (CLAUDE.md 5.4). planets holds one entry per world variant, and the names come from the shader this was ported from (docs/14). terrain_scale and noise_strength are how fine and how tall the ground is. water_level, sand_level, tree_level, rock_level and ice_level are the altitudes each colour takes over at, and transition is how wide the blend between them is; a level set above what the terrain can reach simply never appears, which is how a world has no ice. clouds_density of 0 skips the cloud layer and its cost entirely. atmosphere_density and shell are how thick the air is and how far past the body its glow reaches. sun_intensity and ambient are how hard the star hits and how much light the dark side keeps. glow_level is how much of the lowest ground stays lit at night. bands, band_x, band_y and distortion are the gas giant's belts and are read only when bands is above 0. spin is how fast the world turns.",
+    "_comment": "How terrain is drawn, as opposed to what it does. The simulation owns every position and radius; only the vertical proportion of a cloud, the floor on a drawn rock, and the shape of a world are view decisions, and they live here rather than in an inspector field (CLAUDE.md 5.4). planets holds one entry per world variant, and the names come from the shader this was ported from (docs/14). terrain_scale and noise_strength are how fine and how tall the ground is. water_level, sand_level, tree_level, rock_level and ice_level are the altitudes each colour takes over at, and transition is how wide the blend between them is; a level set above what the terrain can reach simply never appears, which is how a world has no ice. clouds_density of 0 skips the cloud layer and its cost entirely. atmosphere_density and shell are how thick the air is and how far past the body its glow reaches. sun_intensity and ambient are how hard the star hits and how much light the dark side keeps. glow_level is how much of the lowest ground stays lit at night. bands, band_x, band_y and distortion are the gas giant's belts and are read only when bands is above 0. spin is how fast the world turns. ring_density, ring_gap, ring_gap_width and ring_detail shape a gas giant's ring; which worlds have one at all is the ring colour role in data/palette.json.",
     "nebula_flatten": 0.5,
     "body_min_radius": 5.5,
     "field_y": 0.3,
@@ -246,7 +246,11 @@
         "band_y": 4.0,
         "distortion": 0.4,
         "spin": 0.02,
-        "relief": 1.8
+        "relief": 1.8,
+        "ring_density": 0.0,
+        "ring_gap": 0.44,
+        "ring_gap_width": 0.075,
+        "ring_detail": 9.0
       },
       "jungle": {
         "terrain_scale": 3.6,
@@ -270,7 +274,11 @@
         "band_y": 4.0,
         "distortion": 0.4,
         "spin": 0.02,
-        "relief": 1.8
+        "relief": 1.8,
+        "ring_density": 0.0,
+        "ring_gap": 0.44,
+        "ring_gap_width": 0.075,
+        "ring_detail": 9.0
       },
       "volcanic": {
         "terrain_scale": 3.2,
@@ -294,7 +302,11 @@
         "band_y": 4.0,
         "distortion": 0.4,
         "spin": 0.02,
-        "relief": 2.4
+        "relief": 2.4,
+        "ring_density": 0.0,
+        "ring_gap": 0.44,
+        "ring_gap_width": 0.075,
+        "ring_detail": 9.0
       },
       "ice": {
         "terrain_scale": 2.6,
@@ -318,7 +330,11 @@
         "band_y": 4.0,
         "distortion": 0.4,
         "spin": 0.02,
-        "relief": 1.4
+        "relief": 1.4,
+        "ring_density": 0.0,
+        "ring_gap": 0.44,
+        "ring_gap_width": 0.075,
+        "ring_detail": 9.0
       },
       "barren": {
         "terrain_scale": 4.2,
@@ -342,7 +358,11 @@
         "band_y": 4.0,
         "distortion": 0.4,
         "spin": 0.02,
-        "relief": 3.0
+        "relief": 3.0,
+        "ring_density": 0.0,
+        "ring_gap": 0.44,
+        "ring_gap_width": 0.075,
+        "ring_detail": 9.0
       },
       "gas": {
         "terrain_scale": 8.0,
@@ -366,7 +386,11 @@
         "band_y": 4.0,
         "distortion": 0.4,
         "spin": 0.06,
-        "relief": 0.0
+        "relief": 0.0,
+        "ring_density": 0.62,
+        "ring_gap": 0.44,
+        "ring_gap_width": 0.075,
+        "ring_detail": 9.0
       },
       "moon": {
         "terrain_scale": 5.4,
@@ -390,7 +414,11 @@
         "band_y": 4.0,
         "distortion": 0.4,
         "spin": 0.01,
-        "relief": 2.4
+        "relief": 2.4,
+        "ring_density": 0.0,
+        "ring_gap": 0.44,
+        "ring_gap_width": 0.075,
+        "ring_detail": 9.0
       }
     }
   },

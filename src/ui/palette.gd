@@ -142,7 +142,9 @@ static func world_color(variant: String, slot: String) -> Color:
 	# glowing fissures. Black is what switches those off in the shader, and it
 	# is a real answer rather than a missing one, so it is not an assert.
 	if role.is_empty():
-		return Color(0.0, 0.0, 0.0)
+		# Alpha 0 is the "this world has none of that" answer. Every real entry
+		# comes back opaque, so a caller can ask either question of one value.
+		return Color(0.0, 0.0, 0.0, 0.0)
 	return named(role)
 
 

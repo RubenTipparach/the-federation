@@ -195,6 +195,14 @@ like every other mesh, tilted in the scene and scaled by `terrain_view.ring_span
 to nearly twice the body's radius. It takes its colour from the world's `land`
 role and its transparency from the scene, and no other world shows one.
 
+**The ring is drawn by its own shader** (`assets/shaders/planet_ring.gdshader`,
+ours rather than vendored). It reads the same 3D noise field the planet does,
+sampled along one axis only, so it comes out as concentric bands rather than
+blotches; it has one division swept clear through it; and the world casts a
+shadow across it, which is the only cue that says where the star is when the
+planet's own terminator is off screen. Which worlds have a ring is the `ring`
+colour role in `data/palette.json`: name a colour and the world has one.
+
 **The ring still does nothing.** The simulation knows about the body and the
 well, and nothing else. A ship flies through it with no effect, which is the one
 place on this page where the art promises something the rules do not deliver.
@@ -233,32 +241,35 @@ where a solid body is, which is the one thing terrain must never do.
 
 ---
 
-## 9. Open: one world does not draw in a battle
+## 9. The bug that ate a world, and what it was
 
-The plates on this page are all correct, and moons draw correctly in a live
-battle. **One world in the tactical view renders as an absent disc**, its
-gravity well ring and its atmosphere glow present and its body missing. It is
-recorded here rather than left to be rediscovered.
+For a while one world in the tactical view rendered as an absent disc: its
+gravity well ring and its atmosphere glow present, its body missing. It is
+written down here because the cause is a trap that will be laid again.
 
-What has been ruled out by measurement, so nobody repeats it:
+**A scene sub resource is shared by every instance of that scene** unless it is
+marked local to it. All three of a world's materials were sub resources of
+`scenes/terrain/planet.tscn`, so every world in an arena wrote its radius and
+its colours into the same material and the last one placed won. Moons are placed
+after the world they belong to, so a gas giant beside a moon was drawn at the
+moon's radius: a body a fifth the size it should be, at tactical range, inside
+its own correctly sized ring. It looked exactly like a world that had failed to
+render, which is why it took so long to see.
 
-- **Not the shader.** The same variant, at the same body radius, with the sun
-  direction and camera position read out of a real battle, renders correctly in
-  an isolated viewport.
-- **Not the distance.** Bodies were rendered at 90, 200, 400 and 800 units and
-  the lit pixel count falls off exactly as the apparent area does.
-- **Not the sun.** That WAS a bug, and it is fixed: `TerrainField` used to find
-  the light by group, and the group held the previous battle's freed Sun, so
-  every world quietly lit itself from a default direction. It now resolves the
-  light as a sibling, which cannot go stale.
-- **Not the noise texture or the sampler**, both probed directly and returning
-  real values under `gl_compatibility`.
+Two things came out of it. `resource_local_to_scene = true` on the three
+materials, with a comment in the scene saying why. And a test,
+`test_planet_materials` in `tests/run_tests.gd`, that places a world and a moon
+and asserts they do not share a material and each kept its own radius.
 
-What has not been checked: whether the body is being drawn and blended away
-rather than not drawn at all. Both the body and the atmosphere write `ALPHA`,
-which puts them in Godot's transparent queue where they do not write depth and
-are sorted by origin, and they share an origin. That is the next thing to look
-at.
+The noise texture is deliberately NOT local: one field shared by every world is
+the whole point of it.
+
+A second bug was found on the way and is worth the same note. The body writes
+`ALPHA`, and writing `ALPHA` at all puts a Godot material in the transparent
+queue, where it does not write depth and is sorted against other transparents by
+object origin. A world and its own atmosphere shell share an origin, so that
+sort was a coin toss. An `ALPHA_SCISSOR_THRESHOLD` makes the material opaque
+again.
 
 ---
 

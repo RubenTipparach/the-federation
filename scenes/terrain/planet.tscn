@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene load_steps=11 format=3]
 
 ; A world. One scene draws every kind, because one shader does.
 ;
@@ -21,11 +21,21 @@
 ;
 ; Every colour and every number here is set from data by src/ui/planet_body.gd:
 ; the values below are only what the editor shows before a battle places one.
+;
+; THE THREE MATERIALS ARE LOCAL TO THE SCENE, and that is not decoration. A
+; sub resource is SHARED by every instance of a scene unless it says otherwise,
+; so without this line every world in an arena wrote its colours and its radius
+; into one material and the last one placed won. A gas giant with a moon was
+; drawn at the moon's radius, which at tactical range is a body so small it
+; reads as missing: its ring and its atmosphere were still there, at the right
+; size, around nothing. The noise texture below is deliberately NOT local,
+; because one field shared by every world is the point of it.
 
 [ext_resource type="Script" path="res://src/ui/planet_body.gd" id="1"]
 [ext_resource type="ArrayMesh" path="res://assets/meshes/sphere.obj" id="2"]
 [ext_resource type="Shader" path="res://assets/vendor/realtime_planet/planet.gdshader" id="3"]
 [ext_resource type="Shader" path="res://assets/vendor/realtime_planet/atmosphere.gdshader" id="7"]
+[ext_resource type="Shader" path="res://assets/shaders/planet_ring.gdshader" id="8"]
 [ext_resource type="ArrayMesh" path="res://assets/meshes/ring.obj" id="4"]
 [ext_resource type="ArrayMesh" path="res://assets/meshes/planet_ring.obj" id="6"]
 [ext_resource type="Material" path="res://assets/materials/mat_well_ring.tres" id="5"]
@@ -44,6 +54,7 @@ seamless = true
 noise = SubResource("noise")
 
 [sub_resource type="ShaderMaterial" id="planet"]
+resource_local_to_scene = true
 shader = ExtResource("3")
 shader_parameter/radius = 50.0
 shader_parameter/sunDirection = Vector3(0, 0, 1)
@@ -77,6 +88,7 @@ shader_parameter/spin = 0.02
 shader_parameter/worldSeed = 0.0
 
 [sub_resource type="ShaderMaterial" id="air"]
+resource_local_to_scene = true
 shader = ExtResource("7")
 render_priority = 1
 shader_parameter/radius = 50.0
@@ -85,11 +97,21 @@ shader_parameter/sunIntensity = 1.7
 shader_parameter/atmosphereColor = Color(0.494, 0.663, 0.812, 1)
 shader_parameter/atmosphereDensity = 1.0
 
-[sub_resource type="StandardMaterial3D" id="ring"]
-transparency = 1
-shading_mode = 0
-cull_mode = 2
-albedo_color = Color(0.651, 0.533, 0.29, 0.45)
+[sub_resource type="ShaderMaterial" id="ring"]
+resource_local_to_scene = true
+shader = ExtResource("8")
+shader_parameter/noiseTexture = SubResource("noise_tex")
+shader_parameter/innerEdge = 0.74
+shader_parameter/ringColor = Color(0.565, 0.424, 0.188, 1)
+shader_parameter/ringColorAlt = Color(0.851, 0.722, 0.4, 1)
+shader_parameter/ringDensity = 0.62
+shader_parameter/ringGap = 0.44
+shader_parameter/ringGapWidth = 0.075
+shader_parameter/ringDetail = 9.0
+shader_parameter/worldSeed = 0.0
+shader_parameter/planetRadius = 50.0
+shader_parameter/sunDirection = Vector3(0, 0, 1)
+shader_parameter/shadowDepth = 0.82
 
 [node name="Planet" type="Node3D"]
 script = ExtResource("1")

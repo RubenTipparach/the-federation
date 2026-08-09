@@ -233,6 +233,14 @@ vec3 transformDir(mat4 mtx, vec3 vec) {
 }
 
 void fragment() {
+	// A SCISSOR, not a blend. Writing ALPHA at all puts a Godot material in the
+	// transparent queue, where it does not write depth and is sorted against
+	// other transparents by object origin. A world and its own atmosphere shell
+	// share an origin, so that sort is a coin toss, and the world lost it: its
+	// body vanished in a battle while its ring and its air stayed. With a
+	// scissor threshold the material is opaque again, it writes depth, and it is
+	// drawn before anything transparent in the scene.
+	ALPHA_SCISSOR_THRESHOLD = 0.5;
 	vec3 ro = CAMERA_POSITION_WORLD;
 	vec3 rd = normalize(transformDir(INV_VIEW_MATRIX, -VIEW));
 	vec3 centre = NODE_POSITION_WORLD;

@@ -507,7 +507,7 @@
     ]
   },
   "worlds": {
-    "_note": "What each world is made of, as palette role names (CLAUDE.md 3.1). The planet shader ramps a surface altitude through abyss, sea, shore, land and peak, puts cap on the highest ground, draws its weather in cloud, lights its limb with rim, and keeps glow on the night side. An empty name means the world has none of that thing. Shape, as opposed to colour, is terrain_view.planets in data/tuning.json, and a new kind of world is an entry in both files and nothing else (CLAUDE.md 5.4). NOTE that the shader BLENDS between these, so a world is not made only of palette entries the way the ships and the panels are; that is the documented exception in CLAUDE.md section 7.",
+    "_note": "What each world is made of, as palette role names (CLAUDE.md 3.1). The planet shader ramps a surface altitude through abyss, sea, shore, land and peak, puts cap on the highest ground, draws its weather in cloud, lights its limb with rim, keeps glow on the night side, and hangs a ring around itself in ring. A world that names no ring colour has no ring. An empty name means the world has none of that thing. Shape, as opposed to colour, is terrain_view.planets in data/tuning.json, and a new kind of world is an entry in both files and nothing else (CLAUDE.md 5.4). NOTE that the shader BLENDS between these, so a world is not made only of palette entries the way the ships and the panels are; that is the documented exception in CLAUDE.md section 7.",
     "terran": {
       "abyss": "navy_deep",
       "sea": "blue",
@@ -517,7 +517,8 @@
       "cap": "cream",
       "cloud": "cream",
       "rim": "blue_hi",
-      "glow": ""
+      "glow": "",
+      "ring": ""
     },
     "jungle": {
       "abyss": "teal_deep",
@@ -528,7 +529,8 @@
       "cap": "bone",
       "cloud": "bone",
       "rim": "phos",
-      "glow": ""
+      "glow": "",
+      "ring": ""
     },
     "volcanic": {
       "abyss": "alert_hi",
@@ -539,7 +541,8 @@
       "cap": "taupe",
       "cloud": "drab_deep",
       "rim": "alert",
-      "glow": "alert_hi"
+      "glow": "alert_hi",
+      "ring": ""
     },
     "ice": {
       "abyss": "navy_deep",
@@ -550,7 +553,8 @@
       "cap": "cream",
       "cloud": "cream",
       "rim": "shield_hi",
-      "glow": ""
+      "glow": "",
+      "ring": ""
     },
     "barren": {
       "abyss": "char",
@@ -561,7 +565,8 @@
       "cap": "bone",
       "cloud": "",
       "rim": "taupe_deep",
-      "glow": ""
+      "glow": "",
+      "ring": ""
     },
     "gas": {
       "abyss": "clay_deep",
@@ -572,7 +577,8 @@
       "cap": "cream",
       "cloud": "",
       "rim": "gold_hi",
-      "glow": ""
+      "glow": "",
+      "ring": "gold_deep"
     },
     "moon": {
       "abyss": "ink",
@@ -583,7 +589,8 @@
       "cap": "bone",
       "cloud": "",
       "rim": "gunmetal",
-      "glow": ""
+      "glow": "",
+      "ring": ""
     }
   }
 }

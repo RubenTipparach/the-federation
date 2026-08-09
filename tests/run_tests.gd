@@ -65,6 +65,7 @@ func _initialize() -> void:
 	test_shields()
 	test_repairs()
 	test_shipyard()
+	test_planet_materials()
 	test_terrain()
 	test_tractors()
 	test_replay()
@@ -504,6 +505,38 @@ func _scripted_battle(record: bool) -> Variant:
 ## The geometry tests build a Terrain by hand rather than by recipe, because a
 ## recipe places bodies randomly and a test of "does a gravity well pull" should
 ## not also be a test of where the planet landed.
+## Two worlds in one arena must not share one material.
+##
+## They did, and it was invisible until a gas giant turned up beside a moon: a
+## scene sub resource is SHARED by every instance of that scene unless it is
+## marked local, so every world wrote its radius and its colours into the same
+## material and the last one placed won. The big world was then drawn at the
+## moon's radius, which at tactical range looks exactly like a world that failed
+## to render, ring and atmosphere still in place around nothing.
+func test_planet_materials() -> void:
+	print("\n== planet materials ==")
+	var scene: PackedScene = load("res://scenes/terrain/planet.tscn")
+	var world: Node3D = scene.instantiate()
+	var moon: Node3D = scene.instantiate()
+	world.place({"pos": Vector2(120.0, -40.0), "body": 50.0, "field": 180.0,
+		"variant": "gas"})
+	moon.place({"pos": Vector2(190.0, 30.0), "body": 11.0, "field": 0.0,
+		"variant": "moon"})
+	var world_mat: ShaderMaterial = world.get_node("Body").material_override
+	var moon_mat: ShaderMaterial = moon.get_node("Body").material_override
+	ok(world_mat != moon_mat, "two worlds do not share one body material")
+	near(float(world_mat.get_shader_parameter("radius")), 50.0,
+		"the world keeps its own radius after a moon is placed")
+	near(float(moon_mat.get_shader_parameter("radius")), 11.0,
+		"the moon keeps its own radius")
+	ok(world.get_node("Ring").visible, "a gas giant shows its ring")
+	ok(not moon.get_node("Ring").visible, "a moon does not")
+	ok(world.get_node("Atmosphere").visible, "a gas giant has air")
+	ok(not moon.get_node("Atmosphere").visible, "a moon has none")
+	world.free()
+	moon.free()
+
+
 func test_terrain() -> void:
 	print("\n== terrain ==")
 

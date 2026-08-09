@@ -21,9 +21,9 @@ extends Node3D
 ## noise texture are all authored in the scene, and this script sets sizes,
 ## colours and a seed.
 
-## Which worlds are drawn with a ring. It is a committed mesh in the scene; this
-## only says who gets to show theirs.
-const RINGED: Array[String] = ["gas"]
+## A world that names a ring colour in data/palette.json has a ring, and one
+## that leaves it empty does not. That is a fact about the world rather than a
+## list in a script, so it lives with the rest of the world's colours.
 
 ## Which way the sun is, as a direction pointing AT it. A world has to be told,
 ## because it does its own lighting: it is drawn unshaded so that it can put an
@@ -121,16 +121,23 @@ func place(feature: Dictionary) -> void:
 			Palette.world_color(variant, "rim"))
 
 	var ring: MeshInstance3D = $Ring
-	ring.visible = variant in RINGED
+	var ring_hue: Color = Palette.world_color(variant, "ring")
+	ring.visible = ring_hue.a > 0.0 and float(shape["ring_density"]) > 0.0
 	if ring.visible:
 		var reach: float = body * float(view["ring_span"])
 		ring.scale = Vector3(reach, 1.0, reach)
-		var ring_mat: StandardMaterial3D = ring.material_override
-		# Alpha stays where the scene set it: how solid a ring is, is art. Only
-		# its hue follows the world it belongs to.
-		var hue: Color = Palette.world_color(variant, "land")
-		hue.a = ring_mat.albedo_color.a
-		ring_mat.albedo_color = hue
+		var ring_mat: ShaderMaterial = ring.material_override
+		ring_mat.set_shader_parameter("ringColor", ring_hue)
+		ring_mat.set_shader_parameter("ringColorAlt",
+			Palette.world_color(variant, "peak"))
+		ring_mat.set_shader_parameter("ringDensity", float(shape["ring_density"]))
+		ring_mat.set_shader_parameter("ringGap", float(shape["ring_gap"]))
+		ring_mat.set_shader_parameter("ringGapWidth", float(shape["ring_gap_width"]))
+		ring_mat.set_shader_parameter("ringDetail", float(shape["ring_detail"]))
+		ring_mat.set_shader_parameter("planetRadius", body)
+		ring_mat.set_shader_parameter("sunDirection", sun)
+		ring_mat.set_shader_parameter("worldSeed",
+			float(hashed % 977) * 0.11)
 
 	var field: Node3D = get_node_or_null("Field")
 	if field != null:
