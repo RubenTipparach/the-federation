@@ -233,7 +233,36 @@ where a solid body is, which is the one thing terrain must never do.
 
 ---
 
-## 9. What is not built
+## 9. Open: one world does not draw in a battle
+
+The plates on this page are all correct, and moons draw correctly in a live
+battle. **One world in the tactical view renders as an absent disc**, its
+gravity well ring and its atmosphere glow present and its body missing. It is
+recorded here rather than left to be rediscovered.
+
+What has been ruled out by measurement, so nobody repeats it:
+
+- **Not the shader.** The same variant, at the same body radius, with the sun
+  direction and camera position read out of a real battle, renders correctly in
+  an isolated viewport.
+- **Not the distance.** Bodies were rendered at 90, 200, 400 and 800 units and
+  the lit pixel count falls off exactly as the apparent area does.
+- **Not the sun.** That WAS a bug, and it is fixed: `TerrainField` used to find
+  the light by group, and the group held the previous battle's freed Sun, so
+  every world quietly lit itself from a default direction. It now resolves the
+  light as a sibling, which cannot go stale.
+- **Not the noise texture or the sampler**, both probed directly and returning
+  real values under `gl_compatibility`.
+
+What has not been checked: whether the body is being drawn and blended away
+rather than not drawn at all. Both the body and the atmosphere write `ALPHA`,
+which puts them in Godot's transparent queue where they do not write depth and
+are sorted by origin, and they share an origin. That is the next thing to look
+at.
+
+---
+
+## 10. What is not built
 
 **Looks carry no rules.** Every world pulls and kills identically, so the
 variant is decoration. The obvious next step is to let each one bend one number:

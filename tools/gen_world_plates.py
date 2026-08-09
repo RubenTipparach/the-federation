@@ -104,6 +104,91 @@ def lineup(ground):
     return canvas
 
 
+# One line about what each world IS. This is prose about the art rather than a
+# setting, so it lives here beside the generator that prints it rather than in
+# data/, and there is still only one copy of it.
+BLURBS = {
+    "terran": "Somebody lives here. The only world that implies a reason for "
+              "the battle: ocean, continents, ice at both poles.",
+    "jungle": "Terran, further along. Canopy edge to edge with the water caught "
+              "inland, and no ice at all, which is how you tell them apart.",
+    "volcanic": "Still cooling. Dark rock cut by fissures that have not closed, "
+                "and the only world that keeps its own light at night.",
+    "ice": "Terran once, or never quite. The sheet reaches the tropics and the "
+           "sea shows through where it has not closed over.",
+    "barren": "Nothing happened here and nothing will. Airless, so its limb is "
+              "a hard edge with no haze on it.",
+    "gas": "Not a place to land. Belts all the way down, and the only world "
+           "with a ring.",
+    "moon": "Something a world caught. Solid, and it collides like one, but it "
+            "has no well of its own.",
+}
+
+
+def index(data):
+    """planets.md: every world, its picture and what it is, on one page.
+
+    Generated rather than written, so it cannot come to disagree with the game
+    the way a hand kept table would."""
+    worlds = data["worlds"]
+    shapes = data["_tuning"]["terrain_view"]["planets"]
+    out = []
+    out.append("# Planets")
+    out.append("")
+    out.append("Every kind of world an arena can hold. **This file is "
+               "generated**: run `./scripts/gen-world-plates.sh`, which renders "
+               "each world through the same scene a battle uses and rewrites "
+               "the table below. Do not hand edit it.")
+    out.append("")
+    out.append("The concept behind each one, and what a world does to a ship, "
+               "is [docs/15-worlds.md](docs/15-worlds.md). How they are drawn, "
+               "and why this game is GPL-3.0, is "
+               "[docs/14-reference-planet-shader.md](docs/14-reference-planet-shader.md).")
+    out.append("")
+    out.append("![Every world](docs/images/worlds/lineup.png)")
+    out.append("")
+    out.append("| | World | What it is |")
+    out.append("|---|---|---|")
+    for v in VARIANTS:
+        shot = "docs/images/worlds/native/%s-0.png" % v
+        out.append('| <img src="%s" width="150"> | **%s** | %s |'
+                   % (shot, v, BLURBS[v]))
+    out.append("")
+    out.append("## What each one has")
+    out.append("")
+    out.append("| World | Air | Cloud | Ice | Night glow | Ring | Belts |")
+    out.append("|---|---|---|---|---|---|---|")
+    for v in VARIANTS:
+        s = shapes[v]
+        w = worlds[v]
+        # A level above what the terrain can reach never appears, which is how a
+        # world has no ice; 0.2 is comfortably past the tallest ground.
+        row = [
+            v,
+            "yes" if float(s["atmosphere_density"]) > 0.0 else "none",
+            "yes" if float(s["clouds_density"]) > 0.0 else "none",
+            "yes" if float(s["ice_level"]) < 0.2 and w["cap"] else "none",
+            "yes" if w["glow"] else "none",
+            "yes" if v == "gas" else "none",
+            "yes" if float(s["bands"]) > 0.0 else "none",
+        ]
+        out.append("| " + " | ".join(row) + " |")
+    out.append("")
+    out.append("## What each one is made of")
+    out.append("")
+    out.append("Palette roles from `data/palette.json`, lowest ground first. "
+               "An empty cell means the world has none of that thing.")
+    out.append("")
+    out.append("| World | " + " | ".join("`%s`" % s for s in SLOTS) + " |")
+    out.append("|---|" + "---|" * len(SLOTS))
+    for v in VARIANTS:
+        cells = [("`%s`" % worlds[v][slot]) if worlds[v][slot] else ""
+                 for slot in SLOTS]
+        out.append("| " + v + " | " + " | ".join(cells) + " |")
+    out.append("")
+    return "\n".join(out)
+
+
 def main():
     data, colors = load_palette()
     worlds = data["worlds"]
@@ -124,6 +209,12 @@ def main():
 
     lineup(ground).save(os.path.join(OUT, "lineup.png"))
     print("wrote docs/images/worlds/lineup.png")
+
+    with open(os.path.join(HERE, "..", "data", "tuning.json")) as f:
+        data["_tuning"] = json.load(f)
+    with open(os.path.join(HERE, "..", "planets.md"), "w") as f:
+        f.write(index(data))
+    print("wrote planets.md")
 
 
 if __name__ == "__main__":

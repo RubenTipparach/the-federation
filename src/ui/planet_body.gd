@@ -25,12 +25,13 @@ extends Node3D
 ## only says who gets to show theirs.
 const RINGED: Array[String] = ["gas"]
 
-## The group the scene's key light belongs to. A world has to know where the sun
-## is, because it does its own lighting: it is drawn unshaded so that it can put
-## an atmosphere and a night side on itself, and neither of those is something
-## Godot's light loop can express. Finding the light by group rather than by
-## path keeps the planet from knowing what scene it is in.
-const SUN_GROUP: StringName = &"sun"
+## Which way the sun is, as a direction pointing AT it. A world has to be told,
+## because it does its own lighting: it is drawn unshaded so that it can put an
+## atmosphere and a night side on itself, and neither of those is something
+## Godot's light loop can express. Whoever places the world sets this before
+## calling place(), which keeps the planet from having to know what scene it is
+## standing in.
+var sun_direction: Vector3 = Vector3(0.0, 0.0, 1.0)
 
 ## The colour slots the shader takes, and the uniform each one feeds. Written
 ## once here so a slot cannot be added to the palette file and quietly not
@@ -77,7 +78,7 @@ func place(feature: Dictionary) -> void:
 	var variant: String = String(feature.get("variant", "terran"))
 	var view: Dictionary = Catalog.tuning()["terrain_view"]
 	var shape: Dictionary = view["planets"][variant]
-	var sun: Vector3 = _sun_direction()
+	var sun: Vector3 = sun_direction.normalized()
 
 	# The mesh has to CONTAIN the sphere the shader traces, and that sphere is
 	# the world plus its tallest mountain, so the slack is not decoration.
@@ -139,14 +140,3 @@ func place(feature: Dictionary) -> void:
 		field.visible = span > 0.0
 		field.scale = Vector3(maxf(span, 0.001), 1.0, maxf(span, 0.001))
 		field.position.y = float(view["field_y"])
-
-
-## Where the sun is, as a direction pointing AT it. A DirectionalLight3D shines
-## along its own -Z, so the way back to it is +Z of its basis. With no light in
-## the scene a world is lit from the camera's side of the arena, which is wrong
-## but visible: a black disc would look like a bug rather than like a mistake.
-func _sun_direction() -> Vector3:
-	var light: Node = get_tree().get_first_node_in_group(SUN_GROUP)
-	if light is DirectionalLight3D:
-		return (light as DirectionalLight3D).global_transform.basis.z.normalized()
-	return Vector3(0.0, 0.0, 1.0)

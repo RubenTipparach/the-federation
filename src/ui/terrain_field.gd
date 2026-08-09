@@ -41,18 +41,39 @@ static func scene_for(feature: Dictionary) -> PackedScene:
 	return SCENES.get(kind, null)
 
 
+## The scene's key light, as a direction pointing AT it, resolved once per
+## build and handed to the features that light themselves.
+##
+## This used to be a lookup by group, and it failed in a real battle: the group
+## still held the previous world's Sun, freed, so every planet quietly fell back
+## to a default direction and lit itself from the wrong side. A sibling lookup
+## cannot go stale, because it is resolved from the tree we are standing in.
+func _sun_direction() -> Vector3:
+	var parent: Node = get_parent()
+	if parent != null:
+		var light: Node = parent.get_node_or_null("Sun")
+		if light is DirectionalLight3D:
+			return (light as DirectionalLight3D).global_transform.basis.z.normalized()
+	return Vector3(0.0, 0.0, 1.0)
+
+
 func build(terrain: Terrain) -> void:
 	for child in get_children():
 		remove_child(child)
 		child.queue_free()
 	if terrain == null:
 		return
+	var sun: Vector3 = _sun_direction()
 	for feature in terrain.features:
 		var scene: PackedScene = scene_for(feature)
 		if scene == null:
 			continue
 		var node: Node3D = scene.instantiate()
 		add_child(node)
+		# Only a world lights itself; a cloud and a rock take the scene's light
+		# like everything else does.
+		if "sun_direction" in node:
+			node.sun_direction = sun
 		# Stamped so the debug overlay can find the clouds and the worlds again
 		# without asking each scene what it is.
 		node.set_meta("terrain_kind", String(feature["kind"]))

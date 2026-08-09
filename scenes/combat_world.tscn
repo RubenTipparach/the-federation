@@ -23,7 +23,6 @@ environment = SubResource("env")
 
 [node name="Sun" type="DirectionalLight3D" parent="."]
 light_energy = 0.9
-groups = ["sun"]
 
 [node name="Grid" type="MeshInstance3D" parent="."]
 mesh = ExtResource("2")

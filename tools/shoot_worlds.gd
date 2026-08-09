@@ -65,9 +65,6 @@ func _initialize() -> void:
 	world.add_child(holder)
 	var sun := DirectionalLight3D.new()
 	sun.light_energy = 0.9
-	# The worlds light themselves from whatever is in this group, so a plate is
-	# lit from the same place a battle is.
-	sun.add_to_group("sun")
 	world.add_child(sun)
 
 	var cam := Camera3D.new()
@@ -83,6 +80,9 @@ func _initialize() -> void:
 		for s in range(SPOTS.size()):
 			var planet: Node3D = PLANET.instantiate()
 			world.add_child(planet)
+			# The same direction TerrainField hands a world in a battle, so a
+			# plate is lit from where the game lights it.
+			planet.sun_direction = sun.global_transform.basis.z.normalized()
 			planet.place({
 				"pos": SPOTS[s],
 				"body": BODY,
@@ -109,6 +109,7 @@ func _initialize() -> void:
 	# far as its body and is outside every plate above.
 	var giant: Node3D = PLANET.instantiate()
 	world.add_child(giant)
+	giant.sun_direction = sun.global_transform.basis.z.normalized()
 	giant.place({"pos": SPOTS[0], "body": BODY, "field": FIELD, "variant": "gas"})
 	giant.position = Vector3.ZERO
 	giant.get_node("Field").visible = false
