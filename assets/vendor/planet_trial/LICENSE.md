@@ -33,3 +33,11 @@ resolution, and its sun is fixed in screen space rather than turning with the
 globe. The first three are CLAUDE.md 3.1; the last is the convention
 `src/ui/pixel_planet.gd` already follows. The unmodified original is kept
 beside it.
+
+`simple_spatial_planet_tint.gdshader` is the GL fixed copy of the first shader
+with one further change: the whorley noise becomes a height and the height
+picks a colour from a three colour ramp, instead of the raw noise vector being
+written to ALBEDO as a colour. The published shader has no colour input at all,
+so every world it draws comes out the same red and cyan marble whatever it is
+meant to be. Everything else in it, including the ray sphere intersection that
+gives it a real limb, is the author's.
