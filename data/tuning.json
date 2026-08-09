@@ -217,7 +217,7 @@
     "placement_tries": 60
   },
   "terrain_view": {
-    "_comment": "How terrain is drawn, as opposed to what it does. The simulation owns every position and radius; only the vertical proportion of a cloud, the floor on a drawn rock, and the shape of a world are view decisions, and they live here rather than in an inspector field (CLAUDE.md 5.4). planets holds one entry per world variant. bands is 0 for a world with continents and 1 for one with belts, and only a gas giant wants 1. ground_scale is how large the continents are and ground_warp is how far the noise is dragged before it is read, which is what turns blobs into coastlines. sea_level is where water stops, coast is how hard the shoreline is, land_band is how much of the ramp above the water is lowland. cap_start is the latitude the ice begins at, 2.0 meaning never. glow_level is how much of the lowest ground emits, for a world whose palette names a glow colour. distortion, band_x and band_y shape the belts and are read only when bands is above 0. spin is how fast the world turns, 0 standing still. Colour is the worlds role map in data/palette.json.",
+    "_comment": "How terrain is drawn, as opposed to what it does. The simulation owns every position and radius; only the vertical proportion of a cloud, the floor on a drawn rock, and the shape of a world are view decisions, and they live here rather than in an inspector field (CLAUDE.md 5.4). planets holds one entry per world variant. bands is 0 for a world with continents and 1 for one with belts, and only a gas giant wants 1. ground_scale is how large the continents are and ground_warp is how far the noise is dragged before it is read, which is what turns blobs into coastlines. sea_level is where water stops, coast is how hard the shoreline is, land_band is how much of the ramp above the water is lowland. cap_start is the latitude the ice begins at, 2.0 meaning never. glow_level is how much of the lowest ground emits, for a world whose palette names a glow colour. distortion, band_x and band_y shape the belts and are read only when bands is above 0. spin is how fast the world turns, 0 standing still. Colour is the worlds role map in data/palette.json. relief is how hard the ground's own slope bends the normal, which is a normal map taken from the height field without a texture in between, and relief_step is how far apart the two samples that measure that slope are taken; relief of 0 switches it off and saves two evaluations of the height field per fragment. sea_rough, land_rough and cap_rough are how smooth each kind of ground is, and specular is how much light it throws back, which together are what make an ocean read as water rather than as blue ground.",
     "nebula_flatten": 0.5,
     "body_min_radius": 5.5,
     "field_y": 0.3,
@@ -239,7 +239,13 @@
         "band_y": 4.0,
         "rim_retraction": 4.0,
         "rim_brightness": 1.5,
-        "spin": 0.004
+        "spin": 0.004,
+        "relief": 0.085,
+        "relief_step": 0.012,
+        "sea_rough": 0.21,
+        "land_rough": 0.95,
+        "cap_rough": 0.28,
+        "specular": 0.7
       },
       "jungle": {
         "bands": 0.0,
@@ -256,7 +262,13 @@
         "band_y": 4.0,
         "rim_retraction": 4.0,
         "rim_brightness": 1.4,
-        "spin": 0.004
+        "spin": 0.004,
+        "relief": 0.095,
+        "relief_step": 0.01,
+        "sea_rough": 0.23,
+        "land_rough": 0.97,
+        "cap_rough": 0.4,
+        "specular": 0.65
       },
       "volcanic": {
         "bands": 0.0,
@@ -267,13 +279,19 @@
         "land_band": 0.34,
         "cap_start": 2.0,
         "cap_fuzz": 0.1,
-        "glow_level": 0.27,
+        "glow_level": 0.31,
         "distortion": 0.4,
         "band_x": 16.0,
         "band_y": 4.0,
         "rim_retraction": 4.0,
-        "rim_brightness": 1.0,
-        "spin": 0.003
+        "rim_brightness": 1.1,
+        "spin": 0.003,
+        "relief": 0.11,
+        "relief_step": 0.01,
+        "sea_rough": 0.4,
+        "land_rough": 0.99,
+        "cap_rough": 0.5,
+        "specular": 0.55
       },
       "ice": {
         "bands": 0.0,
@@ -290,7 +308,13 @@
         "band_y": 4.0,
         "rim_retraction": 4.0,
         "rim_brightness": 1.2,
-        "spin": 0.003
+        "spin": 0.003,
+        "relief": 0.065,
+        "relief_step": 0.014,
+        "sea_rough": 0.17,
+        "land_rough": 0.42,
+        "cap_rough": 0.34,
+        "specular": 0.75
       },
       "barren": {
         "bands": 0.0,
@@ -307,7 +331,13 @@
         "band_y": 4.0,
         "rim_retraction": 4.0,
         "rim_brightness": 0.45,
-        "spin": 0.002
+        "spin": 0.002,
+        "relief": 0.12,
+        "relief_step": 0.009,
+        "sea_rough": 0.92,
+        "land_rough": 0.98,
+        "cap_rough": 0.6,
+        "specular": 0.3
       },
       "gas": {
         "bands": 1.0,
@@ -324,7 +354,13 @@
         "band_y": 4.0,
         "rim_retraction": 4.0,
         "rim_brightness": 1.6,
-        "spin": 0.01
+        "spin": 0.01,
+        "relief": 0.0,
+        "relief_step": 0.012,
+        "sea_rough": 0.8,
+        "land_rough": 0.8,
+        "cap_rough": 0.8,
+        "specular": 0.2
       },
       "moon": {
         "bands": 0.0,
@@ -341,7 +377,13 @@
         "band_y": 4.0,
         "rim_retraction": 4.0,
         "rim_brightness": 0.15,
-        "spin": 0.001
+        "spin": 0.001,
+        "relief": 0.13,
+        "relief_step": 0.008,
+        "sea_rough": 0.94,
+        "land_rough": 0.99,
+        "cap_rough": 0.6,
+        "specular": 0.25
       }
     }
   },

@@ -53,6 +53,12 @@ const SHAPE_VALUES: Dictionary = {
 	"rim_retraction": "rimRetraction",
 	"rim_brightness": "rimBrightness",
 	"spin": "animationSpeed",
+	"relief": "relief",
+	"relief_step": "reliefStep",
+	"sea_rough": "seaRough",
+	"land_rough": "landRough",
+	"cap_rough": "capRough",
+	"specular": "specularAmount",
 }
 
 

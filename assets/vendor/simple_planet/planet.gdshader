@@ -36,6 +36,17 @@
 //   5. A LAVA GLOW. Where `glowColor` is not black, the lowest ground emits, so
 //      a volcanic world lights its own fissures on the night side.
 //
+//   6. RELIEF. The height field is differentiated on the fly and the result
+//      bends the sphere normal, which is a normal map generated from a height
+//      map with no map in the middle: there is no texture to bake, because the
+//      height IS a function and its slope can simply be measured. Only ground
+//      above the waterline is bent, so a sea stays flat and catches the sun.
+//
+//   7. A SPECULAR SURFACE. Water is smooth, ground is rough, ice is in between,
+//      and each world says which. That is what makes an ocean read as an ocean
+//      rather than as blue ground: it is the only part of a world that throws a
+//      highlight back at the star.
+//
 // Every colour named below comes from data/palette.json through
 // src/ui/planet_body.gd, and every number from data/tuning.json. Nothing here
 // is written in the shader.
@@ -197,10 +208,37 @@ uniform vec3 capColor : source_color = vec3(0.89, 0.87, 0.82);
 uniform float capStart : hint_range(0.0, 2.0) = 2.0;
 uniform float capFuzz : hint_range(0.01, 0.5) = 0.09;
 
+// How hard the ground's own slope bends the normal, and how far apart the two
+// samples that measure that slope are taken. Zero switches the whole thing off,
+// which also skips two evaluations of the height field per fragment: the gas
+// giant does not want relief and should not pay for it.
+uniform float relief : hint_range(0.0, 0.5) = 0.0;
+uniform float reliefStep : hint_range(0.002, 0.1) = 0.012;
+
+// How smooth each kind of ground is. Water low, rock high. This is the whole
+// reason an ocean reads as water rather than as blue ground.
+uniform float seaRough : hint_range(0.0, 1.0) = 0.12;
+uniform float landRough : hint_range(0.0, 1.0) = 0.90;
+uniform float capRough : hint_range(0.0, 1.0) = 0.35;
+uniform float specularAmount : hint_range(0.0, 1.0) = 0.5;
+
 // Emissive ground below glowLevel. Black means none, which is every world but
 // the volcanic one.
 uniform vec3 glowColor : source_color = vec3(0.0, 0.0, 0.0);
 uniform float glowLevel : hint_range(0.0, 1.0) = 0.25;
+
+// The height field. One function, because the colour, the slope and the
+// roughness all have to agree about where the ground is (CLAUDE.md 4.1).
+float groundHeight( vec3 d, float seed )
+{
+	vec3 p = d * groundScale + vec3(seed);
+	vec3 warp = vec3(
+		gnoise(p + vec3(3.7, 1.3, 8.2)),
+		gnoise(p + vec3(9.1, 6.4, 2.8)),
+		gnoise(p + vec3(5.3, 7.9, 4.1)));
+	return fbm(p + warp * groundWarp) * 1.35 + 0.5;
+}
+
 
 vec3 groundRamp( float h )
 {
@@ -248,12 +286,7 @@ void fragment()
 
 		// OURS: the ground. A warped fractal read on the sphere's own
 		// direction vector, so it wraps with no seam and no pole pinch.
-		vec3 p = dir * groundScale + vec3(worldSeed);
-		vec3 warp = vec3(
-			gnoise(p + vec3(3.7, 1.3, 8.2)),
-			gnoise(p + vec3(9.1, 6.4, 2.8)),
-			gnoise(p + vec3(5.3, 7.9, 4.1)));
-		float land = fbm(p + warp * groundWarp) * 1.35 + 0.5;
+		float land = groundHeight(dir, worldSeed);
 
 		// The author's belts, for the one world that wants them.
 		vec3 belt = whorleyOnSphere( dir, spin, bandScale, vec2(distortionStrength) );
@@ -262,13 +295,35 @@ void fragment()
 		float height = clamp(mix(land, banded, bands), 0.0, 1.0);
 		vec3 albedo = groundRamp(height);
 
+		// OURS: how wet this fragment is, which decides both its roughness and
+		// whether its slope is allowed to bend the normal. Water is flat.
+		float dry = smoothstep(seaLevel - coast, seaLevel + coast, height);
+
+		// OURS: relief. Two more reads of the height field, one step along each
+		// tangent, give its slope; the slope bends the normal. This is a normal
+		// map generated from a height map, with no map in between: the height is
+		// a function, so its gradient can be measured rather than baked.
+		if( relief > 0.0 )
+		{
+			vec3 pole = abs(dir.y) > 0.99 ? vec3(1.0, 0.0, 0.0) : vec3(0.0, 1.0, 0.0);
+			vec3 tanU = normalize(cross(pole, dir));
+			vec3 tanV = cross(dir, tanU);
+			float du = (groundHeight(normalize(dir + tanU * reliefStep), worldSeed) - land) / reliefStep;
+			float dv = (groundHeight(normalize(dir + tanV * reliefStep), worldSeed) - land) / reliefStep;
+			vec3 bent = normalize(dir - (tanU * du + tanV * dv) * relief * dry);
+			NORMAL = transform( VIEW_MATRIX, normalize(transform(MODEL_MATRIX, bent)) );
+		}
+
 		// OURS: the polar cap, roughened by the same noise so its edge is
 		// ragged rather than drawn on with a compass.
 		float lat = abs(dir.y) + (height - 0.5) * 0.22;
-		albedo = mix(albedo, capColor,
-			smoothstep(capStart - capFuzz, capStart + capFuzz, lat));
+		float ice = smoothstep(capStart - capFuzz, capStart + capFuzz, lat);
+		albedo = mix(albedo, capColor, ice);
 
 		ALBEDO = albedo;
+		// OURS: water is smooth, ground is rough, ice is between them.
+		ROUGHNESS = mix(mix(seaRough, landRough, dry), capRough, ice);
+		SPECULAR = specularAmount;
 
 		// OURS: fissures. Only where a world was given a glow colour.
 		vec3 glow = glowColor * smoothstep(glowLevel, 0.0, height);
@@ -276,4 +331,34 @@ void fragment()
 		ALPHA = 1.0;
 	}
 	else ALPHA = 0.0;
+}
+
+
+// The light pass is ours too, and it has to be.
+//
+// Godot's own specular is physically right and visually invisible here: a
+// dielectric sea reflects about four percent, which at the tactical camera's
+// distance measured four pixels across on a 360 pixel world. Leaning the water
+// toward metal was tried and is worse, because the ambient here is a flat
+// colour with no sky in it to reflect, so a metallic ocean simply loses its
+// diffuse and goes black.
+//
+// So the highlight is Blinn-Phong with its exponent driven by the same
+// ROUGHNESS the ground writes, and its strength by SPECULAR. Both of those are
+// still per world data, and the sea, the ice and the rock still differ by
+// exactly the numbers data/tuning.json gives them; what changes is that the
+// difference is now large enough to see. Ambient is untouched: writing light()
+// replaces the per light term only.
+void light()
+{
+	float ndl = max(dot(NORMAL, LIGHT), 0.0);
+	DIFFUSE_LIGHT += ALBEDO * LIGHT_COLOR * ATTENUATION * ndl;
+
+	vec3 half_vector = normalize(LIGHT + VIEW);
+	float ndh = max(dot(NORMAL, half_vector), 0.0);
+	float gloss = 1.0 - ROUGHNESS;
+	// 4 is a broad sheen on rock, 160 is a tight glint off water.
+	float power = mix(4.0, 160.0, gloss);
+	SPECULAR_LIGHT += LIGHT_COLOR * ATTENUATION
+		* pow(ndh, power) * gloss * specularAmount * ndl;
 }

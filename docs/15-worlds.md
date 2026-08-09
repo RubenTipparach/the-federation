@@ -46,7 +46,7 @@ captain who ignores it does not fall out of the sky; they arrive somewhere they
 did not steer for, with their firing arcs pointed at nothing.
 
 **A world is data, not code.** Eight colours in `data/palette.json` `worlds` and
-fifteen numbers in `data/tuning.json` `terrain_view.planets`. An eighth kind of
+twenty one numbers in `data/tuning.json` `terrain_view.planets`. An eighth kind of
 world is an entry in those two files plus its name in `data/maps.json`. There is
 no new scene and no new script, because one scene and one shader draw all of
 them.
@@ -72,6 +72,15 @@ them.
 | `distortion`, `band_x`, `band_y` | the shape of the belts, read only when `bands` is above 0 |
 | `rim_retraction`, `rim_brightness` | how tight and how bright the atmosphere is |
 | `spin` | how fast the world turns. Zero stands still. |
+| `relief`, `relief_step` | how hard the ground's own slope bends the normal, and how far apart the two samples that measure it are taken. This is a normal map taken from the height field with no texture in between. Zero switches it off and saves two reads of the height field per fragment, which is why the gas giant is 0. |
+| `sea_rough`, `land_rough`, `cap_rough` | how smooth each kind of ground is |
+| `specular` | how much light the surface throws back |
+
+**Roughness is what makes water read as water.** It is the only part of a world
+that returns a highlight to the star, so a terran world at the right angle
+carries a sun glint with its own coastlines cut out of it. The volcanic world
+uses the same mechanism on its lava, which is why the fissures have a wet
+sheen. Rock has none of it.
 
 ---
 
@@ -124,9 +133,11 @@ only one with a lit side and a still visible night side.
 the low ground. That glow is emissive, so it survives the terminator: a volcanic
 world on its night side is a dark disc with orange cracks in it.
 
-`alert_hi` in the deepest ground, `clay` on the cooling crust, `bark` and `char`
-rock, `taupe_deep` ash on the peaks, `alert` at the limb. Its sea level is 0.30,
-so most of it is rock and the lava is confined to the lowest third.
+`alert_hi` in the deepest ground, `clay` on the cooling crust, `clay_deep` and
+`bark` rock, `taupe_deep` ash on the peaks, `alert` at the limb. Its sea level is
+0.30, so most of it is rock and the lava is confined to the lowest third. The
+lava is also the smoothest ground on it, which gives the fissures a wet sheen
+that dry rock does not have.
 
 ---
 

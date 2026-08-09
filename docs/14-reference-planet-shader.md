@@ -90,6 +90,32 @@ ground noise roughening its edge so it is not a circle drawn on with a compass.
 **5. A lava glow.** Where a world's palette names a `glow` colour, the lowest
 ground emits, so a volcanic world lights its own fissures on the night side.
 
+**6. Relief, which is a normal map with no map in it.** The height field is a
+function, so its slope can be measured rather than baked: two more reads of it,
+one step along each tangent, give the gradient, and the gradient bends the
+sphere normal. That is what a normal map generated from a height map does, minus
+the texture. Only ground above the waterline is bent, so a sea stays flat.
+
+It costs what it sounds like it costs: three evaluations of the height field per
+fragment instead of one. `relief` of 0 skips the two extra reads entirely, which
+is why the gas giant is written as exactly 0 rather than as nearly 0.
+
+**7. A specular surface, and our own light pass.** Water is smooth, rock is
+rough, ice is between them, and each world says which in `data/tuning.json`.
+Godot's own specular is physically right and visually invisible at this
+distance: a dielectric sea reflects about four percent, which was measured here
+at four pixels across on a 360 pixel world. Leaning the water toward metal was
+tried and is worse, because the ambient in the combat scene is a flat colour
+with no sky in it to reflect, so a metallic ocean simply loses its diffuse and
+goes black.
+
+So `planet.gdshader` writes its own `light()`: lambert diffuse plus a
+Blinn-Phong highlight whose exponent comes from the same `ROUGHNESS` the ground
+writes. The roughness map is still doing the work and is still per world data;
+what changed is that the difference between water and rock is now large enough
+to see. Ambient is untouched, because writing `light()` replaces the per light
+term only.
+
 The noise is four octaves of gradient noise with a single-octave domain warp.
 Five octaves is visibly better on a still image and costs a fifth more per
 fragment over a body that can fill a quarter of the screen, which is the wrong

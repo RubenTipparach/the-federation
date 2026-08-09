@@ -531,8 +531,8 @@
     "volcanic": {
       "abyss": "alert_hi",
       "sea": "clay",
-      "shore": "bark",
-      "land": "char",
+      "shore": "clay_deep",
+      "land": "bark",
       "peak": "taupe_deep",
       "cap": "",
       "rim": "alert",
