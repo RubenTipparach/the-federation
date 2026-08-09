@@ -8,6 +8,9 @@ Deep-Fold.
   `assets/vendor/pixel_planets/LICENSE`.
 - **Live version of the generator:** https://deep-fold.itch.io/pixel-planet-generator
 
+What each world is meant to be, and what it does to a ship, is
+[15-worlds.md](15-worlds.md). This document is only the provenance.
+
 Unlike the Federation Commander notes in
 [09-reference-federation-commander.md](09-reference-federation-commander.md), this is
 not a design we are learning from and reimplementing. It is code we are using, under a

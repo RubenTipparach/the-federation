@@ -35,6 +35,7 @@ hulls to board, capture, and refit into your own.
 | [docs/12-ship-design-language.md](docs/12-ship-design-language.md) | How the ships of this era are built, and what our hulls take from that |
 | [docs/13-terrain-and-tractors.md](docs/13-terrain-and-tractors.md) | Nebulae, asteroids, gravity wells, and the tractor beam auction |
 | [docs/14-reference-pixel-planets.md](docs/14-reference-pixel-planets.md) | The vendored planet shaders: what was taken, what changed, and why the colours are ours |
+| [docs/15-worlds.md](docs/15-worlds.md) | Concept for the four worlds an arena can hold, with plates drawn from the game |
 
 Project rules live in [CLAUDE.md](CLAUDE.md) and are binding.
 
