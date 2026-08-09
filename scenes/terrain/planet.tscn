@@ -1,44 +1,89 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=10 format=3]
 
-; A world. One scene draws all four kinds, because one shader does.
+; A world. One scene draws every kind, because one shader does.
 ;
-; Body is a sphere the shader does not actually use as geometry: Simple Spatial
-; Planet (assets/vendor/simple_planet, docs/14) ray traces a sphere and only
-; needs fragments generated somewhere in front of it, which is why the mesh is
-; scaled larger than the world it holds. It is a committed .obj either way.
+; Body is a sphere the shader does not use as geometry: it ray traces a noise
+; displaced sphere and only needs fragments generated in front of it, which is
+; why the mesh is scaled a little larger than the world it holds and why it
+; needs no texture coordinates. It is a committed .obj either way.
 ;
-; Ring is the gas giant's, hidden on every other world. It is a committed mesh
-; of its own rather than the well's hairline ring, because a gas giant's ring is
-; a wide band and the well's is a line.
+; Atmosphere is a second, larger shell drawn additively with no depth write, so
+; the air reaches past the limb over the stars while the body keeps its depth.
+; That separation is ours; the glow inside it is the author's (docs/14).
 ;
-; Field is the ring marking where the well starts, and it lies on the combat
-; plane rather than facing the camera, because unlike the planet a well is
-; genuinely flat.
+; Noise is a 3D noise texture, sampled rather than computed. That is the single
+; biggest reason this runs at a sensible speed: the surface is read six times
+; per fragment for the terrain and three more for its slope.
+;
+; Ring is the gas giant's, hidden on every other world. Field is the ring
+; marking where the well starts, and it lies on the combat plane rather than
+; facing the camera, because unlike the planet a well is genuinely flat.
 ;
 ; Every colour and every number here is set from data by src/ui/planet_body.gd:
 ; the values below are only what the editor shows before a battle places one.
 
 [ext_resource type="Script" path="res://src/ui/planet_body.gd" id="1"]
 [ext_resource type="ArrayMesh" path="res://assets/meshes/sphere.obj" id="2"]
-[ext_resource type="Shader" path="res://assets/vendor/simple_planet/planet.gdshader" id="3"]
+[ext_resource type="Shader" path="res://assets/vendor/realtime_planet/planet.gdshader" id="3"]
+[ext_resource type="Shader" path="res://assets/vendor/realtime_planet/atmosphere.gdshader" id="7"]
 [ext_resource type="ArrayMesh" path="res://assets/meshes/ring.obj" id="4"]
 [ext_resource type="ArrayMesh" path="res://assets/meshes/planet_ring.obj" id="6"]
 [ext_resource type="Material" path="res://assets/materials/mat_well_ring.tres" id="5"]
 
+[sub_resource type="FastNoiseLite" id="noise"]
+noise_type = 2
+seed = 1701
+frequency = 0.03
+fractal_octaves = 3
+
+[sub_resource type="NoiseTexture3D" id="noise_tex"]
+width = 64
+height = 64
+depth = 64
+seamless = true
+noise = SubResource("noise")
+
 [sub_resource type="ShaderMaterial" id="planet"]
 shader = ExtResource("3")
 shader_parameter/radius = 50.0
-shader_parameter/rimRetraction = 4.0
-shader_parameter/rimBrightness = 1.5
-shader_parameter/rimColor = Color(0.494, 0.663, 0.812, 1)
-shader_parameter/animationSpeed = 0.004
-shader_parameter/distortionStrength = 0.3
-shader_parameter/groundLow = Color(0.141, 0.322, 0.451, 1)
-shader_parameter/groundMid = Color(0.373, 0.482, 0.325, 1)
-shader_parameter/groundHigh = Color(0.635, 0.624, 0.494, 1)
-shader_parameter/groundSplit = 0.46
-shader_parameter/bandScale = Vector2(20, 5)
+shader_parameter/sunDirection = Vector3(0, 0, 1)
+shader_parameter/sunIntensity = 1.7
+shader_parameter/ambientLight = 0.07
+shader_parameter/noiseTexture = SubResource("noise_tex")
+shader_parameter/terrainScale = 1.0
+shader_parameter/noiseStrength = 0.06
+shader_parameter/waterLevel = 0.0
+shader_parameter/sandLevel = 0.028
+shader_parameter/treeLevel = 0.03
+shader_parameter/rockLevel = 0.1
+shader_parameter/iceLevel = 0.15
+shader_parameter/transitionWidth = 0.02
+shader_parameter/cloudsDensity = 0.55
+shader_parameter/cloudsScale = 3.0
+shader_parameter/cloudsSpeed = 1.0
+shader_parameter/abyssColor = Color(0.078, 0.122, 0.145, 1)
+shader_parameter/seaColor = Color(0.141, 0.322, 0.451, 1)
+shader_parameter/shoreColor = Color(0.635, 0.624, 0.494, 1)
+shader_parameter/landColor = Color(0.373, 0.482, 0.325, 1)
+shader_parameter/peakColor = Color(0.565, 0.486, 0.459, 1)
+shader_parameter/capColor = Color(0.89, 0.867, 0.82, 1)
+shader_parameter/cloudColor = Color(0.89, 0.867, 0.82, 1)
+shader_parameter/glowColor = Color(0, 0, 0, 1)
+shader_parameter/glowLevel = 0.25
+shader_parameter/bands = 0.0
+shader_parameter/bandScale = Vector2(16, 4)
+shader_parameter/distortionStrength = 0.4
+shader_parameter/spin = 0.02
 shader_parameter/worldSeed = 0.0
+
+[sub_resource type="ShaderMaterial" id="air"]
+shader = ExtResource("7")
+render_priority = 1
+shader_parameter/radius = 50.0
+shader_parameter/sunDirection = Vector3(0, 0, 1)
+shader_parameter/sunIntensity = 1.7
+shader_parameter/atmosphereColor = Color(0.494, 0.663, 0.812, 1)
+shader_parameter/atmosphereDensity = 1.0
 
 [sub_resource type="StandardMaterial3D" id="ring"]
 transparency = 1
@@ -52,6 +97,12 @@ script = ExtResource("1")
 [node name="Body" type="MeshInstance3D" parent="."]
 mesh = ExtResource("2")
 material_override = SubResource("planet")
+cast_shadow = 0
+extra_cull_margin = 16384.0
+
+[node name="Atmosphere" type="MeshInstance3D" parent="."]
+mesh = ExtResource("2")
+material_override = SubResource("air")
 cast_shadow = 0
 extra_cull_margin = 16384.0
 

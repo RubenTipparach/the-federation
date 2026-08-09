@@ -1,164 +1,146 @@
 # 14. Reference: the planet shader
 
-The worlds in the tactical view are drawn by **Simple Spatial Planet**, by
-Nolkaloid.
+The worlds in the tactical view are drawn by a Godot port of the procedural
+planet shader from **realtime-planet-shader**, by Julien Sulpis.
 
-- **Source:** https://godotshaders.com/shader/simple-spatial-planet/
-- **Licence:** CC0. The page states the shader may be used freely without the
-  author's permission. Only the code is covered; the page's images are not, and
-  none are copied here.
-- **Vendored at:** `assets/vendor/simple_planet/`, with the licence beside it.
-
-This is not a design we are learning from and reimplementing, the way
-[09-reference-federation-commander.md](09-reference-federation-commander.md) is.
-It is code we run, under a licence that permits it, and this document exists so
-that is written down somewhere other than a licence file.
-
-What each world is meant to be, and what it does to a ship, is
-[15-worlds.md](15-worlds.md). This document is the provenance and the mechanism.
+- **Source:** https://github.com/jsulpis/realtime-planet-shader
+- **Also published as:** https://www.shadertoy.com/view/Ds3XRl
+- **Licence:** GPL-3.0
+- **Vendored at:** `assets/vendor/realtime_planet/`, with the author's original
+  beside the port.
 
 ---
 
-## 1. How it works, and why that matters here
+## 1. This is why the game is GPL-3.0
 
-**It ignores the mesh it is drawn on.** The shader intersects a sphere
-analytically in the fragment stage: for every fragment it fires a ray from the
-camera, solves the ray-sphere quadratic, and shades the point it hits, writing
-its own `DEPTH` from that point rather than from the triangle. The mesh exists
-only to get fragments generated in the right part of the screen.
+Everything else vendored here has been permissive: MIT or CC0. This is not. The
+GPL is copyleft, so a work that includes GPL code is itself GPL, and that
+reaches the whole game rather than the one file. Adopting it was a deliberate
+decision taken on 2026-08-09 with that consequence stated first, and the full
+licence text is committed at `LICENSE` in the root of this repository.
 
-Three consequences, all of them useful:
+What it means in practice, in plain terms:
 
-1. **The limb is a true circle at any zoom.** It is not a polygon silhouette, so
-   a world does not go faceted when the camera closes in.
-2. **The mesh needs no texture coordinates.** That matters concretely:
-   `assets/meshes/sphere.obj` has none. Every face in it is `f v//vn` and the
-   file contains zero `vt` lines. A shader that sampled textures at `UV` would
-   read one texel across the whole world, which is a mistake worth knowing about
-   before the next planet shader is tried.
-3. **The mesh must contain the sphere.** Fragments are only generated where the
-   mesh covers, so `scenes/terrain/planet.tscn` scales it past the world it
-   holds. `terrain_view.mesh_slack` in `data/tuning.json` is that margin.
+- Anyone we distribute a build to may ask for the source of that build, and we
+  have to give it to them under the same licence. That includes the itch.io
+  builds.
+- Anything vendored in future has to be GPL compatible. MIT, BSD and CC0 all
+  are. A proprietary or non commercial asset licence is not.
+- It does not stop us selling the game, and it does not reach assets that are
+  merely data rather than part of the program.
 
-The surface is evaluated in the world's local space, so it is procedural: no
-textures, no memory, and it turns with the world rather than sliding across it.
+If that ever becomes unwanted, the way out is to replace this shader, not to
+quietly relicense: the obligation came in with the file and leaves with it.
 
 ---
 
-## 2. What is the author's, and what is ours
+## 2. How it works
 
-The unmodified original is committed beside ours as
-`simple_spatial_planet.gdshader` and nothing loads it. The game runs
-`planet.gdshader`. Keeping both is what makes the diff readable and what lets
-the sphere half be updated from upstream.
+**It ignores the mesh it is drawn on.** For every fragment it fires a ray from
+the camera and intersects a sphere analytically, then shades the point it hits
+and writes its own `DEPTH` from that point rather than from the triangle. The
+mesh exists only to get fragments generated in the right part of the screen.
 
-**The author's:** the ray-sphere intersection, the depth write, the fresnel rim,
-and the whorley band function.
+**The sphere has terrain in its radius.** The intersection is run twice: once
+against the smooth sphere to find roughly where the ray lands, then again
+against a sphere whose radius is the smooth one plus a fractal noise sampled at
+that point. That is what gives a world mountains that break its silhouette
+rather than a perfect circle with a picture on it.
 
-**Ours, and why each one had to be:**
+Three consequences worth knowing:
 
-**1. An OpenGL depth write.** The original writes `DEPTH = clipPos.z/clipPos.w`,
-which is Vulkan's 0 to 1 convention. This project runs `gl_compatibility`
-(`project.godot`), where clip depth is -1 to 1, so every fragment was rejected
-and a planet rendered as nothing whatsoever. Diagnosed by rendering an unshaded
-control sphere in the same frame, which appeared, so the mesh and the camera
-were not at fault.
+1. **The limb is a true circle at any zoom**, so a world does not go faceted
+   when the camera closes in.
+2. **The mesh needs no texture coordinates**, which matters because
+   `assets/meshes/sphere.obj` has none: every face is `f v//vn` and there are
+   zero `vt` lines in the file.
+3. **The mesh must contain the displaced sphere**, terrain and all, or the
+   fragments near a mountain are never generated.
+   `terrain_view.mesh_slack` is that margin.
 
-**2. A ground height field.** This is the one that matters. The author's whorley
-function is a flow field: it produces horizontal belts, so **every world it
-draws is a gas giant** whatever colours it is handed. No amount of tuning
-changes that, because the banding is the function. Ours is a fractal gradient
-noise evaluated on the sphere's own direction vector with a domain warp, which
-produces continents. A `bands` uniform mixes between the two, so a gas giant
-asks for the author's and every rocky world asks for ours.
-
-The direction fed to that noise is **normalized**, which the original did not
-need. It passed `dir` only to `uvOnSphere`, two atans that do not care about
-length. `inverse(MODEL_MATRIX)` undoes the mesh's scale as well as its rotation,
-and that mesh is scaled to the world's radius, so what arrives is about a
-sixtieth of a unit long. Read a noise field at that scale and every fragment
-lands in the same cell, which draws a plain ball. That was the first thing this
-change got wrong.
-
-**3. A sea with a coastline.** Height below `seaLevel` is water, above it is
-ground, and the boundary is a narrow band rather than a gradient. A shoreline is
-the single feature that tells a player at a glance that a world has oceans.
-
-**4. Polar caps.** Ice is a function of latitude rather than of height, with the
-ground noise roughening its edge so it is not a circle drawn on with a compass.
-
-**5. A lava glow.** Where a world's palette names a `glow` colour, the lowest
-ground emits, so a volcanic world lights its own fissures on the night side.
-
-**6. Relief, which is a normal map with no map in it.** The height field is a
-function, so its slope can be measured rather than baked: two more reads of it,
-one step along each tangent, give the gradient, and the gradient bends the
-sphere normal. That is what a normal map generated from a height map does, minus
-the texture. Only ground above the waterline is bent, so a sea stays flat.
-
-It costs what it sounds like it costs: three evaluations of the height field per
-fragment instead of one. `relief` of 0 skips the two extra reads entirely, which
-is why the gas giant is written as exactly 0 rather than as nearly 0.
-
-**7. A specular surface, and our own light pass.** Water is smooth, rock is
-rough, ice is between them, and each world says which in `data/tuning.json`.
-Godot's own specular is physically right and visually invisible at this
-distance: a dielectric sea reflects about four percent, which was measured here
-at four pixels across on a 360 pixel world. Leaning the water toward metal was
-tried and is worse, because the ambient in the combat scene is a flat colour
-with no sky in it to reflect, so a metallic ocean simply loses its diffuse and
-goes black.
-
-So `planet.gdshader` writes its own `light()`: lambert diffuse plus a
-Blinn-Phong highlight whose exponent comes from the same `ROUGHNESS` the ground
-writes. The roughness map is still doing the work and is still per world data;
-what changed is that the difference between water and rock is now large enough
-to see. Ambient is untouched, because writing `light()` replaces the per light
-term only.
-
-The noise is four octaves of gradient noise with a single-octave domain warp.
-Five octaves is visibly better on a still image and costs a fifth more per
-fragment over a body that can fill a quarter of the screen, which is the wrong
-trade for a game that has to run in a browser.
+**The noise is a texture, not arithmetic.** A 3D noise texture authored in
+`scenes/terrain/planet.tscn` is sampled rather than computed, which is the
+single biggest reason this runs at a sensible speed: the field is read six
+times per fragment for the terrain, twice more for its slope, and several times
+again for clouds.
 
 ---
 
-## 3. The colours are ours, but not every pixel is
+## 3. What is the author's and what is ours
 
-`data/palette.json` `worlds` gives each variant eight palette roles: `abyss`,
-`sea`, `shore`, `land` and `peak` for the surface ramp, `cap` for the ice, `rim`
-for the limb, and `glow` for emissive ground. An empty name means the world has
-none of that thing. `data/tuning.json` `terrain_view.planets` gives each variant
-its shape: continent size, warp, sea level, coastline hardness, cap latitude,
-glow depth, the belt controls for the one world that uses them, the limb, and
-the spin.
+The author's original is committed unmodified as `procedural.fragment.glsl` and
+nothing loads it. Both ported files carry a header listing the split; the short
+version:
+
+**His:** the displaced ray sphere intersection, the fbm and the domain warped
+fbm, flattening the noise under the oceans so a sea bed is not corrugated, the
+altitude ramp with its levels and transitions, the cloud layer thinned over
+high ground, specular on water only, the softened terminator, and the stack of
+four powers that makes the atmosphere read as air rather than as an outline.
+
+**Ours:**
+
+1. **It is a spatial shader in a scene.** He renders one planet over a whole
+   frame from a fixed camera. This runs on a mesh at a real position and radius,
+   takes its ray from our camera, and writes depth, so ships sort against it.
+2. **It works in unit planet space.** Every level he wrote assumes a radius of
+   about 1, and our worlds are 40 to 55 arena units across, so the ray is
+   divided by the planet's radius before the intersection and multiplied back
+   after. That is what lets his numbers stay his numbers.
+3. **The colours are palette roles**, fed from `data/palette.json`.
+4. **The gas giant keeps its belts.** Our whorley band field survived the
+   replacement, because a gas giant has no coastline to draw.
+5. **No stars, no moon, no tone mapping, no vignette.** We have a sky shader,
+   the simulation places real moons, and tone mapping one object would leave it
+   in a different colour space from the rest of the frame.
+6. **The atmosphere is a separate pass** on its own shell mesh, drawn additively
+   with no depth write, so the haze can reach past the limb over the stars while
+   the body keeps its depth.
+7. **A night side**, so a world whose palette names a `glow` keeps it on the
+   unlit half.
+8. **The normal is built differently.** He differences the ray sphere
+   intersection itself, three more traces around the hit. Ported into unit
+   planet space that comes out inverted, which lights every world from behind
+   and draws a black disc; it cost a render to find. Ours differences the height
+   one step earlier, along two tangents, and bends the outward normal by that
+   slope. Same terrain, same light, and the direction cannot be wrong because it
+   starts from the normal.
+
+**Calibration was the other trap.** His fbm ends in `pow(total, 5)`, which
+crushes a mean of 0.5 to about 0.03. At the noise strength that looked
+reasonable the tallest ground on a world reached exactly the sand line, so every
+world rendered as unbroken ocean. The strengths in `data/tuning.json` are set
+against the levels, not guessed, and moving one means checking the other.
+
+---
+
+## 4. The colours are ours, but not every pixel is
+
+`data/palette.json` `worlds` gives each variant nine palette roles: `abyss`,
+`sea`, `shore`, `land` and `peak` for the altitude ramp, `cap` for the highest
+ground, `cloud` for the weather, `rim` for the atmosphere and `glow` for the
+night side. An empty name means the world has none of that thing.
+`data/tuning.json` `terrain_view.planets` holds the shape.
 
 **The shader blends between those colours**, so a world is not made only of
-palette entries the way the ships and the panels are. That is a real departure
-from CLAUDE.md 3.1 and it is listed as an exception in section 7 of that file,
-agreed on 2026-08-09. What the palette still decides is which colours a
-world is built from; what it no longer decides is every pixel.
+palette entries the way the ships and the panels are. That is a documented
+exception in CLAUDE.md section 7. What the palette still decides is which
+colours a world is built from; what it no longer decides is every pixel.
 
 ---
 
-## 4. What was here before
+## 5. What was here before
 
-Until 2026-08-09 the worlds were drawn by **Deep-Fold's PixelPlanets** (MIT),
-four 2D shaders rendered into small viewports and shown on billboarded sprites.
-Those shaders never blended, so every pixel was a palette entry and section 3.1
-held exactly. They were replaced because a billboard cannot rotate, cannot
-compress its surface toward the limb, and cannot take a terminator from the
-scene's own light, and because the pixel art look was not wanted for worlds.
+Two shaders preceded this one, both replaced rather than kept beside it, because
+two planet renderers is the divergence CLAUDE.md 4.1 exists to prevent.
 
-The vendored directory and the four scenes that wrapped it were removed rather
-than left in place, because two planet renderers is the divergence CLAUDE.md 4.1
-exists to prevent. The history is in git if any of it is wanted back.
+| Shader | Licence | Why it went |
+|---|---|---|
+| Deep-Fold PixelPlanets | MIT | 2D billboards. Could not rotate, could not compress toward the limb, and the pixel art look was not wanted for worlds. |
+| Simple Spatial Planet, by Nolkaloid | CC0 | A real ray traced sphere, and the base this one improves on. Its whorley surface drew belts and nothing else, so every world was a gas giant until we bolted our own continents onto it. Its band field is the one part still in use. |
 
-Three other shaders were tried in the same pass and rejected, which is recorded
-here so the ground is not covered twice:
-
-| Shader | Why not |
-|---|---|
-| [Godot Planet Shader](https://godotshaders.com/shader/godot-planet-shader/) | Never writes `ALBEDO`, and its `ALPHA` is a fresnel, so the sphere fades out at the limb instead of ending. Wants seven authored maps. |
-| [3D Pixelated Planet](https://godotshaders.com/shader/3d-pixelated-planet/) | Good, and genuinely rotates, but it is pixel art by construction and multiplies its colours rather than looking them up. |
-| [Zylann's atmosphere](https://github.com/Zylann/godot_atmosphere_shader) | Forward+ only. Renders nothing on the Compatibility renderer. |
+Two others were tried and rejected in the same pass: the Godot Planet Shader
+(never writes `ALBEDO`, and its fresnel `ALPHA` fades the limb out instead of
+ending it) and 3D Pixelated Planet (good, and genuinely pixel art by
+construction). Zylann's atmosphere addon is Forward+ only and renders nothing on
+the Compatibility renderer.

@@ -528,16 +528,28 @@ from proportion rather than detail, class read from part count, and silhouette
 designed for a top down camera. It names the models it was drawn from and states
 plainly that none of them are in this repository.
 
-**Worlds are drawn by someone else's shader, under licence.** The planets in the
-tactical view use Simple Spatial Planet by Nolkaloid, CC0, vendored under
-`assets/vendor/simple_planet/` with its licence beside it.
-`docs/14-reference-planet-shader.md` records how it works, the two changes made to
-it, the three shaders tried and rejected alongside it, and what it replaced.
+**Worlds are drawn by someone else's shader, and it is GPL-3.0.** The planets in
+the tactical view use a Godot port of realtime-planet-shader by Julien Sulpis,
+vendored under `assets/vendor/realtime_planet/` with the author's original beside
+the port. `docs/14-reference-planet-shader.md` records how it works, what is his
+and what is ours, and the two traps the port fell into.
 
-This is a different relationship from the one above. Federation Commander is a design
-we read and reimplement; the planet shader is code we run. Vendored code keeps its licence
-file, keeps its upstream API, and is not quietly rewritten, so the diff against the
-original stays readable and it can be updated.
+**This is why the whole game is GPL-3.0**, and `LICENSE` in the root of this
+repository is the full text. That was decided deliberately on 2026-08-09 with the
+consequence stated first: the GPL is copyleft, so it reaches the game rather than
+the one file, and anyone we ship a build to may ask for that build's source under
+the same terms. Two rules follow from it:
+
+- **Anything vendored from here on must be GPL compatible.** MIT, BSD and CC0
+  are. A proprietary or non commercial asset licence is not, and adding one would
+  put the repository in violation rather than merely in a muddle.
+- **If the obligation ever becomes unwanted, replace the shader.** It came in
+  with that file and it leaves with it. Do not quietly relicense around it.
+
+This is a different relationship from the one above. Federation Commander is a
+design we read and reimplement; the planet shader is code we run. Vendored code
+keeps its licence file, keeps its upstream API where it can, and is not quietly
+rewritten, so the diff against the original stays readable and it can be updated.
 
 Reference material for other systems belongs in the same place: a numbered document
 under `docs/`, with the source named and linked, and a line in this section pointing

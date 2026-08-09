@@ -507,24 +507,26 @@
     ]
   },
   "worlds": {
-    "_note": "What each world is made of, as palette role names (CLAUDE.md 3.1). The planet shader ramps a surface height through five colours, abyss to peak, puts cap at the poles, lights the limb with rim, and makes the lowest ground emit glow. An empty name means the world has none of that thing: no cap, no glow. Shape, as opposed to colour, is terrain_view.planets in data/tuning.json, and a new kind of world is an entry in both files and nothing else (CLAUDE.md 5.4). NOTE that the shader BLENDS between these, so a world is not made only of palette entries the way the ships and the panels are; that is the documented exception in CLAUDE.md section 7.",
+    "_note": "What each world is made of, as palette role names (CLAUDE.md 3.1). The planet shader ramps a surface altitude through abyss, sea, shore, land and peak, puts cap on the highest ground, draws its weather in cloud, lights its limb with rim, and keeps glow on the night side. An empty name means the world has none of that thing. Shape, as opposed to colour, is terrain_view.planets in data/tuning.json, and a new kind of world is an entry in both files and nothing else (CLAUDE.md 5.4). NOTE that the shader BLENDS between these, so a world is not made only of palette entries the way the ships and the panels are; that is the documented exception in CLAUDE.md section 7.",
     "terran": {
-      "abyss": "navy",
+      "abyss": "navy_deep",
       "sea": "blue",
-      "shore": "teal_gray",
+      "shore": "olive_light",
       "land": "green",
-      "peak": "olive_light",
+      "peak": "taupe_deep",
       "cap": "cream",
+      "cloud": "cream",
       "rim": "blue_hi",
       "glow": ""
     },
     "jungle": {
       "abyss": "teal_deep",
       "sea": "teal",
-      "shore": "phos_lo",
-      "land": "green",
-      "peak": "green_light",
-      "cap": "",
+      "shore": "moss_light",
+      "land": "phos_lo",
+      "peak": "moss_deep",
+      "cap": "bone",
+      "cloud": "bone",
       "rim": "phos",
       "glow": ""
     },
@@ -534,7 +536,8 @@
       "shore": "clay_deep",
       "land": "bark",
       "peak": "taupe_deep",
-      "cap": "",
+      "cap": "taupe",
+      "cloud": "drab_deep",
       "rim": "alert",
       "glow": "alert_hi"
     },
@@ -543,8 +546,9 @@
       "sea": "blue",
       "shore": "gray_blue",
       "land": "gray_blue_light",
-      "peak": "cream",
+      "peak": "bone",
       "cap": "cream",
+      "cloud": "cream",
       "rim": "shield_hi",
       "glow": ""
     },
@@ -554,7 +558,8 @@
       "shore": "moss_gray",
       "land": "taupe_deep",
       "peak": "taupe",
-      "cap": "",
+      "cap": "bone",
+      "cloud": "",
       "rim": "taupe_deep",
       "glow": ""
     },
@@ -564,7 +569,8 @@
       "shore": "gold_deep",
       "land": "gold",
       "peak": "gold_hi",
-      "cap": "",
+      "cap": "cream",
+      "cloud": "",
       "rim": "gold_hi",
       "glow": ""
     },
@@ -574,7 +580,8 @@
       "shore": "gunmetal",
       "land": "taupe_deep",
       "peak": "bone",
-      "cap": "",
+      "cap": "bone",
+      "cloud": "",
       "rim": "gunmetal",
       "glow": ""
     }

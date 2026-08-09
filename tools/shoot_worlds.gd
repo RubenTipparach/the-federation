@@ -65,6 +65,9 @@ func _initialize() -> void:
 	world.add_child(holder)
 	var sun := DirectionalLight3D.new()
 	sun.light_energy = 0.9
+	# The worlds light themselves from whatever is in this group, so a plate is
+	# lit from the same place a battle is.
+	sun.add_to_group("sun")
 	world.add_child(sun)
 
 	var cam := Camera3D.new()

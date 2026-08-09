@@ -45,10 +45,10 @@ own, which is what keeps it stable at any timestep and therefore replayable. A
 captain who ignores it does not fall out of the sky; they arrive somewhere they
 did not steer for, with their firing arcs pointed at nothing.
 
-**A world is data, not code.** Eight colours in `data/palette.json` `worlds` and
-twenty one numbers in `data/tuning.json` `terrain_view.planets`. An eighth kind of
-world is an entry in those two files plus its name in `data/maps.json`. There is
-no new scene and no new script, because one scene and one shader draw all of
+**A world is data, not code.** Nine colours in `data/palette.json` `worlds` and
+twenty two numbers in `data/tuning.json` `terrain_view.planets`. An eighth kind
+of world is an entry in those two files plus its name in `data/maps.json`. There
+is no new scene and no new script, because one scene and one shader draw all of
 them.
 
 | Colour slot | What it paints |
@@ -58,29 +58,31 @@ them.
 | `shore` | the coast, the first ground above the waterline |
 | `land` | the bulk of the ground |
 | `peak` | the highest ground |
-| `cap` | polar ice. An empty name means the world has none. |
-| `rim` | the atmosphere at the limb, which is emissive rather than lit |
-| `glow` | ground that emits light. Empty on every world but the volcanic one. |
+| `cap` | the highest ground: snowline, ice sheet, ash. An empty name means the world has none. |
+| `cloud` | the weather layer, drawn over everything below it |
+| `rim` | the atmosphere, drawn on its own shell past the limb |
+| `glow` | ground that keeps its light at night. Empty on every world but the volcanic one. |
 
 | Number | What it changes |
 |---|---|
-| `bands` | 0 draws continents, 1 draws belts. Only the gas giant wants 1. |
-| `ground_scale`, `ground_warp` | how large the continents are, and how far the noise is dragged before it is read. Warp is what turns blobs into coastlines. |
-| `sea_level`, `coast`, `land_band` | where the water stops, how hard the shoreline is, how much of the ground above it is lowland |
-| `cap_start`, `cap_fuzz` | the latitude the ice begins at and how ragged its edge is. 2.0 means never. |
-| `glow_level` | how much of the lowest ground emits |
-| `distortion`, `band_x`, `band_y` | the shape of the belts, read only when `bands` is above 0 |
-| `rim_retraction`, `rim_brightness` | how tight and how bright the atmosphere is |
-| `spin` | how fast the world turns. Zero stands still. |
-| `relief`, `relief_step` | how hard the ground's own slope bends the normal, and how far apart the two samples that measure it are taken. This is a normal map taken from the height field with no texture in between. Zero switches it off and saves two reads of the height field per fragment, which is why the gas giant is 0. |
-| `sea_rough`, `land_rough`, `cap_rough` | how smooth each kind of ground is |
-| `specular` | how much light the surface throws back |
+| `terrain_scale`, `noise_strength` | how fine the ground is, and how tall. Strength is calibrated against the levels below: change one and check the other, because at the wrong strength a world is unbroken ocean or unbroken snow. |
+| `water_level`, `sand_level`, `tree_level`, `rock_level`, `ice_level` | the altitude each colour takes over at. A level set above what the terrain can reach never appears, which is how a world has no ice. |
+| `transition` | how wide the blend between two levels is. Small is a coastline, large is a haze. |
+| `clouds_density`, `clouds_scale`, `clouds_speed` | the weather. A density of 0 skips the cloud layer and its cost entirely. |
+| `atmosphere_density`, `shell` | how thick the air is, and how far past the body its glow reaches. A density of 0 draws no atmosphere at all. |
+| `sun_intensity`, `ambient` | how hard the star hits, and how much light the dark side keeps |
+| `glow_level` | how much of the lowest ground stays lit at night |
+| `relief` | how hard the terrain's own slope bends the normal |
+| `bands`, `band_x`, `band_y`, `distortion` | the gas giant's belts, read only when `bands` is above 0 |
+| `spin` | how fast the world turns |
 
-**Roughness is what makes water read as water.** It is the only part of a world
-that returns a highlight to the star, so a terran world at the right angle
-carries a sun glint with its own coastlines cut out of it. The volcanic world
-uses the same mechanism on its lava, which is why the fissures have a wet
-sheen. Rock has none of it.
+**Water is the only part of a world that returns a highlight to the star**, so a
+world at the right angle carries a sun glint with its own coastlines cut out of
+it. Rock has none of it.
+
+**The mountains are real.** The terrain is added to the sphere's radius before
+the ray is intersected with it, so a range breaks the silhouette at the limb
+rather than being a picture painted on a ball.
 
 ---
 
