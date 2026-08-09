@@ -72,7 +72,7 @@ them.
 | `atmosphere_density`, `shell` | how thick the air is, and how far past the body its glow reaches. A density of 0 draws no atmosphere at all. |
 | `sun_intensity`, `ambient` | how hard the star hits, and how much light the dark side keeps |
 | `glow_level` | how much of the lowest ground stays lit at night |
-| `relief` | how hard the terrain's own slope bends the normal |
+| `relief` | how hard the terrain's own slope bends the normal. **Small numbers.** The height is in units of the planet's radius and is differenced over a step of 0.02, so a value near 1 does not shade a world, it corrugates it. These sit between 0.01 and 0.15. |
 | `bands`, `band_x`, `band_y`, `distortion` | the gas giant's belts, read only when `bands` is above 0 |
 | `spin` | how fast the world turns |
 
