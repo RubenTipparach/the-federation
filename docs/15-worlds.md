@@ -68,7 +68,7 @@ them.
 | `terrain_scale`, `noise_strength` | how fine the ground is, and how tall. Strength is calibrated against the levels below: change one and check the other, because at the wrong strength a world is unbroken ocean or unbroken snow. |
 | `water_level`, `sand_level`, `tree_level`, `rock_level`, `ice_level` | the altitude each colour takes over at. A level set above what the terrain can reach never appears, which is how a world has no ice. |
 | `transition` | how wide the blend between two levels is. Small is a coastline, large is a haze. |
-| `clouds_density`, `clouds_scale`, `clouds_speed` | the weather. A density of 0 skips the cloud layer and its cost entirely. |
+| `clouds_density`, `clouds_scale`, `clouds_speed` | the weather. Density is now literal: 0 is clear sky, 1 is overcast, and the useful band is narrow because the cloud field itself is. A density of 0 skips the layer and its cost entirely. Speed is a drift ACROSS the turning surface, so it is small on purpose: weather that outruns the world it sits on reads as a bug. |
 | `atmosphere_density`, `shell` | how thick the air is, and how far past the body its glow reaches. A density of 0 draws no atmosphere at all. |
 | `sun_intensity`, `ambient` | how hard the star hits, and how much light the dark side keeps |
 | `glow_level` | how much of the lowest ground stays lit at night |
@@ -83,6 +83,15 @@ it. Rock has none of it.
 **The mountains are real.** The terrain is added to the sphere's radius before
 the ray is intersected with it, so a range breaks the silhouette at the limb
 rather than being a picture painted on a ball.
+
+**The clouds move**, and they move independently of the ground: the weather is
+a domain warped field sampled at an offset that walks with time, over a surface
+that is itself turning. Thinned over high ground, so a mountain range is not
+buried. This was dead for a while and looked like a missing feature: the
+author's coverage threshold is `1 - density * 0.5`, which assumes a cloud field
+spanning wider than ours does, so the layer was computed on every fragment of
+every world and then thrown away. It is `1 - density` now, which also makes the
+number mean what it says.
 
 ---
 

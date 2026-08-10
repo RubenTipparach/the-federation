@@ -302,7 +302,15 @@ void fragment() {
 			vec3 cloudsCoord = (turned + vec3(TIME * 0.008 * cloudsSpeed)) * cloudsScale;
 			float density = remap(
 				domainWarpingFBM(cloudsCoord, 3, 0.3, 5.0, cloudsScale), -1.0, 1.0, 0.0, 1.0);
-			float threshold = 1.0 - cloudsDensity * 0.5;
+			// The author writes `1.0 - uCloudsDensity * 0.5`, which never fires
+			// here: his cloud field and ours do not span the same range. Ours
+			// comes out of a domain warped fbm whose exponentiation crushes a
+			// mean of 0.5 to about 0.12, so after his remap it sits near 0.56
+			// and his threshold sits at 0.725. The clouds were computed on every
+			// fragment of every world and thrown away. Dropping the half makes
+			// the number mean what it says: density 0 is clear sky, density 1 is
+			// overcast.
+			float threshold = 1.0 - cloudsDensity;
 			density *= smoothstep(threshold, threshold + 0.1, density);
 			density *= smoothstep(rockLevel, (rockLevel + treeLevel) / 2.0, altitude);
 			albedo = mix(albedo, cloudColor, density);
