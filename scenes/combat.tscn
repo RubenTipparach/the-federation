@@ -35,14 +35,14 @@ theme_override_constants/separation = 4
 
 [node name="Head" type="Label" parent="Left/ShipPanel/V"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 text = "SHIP"
 theme_type_variation = &"HeaderLabel"
 text_overrun_behavior = 1
 
 [node name="Body" type="Label" parent="Left/ShipPanel/V"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 text = "status"
 text_overrun_behavior = 1
 
@@ -52,7 +52,7 @@ layout_mode = 2
 [node name="L" type="Label" parent="Left/ShipPanel/V/Throttle"]
 layout_mode = 2
 custom_minimum_size = Vector2(79, 0)
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 text = "THROTTLE"
 
 [node name="Boxes" parent="Left/ShipPanel/V/Throttle" instance=ExtResource("6")]
@@ -61,7 +61,7 @@ layout_mode = 2
 [node name="Out" type="Label" parent="Left/ShipPanel/V/Throttle"]
 layout_mode = 2
 custom_minimum_size = Vector2(34, 0)
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 horizontal_alignment = 2
 text = "0"
 text_overrun_behavior = 1
@@ -75,7 +75,7 @@ theme_override_constants/separation = 5
 
 [node name="Head" type="Label" parent="Left/PowerPanel/V"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 text = "POWER"
 theme_type_variation = &"HeaderLabel"
 text_overrun_behavior = 1
@@ -86,7 +86,7 @@ layout_mode = 2
 [node name="L" type="Label" parent="Left/PowerPanel/V/Weapons"]
 layout_mode = 2
 custom_minimum_size = Vector2(79, 0)
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 text = "WEAPONS"
 
 [node name="Boxes" parent="Left/PowerPanel/V/Weapons" instance=ExtResource("6")]
@@ -95,7 +95,7 @@ layout_mode = 2
 [node name="Out" type="Label" parent="Left/PowerPanel/V/Weapons"]
 layout_mode = 2
 custom_minimum_size = Vector2(34, 0)
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 horizontal_alignment = 2
 text = "0"
 text_overrun_behavior = 1
@@ -106,7 +106,7 @@ layout_mode = 2
 [node name="L" type="Label" parent="Left/PowerPanel/V/Shields"]
 layout_mode = 2
 custom_minimum_size = Vector2(79, 0)
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 text = "SHIELDS"
 
 [node name="Boxes" parent="Left/PowerPanel/V/Shields" instance=ExtResource("6")]
@@ -115,7 +115,7 @@ layout_mode = 2
 [node name="Out" type="Label" parent="Left/PowerPanel/V/Shields"]
 layout_mode = 2
 custom_minimum_size = Vector2(34, 0)
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 horizontal_alignment = 2
 text = "0"
 text_overrun_behavior = 1
@@ -126,7 +126,7 @@ layout_mode = 2
 [node name="L" type="Label" parent="Left/PowerPanel/V/Engines"]
 layout_mode = 2
 custom_minimum_size = Vector2(79, 0)
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 text = "ENGINES"
 
 [node name="Boxes" parent="Left/PowerPanel/V/Engines" instance=ExtResource("6")]
@@ -135,7 +135,7 @@ layout_mode = 2
 [node name="Out" type="Label" parent="Left/PowerPanel/V/Engines"]
 layout_mode = 2
 custom_minimum_size = Vector2(34, 0)
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 horizontal_alignment = 2
 text = "0"
 text_overrun_behavior = 1
@@ -146,7 +146,7 @@ layout_mode = 2
 [node name="L" type="Label" parent="Left/PowerPanel/V/Systems"]
 layout_mode = 2
 custom_minimum_size = Vector2(79, 0)
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 text = "SYSTEMS"
 
 [node name="Boxes" parent="Left/PowerPanel/V/Systems" instance=ExtResource("6")]
@@ -155,7 +155,7 @@ layout_mode = 2
 [node name="Out" type="Label" parent="Left/PowerPanel/V/Systems"]
 layout_mode = 2
 custom_minimum_size = Vector2(34, 0)
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 horizontal_alignment = 2
 text = "0"
 text_overrun_behavior = 1
@@ -166,7 +166,7 @@ layout_mode = 2
 [node name="L" type="Label" parent="Left/PowerPanel/V/Reserve"]
 layout_mode = 2
 custom_minimum_size = Vector2(79, 0)
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 text = "RESERVE"
 
 [node name="Boxes" parent="Left/PowerPanel/V/Reserve" instance=ExtResource("6")]
@@ -175,7 +175,7 @@ layout_mode = 2
 [node name="Out" type="Label" parent="Left/PowerPanel/V/Reserve"]
 layout_mode = 2
 custom_minimum_size = Vector2(34, 0)
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 horizontal_alignment = 2
 text = "0"
 text_overrun_behavior = 1
@@ -209,7 +209,7 @@ theme_override_constants/separation = 4
 
 [node name="Head" type="Label" parent="Left/DamagePanel/V"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 text = "DAMAGE REPORT"
 theme_type_variation = &"HeaderLabel"
 
@@ -222,13 +222,13 @@ vertical_scroll_mode = 4
 [node name="Body" type="Label" parent="Left/DamagePanel/V/BodyScroll"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 autowrap_mode = 2
 text = "No damage."
 
 [node name="CommHead" type="Label" parent="Left/DamagePanel/V"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 text = "COMM LOG"
 theme_type_variation = &"HeaderLabel"
 
@@ -241,7 +241,7 @@ vertical_scroll_mode = 4
 [node name="CommLog" type="Label" parent="Left/DamagePanel/V/CommScroll"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 autowrap_mode = 2
 text = ""
 
@@ -279,17 +279,17 @@ visible = false
 
 [node name="PlayerLabel" type="Label" parent="Mid/ViewPanel/Stack"]
 layout_mode = 0
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 text = "SHIP"
 
 [node name="EnemyLabel" type="Label" parent="Mid/ViewPanel/Stack"]
 layout_mode = 0
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 text = "ENEMY"
 
 [node name="EnemyStatus" type="Label" parent="Mid/ViewPanel/Stack"]
 layout_mode = 0
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 text = ""
 
 [node name="InsetCaption" type="Label" parent="Mid/ViewPanel/Stack"]
@@ -303,7 +303,7 @@ offset_left = -168
 offset_top = -192
 offset_right = -17
 offset_bottom = -173
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 horizontal_alignment = 2
 text = "TACTICAL"
 
@@ -353,13 +353,13 @@ theme_override_constants/separation = 12
 
 [node name="Result" type="Label" parent="Mid/ViewPanel/Stack/EndOverlay/P/V"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 14
+theme_override_font_sizes/font_size = 28
 horizontal_alignment = 1
 text = "VICTORY"
 
 [node name="Detail" type="Label" parent="Mid/ViewPanel/Stack/EndOverlay/P/V"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 horizontal_alignment = 1
 text = ""
 
@@ -422,7 +422,7 @@ step = 1.0
 [node name="Where" type="Label" parent="Mid/ReplayBar"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 text = "TICK 0 / 0"
 text_overrun_behavior = 1
 
@@ -490,19 +490,19 @@ theme_override_constants/separation = 4
 
 [node name="Head" type="Label" parent="Right/TargetPanel/V"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 text = "TARGET"
 theme_type_variation = &"HeaderLabel"
 
 [node name="Body" type="Label" parent="Right/TargetPanel/V"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 text = "status"
 text_overrun_behavior = 1
 
 [node name="Lock" type="Label" parent="Right/TargetPanel/V"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 visible = false
 text = "SENSOR LOCK LOST"
 text_overrun_behavior = 1
@@ -519,7 +519,7 @@ theme_override_constants/separation = 5
 
 [node name="Head" type="Label" parent="Right/OwnPanel/V"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 text = "OWN SHIP"
 theme_type_variation = &"HeaderLabel"
 
@@ -551,7 +551,7 @@ theme_override_constants/separation = 5
 
 [node name="Head" type="Label" parent="Right/WeaponsPanel/V"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 text = "WEAPONS"
 theme_type_variation = &"HeaderLabel"
 
@@ -561,7 +561,7 @@ theme_override_constants/separation = 2
 
 [node name="Battery" type="Label" parent="Right/WeaponsPanel/V"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 text = "BATTERY 0%"
 text_overrun_behavior = 1
 

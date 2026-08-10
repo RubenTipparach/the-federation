@@ -15,7 +15,7 @@ theme_override_constants/separation = 6
 [node name="Ord" type="Label" parent="Line"]
 custom_minimum_size = Vector2(14, 0)
 layout_mode = 2
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 text = "1"
 
 [node name="Icon" type="TextureRect" parent="Line"]
@@ -28,21 +28,21 @@ stretch_mode = 5
 [node name="Code" type="Label" parent="Line"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 text = "CODE"
 
 [node name="Where" type="Label" parent="Line"]
 custom_minimum_size = Vector2(29, 0)
 layout_mode = 2
 horizontal_alignment = 2
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 text = "#1"
 
 [node name="Cost" type="Label" parent="Line"]
 custom_minimum_size = Vector2(46, 0)
 layout_mode = 2
 horizontal_alignment = 2
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 text = "0 p"
 
 [node name="Drop" type="Button" parent="Line"]
@@ -50,7 +50,7 @@ custom_minimum_size = Vector2(22, 0)
 layout_mode = 2
 focus_mode = 0
 flat = true
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 text = "x"
 
 [node name="Track" type="ColorRect" parent="."]

@@ -95,10 +95,41 @@ func _place_group(spec: Dictionary, rng: RandomNumberGenerator, half: float,
 					"kind": kind, "pos": at, "body": body, "field": field,
 					"variant": variant,
 				})
+				_place_moons(spec, features[-1], rng, keep_clear)
 				if not anchored:
 					anchor = at
 					anchored = true
 				break
+
+
+## The moons of the body just placed, if its recipe asks for any.
+##
+## A moon is a planet with no well: same kind, so the same collision rule and
+## the same scene draw it, and a field of zero, which is what pull_at() reads as
+## "this one does not tug". That is deliberately not a second kind of feature.
+## Nothing orbits: the simulation is a still arena, so a moon is placed once at
+## a bearing drawn from the battle rng and stays there, like every rock.
+func _place_moons(spec: Dictionary, parent: Dictionary,
+		rng: RandomNumberGenerator, keep_clear: Array[Vector2]) -> void:
+	if not spec.has("moons"):
+		return
+	var count: int = _pick_int(spec["moons"], rng)
+	var tries: int = int(tuning["placement_tries"])
+	var reach: float = float(parent["field"])
+	for _m in range(count):
+		var body: float = float(parent["body"]) * _pick_float(spec["moon_size"], rng)
+		for _try in range(tries):
+			var away: float = reach * _pick_float(spec["moon_orbit"], rng)
+			var bearing: float = rng.randf_range(0.0, TAU)
+			var at: Vector2 = Vector2(parent["pos"]) \
+				+ Vector2(cos(bearing), sin(bearing)) * away
+			if not _acceptable(String(parent["kind"]), at, body, 0.0, keep_clear):
+				continue
+			features.append({
+				"kind": String(parent["kind"]), "pos": at, "body": body,
+				"field": 0.0, "variant": "moon",
+			})
+			break
 
 
 ## Where a body may go. Solid bodies keep clear of the starting positions and of

@@ -1,5 +1,5 @@
 {
-  "_comment": "Skirmish map recipes (docs/13 section 5). A map is a list of feature specs, not a list of features: the actual placement is drawn from the battle seed so a replay reproduces the map along with everything else. short is what fits on a picker card at the bitmap face's fixed size; name is what everything with room says. Ranges are inclusive [min, max]; count is how many groups, cluster is how many bodies per group, body is the collision radius and field is the effect radius, both in arena units. variants, where a kind has them, is the list of looks a feature may wear; which one is drawn comes from the battle seed like everything else, so a replay shows the same world. Adding a map type, or a new kind of world, is an entry here, never code (CLAUDE.md 5.4).",
+  "_comment": "Skirmish map recipes (docs/13 section 5). A map is a list of feature specs, not a list of features: the actual placement is drawn from the battle seed so a replay reproduces the map along with everything else. short is what fits on a picker card at the bitmap face's fixed size; name is what everything with room says. Ranges are inclusive [min, max]; count is how many groups, cluster is how many bodies per group, body is the collision radius and field is the effect radius, both in arena units. variants, where a kind has them, is the list of looks a feature may wear; which one is drawn comes from the battle seed like everything else, so a replay shows the same world. moons is how many companions a body keeps, moon_size is their radius as a fraction of its own, and moon_orbit is how far out they sit as a fraction of its well; a moon is the same kind of feature with no well of its own. Adding a map type, or a new kind of world, is an entry here, never code (CLAUDE.md 5.4).",
   "order": [
     "open",
     "nebula",
@@ -70,7 +70,7 @@
     "orbit": {
       "name": "High Orbit",
       "short": "Orbit",
-      "blurb": "One world, off centre. The well pulls, and the surface does not forgive.",
+      "blurb": "One world, off centre, with what it has caught. The well pulls, and the surface does not forgive.",
       "features": [
         {
           "kind": "planet",
@@ -93,9 +93,23 @@
           "spread": 0.0,
           "variants": [
             "terran",
+            "jungle",
+            "volcanic",
             "ice",
             "barren",
             "gas"
+          ],
+          "moons": [
+            0,
+            2
+          ],
+          "moon_size": [
+            0.16,
+            0.3
+          ],
+          "moon_orbit": [
+            0.45,
+            0.85
           ]
         }
       ]

@@ -34,7 +34,8 @@ hulls to board, capture, and refit into your own.
 | [docs/11-battle-logs-and-replay.md](docs/11-battle-logs-and-replay.md) | The deterministic log, replay reproduction, the replay bar |
 | [docs/12-ship-design-language.md](docs/12-ship-design-language.md) | How the ships of this era are built, and what our hulls take from that |
 | [docs/13-terrain-and-tractors.md](docs/13-terrain-and-tractors.md) | Nebulae, asteroids, gravity wells, and the tractor beam auction |
-| [docs/14-reference-pixel-planets.md](docs/14-reference-pixel-planets.md) | The vendored planet shaders: what was taken, what changed, and why the colours are ours |
+| [docs/14-reference-planet-shader.md](docs/14-reference-planet-shader.md) | The vendored planet shader, why the game is GPL-3.0, and what it replaced |
+| [docs/15-worlds.md](docs/15-worlds.md) | Concept for the seven worlds an arena can hold, with plates drawn from the game |
 
 Project rules live in [CLAUDE.md](CLAUDE.md) and are binding.
 
@@ -68,6 +69,14 @@ DRY_RUN=1 ./scripts/deploy-itch.sh
 
 CI runs these same scripts. `build.config` is the single source of truth for
 versions, targets, and itch.io coordinates.
+
+## Licence
+
+**GPL-3.0.** The full text is in [LICENSE](LICENSE). The game is under the GPL
+because the planet shader it vendors is: see
+[docs/14-reference-planet-shader.md](docs/14-reference-planet-shader.md) section
+1 for what that means in practice and what the alternative would be. Anything
+vendored from here on has to be GPL compatible.
 
 ## A note on IP
 

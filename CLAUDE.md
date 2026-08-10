@@ -380,6 +380,20 @@ exception until it is listed in this section and agreed.
   scene children, with code doing rotation in 30 degree steps, scaling, and authored
   material selection only. This is the placement pattern section 7 anticipated and it
   keeps section 5.1 intact rather than excepting it.
+- **A world blends between its palette colours.** This is the one place in the
+  repository where section 3.1 does not hold pixel for pixel, and it is here
+  because it was asked for (2026-08-09): the pixel art worlds were not wanted,
+  and a shaded sphere blends by construction. `data/palette.json` `worlds` still
+  decides every colour each world is built from, the five of its surface ramp
+  plus its cap, its limb and its glow, and no other colour enters from
+  anywhere; what the palette no longer decides is the pixels between them. Nothing else moved: the ships, the
+  panels, the icons and the effects are all still palette exact, and
+  `tools/shiplib.py` `verify()` still fails a build over one stray colour.
+  `tools/gen_world_plates.py` used to run the same gate over the rendered
+  worlds and no longer does, with a comment saying why, so nobody restores the
+  check and concludes the art is broken. See `docs/14-reference-planet-shader.md`
+  section 3.
+
 - **Terrain is committed meshes in committed scenes, placed by code.** The three
   feature scenes under `scenes/terrain/` are authored `.tscn` files instancing
   `sphere.obj`, `disc.obj`, and `ring.obj` from `tools/gen_meshes.py`, with authored
@@ -514,17 +528,28 @@ from proportion rather than detail, class read from part count, and silhouette
 designed for a top down camera. It names the models it was drawn from and states
 plainly that none of them are in this repository.
 
-**Worlds are drawn by someone else's shaders, under licence.** The planets in the
-tactical view use Deep-Fold's PixelPlanets, MIT licensed, vendored under
-`assets/vendor/pixel_planets/` with its LICENSE beside it.
-`docs/14-reference-pixel-planets.md` records what was taken, the three mechanical
-changes made to it, and why shaders that never blend between their colours are the
-one kind that can satisfy section 3.1.
+**Worlds are drawn by someone else's shader, and it is GPL-3.0.** The planets in
+the tactical view use a Godot port of realtime-planet-shader by Julien Sulpis,
+vendored under `assets/vendor/realtime_planet/` with the author's original beside
+the port. `docs/14-reference-planet-shader.md` records how it works, what is his
+and what is ours, and the two traps the port fell into.
 
-This is a different relationship from the one above. Federation Commander is a design
-we read and reimplement; PixelPlanets is code we run. Vendored code keeps its licence
-file, keeps its upstream API, and is not quietly rewritten, so the diff against the
-original stays readable and it can be updated.
+**This is why the whole game is GPL-3.0**, and `LICENSE` in the root of this
+repository is the full text. That was decided deliberately on 2026-08-09 with the
+consequence stated first: the GPL is copyleft, so it reaches the game rather than
+the one file, and anyone we ship a build to may ask for that build's source under
+the same terms. Two rules follow from it:
+
+- **Anything vendored from here on must be GPL compatible.** MIT, BSD and CC0
+  are. A proprietary or non commercial asset licence is not, and adding one would
+  put the repository in violation rather than merely in a muddle.
+- **If the obligation ever becomes unwanted, replace the shader.** It came in
+  with that file and it leaves with it. Do not quietly relicense around it.
+
+This is a different relationship from the one above. Federation Commander is a
+design we read and reimplement; the planet shader is code we run. Vendored code
+keeps its licence file, keeps its upstream API where it can, and is not quietly
+rewritten, so the diff against the original stays readable and it can be updated.
 
 Reference material for other systems belongs in the same place: a numbered document
 under `docs/`, with the source named and linked, and a line in this section pointing

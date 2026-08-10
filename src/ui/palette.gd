@@ -128,14 +128,24 @@ static func named(entry: String) -> Color:
 	return Color(String(data["ui_colors"][entry]))
 
 
-## The ordered colour list one kind of world is painted from (docs/14). A
-## variant with no list is a data error and stops rather than painting a world
-## in whatever the shader defaults happen to be, which would be somebody else's
-## palette.
-static func world_roles(variant: String) -> Array:
+## One colour of one kind of world: `low`, `mid`, `high` or `rim` (docs/14).
+## A variant with no entry, or a slot it does not name, is a data error and
+## stops rather than painting a world in whatever the shader's defaults happen
+## to be, which would be somebody else's palette.
+static func world_color(variant: String, slot: String) -> Color:
 	var worlds: Dictionary = _palette_file()["worlds"]
 	assert(worlds.has(variant), "no world palette for variant: " + variant)
-	return worlds[variant]
+	var roles: Dictionary = worlds[variant]
+	assert(roles.has(slot), "world %s names no %s colour" % [variant, slot])
+	var role: String = String(roles[slot])
+	# An empty name means the world HAS none of that thing: no polar cap, no
+	# glowing fissures. Black is what switches those off in the shader, and it
+	# is a real answer rather than a missing one, so it is not an assert.
+	if role.is_empty():
+		# Alpha 0 is the "this world has none of that" answer. Every real entry
+		# comes back opaque, so a caller can ask either question of one value.
+		return Color(0.0, 0.0, 0.0, 0.0)
+	return named(role)
 
 
 static var BG: Color:

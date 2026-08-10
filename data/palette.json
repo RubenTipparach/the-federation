@@ -393,9 +393,31 @@
   },
   "fx_note": "Colour ramps for the effect sprite sheets, hottest entry first. A ramp is named here rather than written into a generator so that a palette swap stays a one file change (CLAUDE.md 3.1). Entries resolve against colors and ui_colors together, because the hot end of a fire is the same orange every critical readout in the interface already wears, and naming a second one would be inventing a colour.",
   "fx": {
-    "explosion": ["cream", "gold_hi", "alert_hi", "alert", "clay", "clay_deep", "maroon", "bark", "char"],
-    "plasma": ["cream", "blue_hi", "blue_light", "blue", "navy"],
-    "supernova": ["cream", "rose_hi", "wine_hi", "wine", "plum"]
+    "explosion": [
+      "cream",
+      "gold_hi",
+      "alert_hi",
+      "alert",
+      "clay",
+      "clay_deep",
+      "maroon",
+      "bark",
+      "char"
+    ],
+    "plasma": [
+      "cream",
+      "blue_hi",
+      "blue_light",
+      "blue",
+      "navy"
+    ],
+    "supernova": [
+      "cream",
+      "rose_hi",
+      "wine_hi",
+      "wine",
+      "plum"
+    ]
   },
   "ramps_note": [
     "Lookup ramps for the sky shader, baked to assets/textures/sky_ramps.png by",
@@ -485,46 +507,90 @@
     ]
   },
   "worlds": {
-    "_note": "Colours for the pixel planet shaders vendored from Deep-Fold (docs/14). Each entry is the ordered list that world type's set_colors expects, and the vendored script decides where the slices fall. The shaders never blend: every pixel they emit is exactly one of these, dithered against its neighbour, so a world is made of palette entries and nothing else (CLAUDE.md 3.1). Within each band the order is lit side first, shadow last.",
-    "terran": [
-      "teal_gray",
-      "blue_light",
-      "blue",
-      "olive_light",
-      "green_light",
-      "green",
-      "teal_deep",
-      "cream",
-      "bone",
-      "taupe",
-      "gray_blue"
-    ],
-    "ice": [
-      "cream",
-      "bone",
-      "gray_blue_light",
-      "shield_hi",
-      "teal",
-      "teal_deep",
-      "cream",
-      "bone",
-      "gray_blue_light",
-      "gray_blue"
-    ],
-    "barren": [
-      "taupe",
-      "taupe_deep",
-      "moss_gray",
-      "drab_deep",
-      "char"
-    ],
-    "gas": [
-      "gold_hi",
-      "gold",
-      "bronze",
-      "clay_deep",
-      "bark",
-      "plum"
-    ]
+    "_note": "What each world is made of, as palette role names (CLAUDE.md 3.1). The planet shader ramps a surface altitude through abyss, sea, shore, land and peak, puts cap on the highest ground, draws its weather in cloud, lights its limb with rim, keeps glow on the night side, and hangs a ring around itself in ring. A world that names no ring colour has no ring. An empty name means the world has none of that thing. Shape, as opposed to colour, is terrain_view.planets in data/tuning.json, and a new kind of world is an entry in both files and nothing else (CLAUDE.md 5.4). NOTE that the shader BLENDS between these, so a world is not made only of palette entries the way the ships and the panels are; that is the documented exception in CLAUDE.md section 7.",
+    "terran": {
+      "abyss": "navy_deep",
+      "sea": "blue",
+      "shore": "olive_light",
+      "land": "green",
+      "peak": "taupe_deep",
+      "cap": "cream",
+      "cloud": "cream",
+      "rim": "blue_hi",
+      "glow": "",
+      "ring": ""
+    },
+    "jungle": {
+      "abyss": "teal_deep",
+      "sea": "teal",
+      "shore": "moss_light",
+      "land": "phos_lo",
+      "peak": "moss_deep",
+      "cap": "bone",
+      "cloud": "bone",
+      "rim": "phos",
+      "glow": "",
+      "ring": ""
+    },
+    "volcanic": {
+      "abyss": "alert_hi",
+      "sea": "clay",
+      "shore": "clay_deep",
+      "land": "bark",
+      "peak": "taupe_deep",
+      "cap": "taupe",
+      "cloud": "drab_deep",
+      "rim": "alert",
+      "glow": "alert_hi",
+      "ring": ""
+    },
+    "ice": {
+      "abyss": "navy_deep",
+      "sea": "blue",
+      "shore": "gray_blue",
+      "land": "gray_blue_light",
+      "peak": "bone",
+      "cap": "cream",
+      "cloud": "cream",
+      "rim": "shield_hi",
+      "glow": "",
+      "ring": ""
+    },
+    "barren": {
+      "abyss": "char",
+      "sea": "drab_deep",
+      "shore": "moss_gray",
+      "land": "taupe_deep",
+      "peak": "taupe",
+      "cap": "bone",
+      "cloud": "",
+      "rim": "taupe_deep",
+      "glow": "",
+      "ring": ""
+    },
+    "gas": {
+      "abyss": "clay_deep",
+      "sea": "bronze",
+      "shore": "gold_deep",
+      "land": "gold",
+      "peak": "gold_hi",
+      "cap": "cream",
+      "cloud": "",
+      "rim": "gold_hi",
+      "glow": "",
+      "ring": "gold_deep"
+    },
+    "moon": {
+      "abyss": "ink",
+      "sea": "char",
+      "shore": "gunmetal",
+      "land": "taupe_deep",
+      "peak": "bone",
+      "cap": "bone",
+      "cloud": "",
+      "rim": "gunmetal",
+      "glow": "",
+      "ring": ""
+    }
   }
 }

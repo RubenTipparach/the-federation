@@ -40,6 +40,12 @@ OUT = os.path.join(HERE, "..", "assets", "ui", "skin")
 
 # The art block. Everything below is measured in blocks and multiplied by this,
 # so the whole skin rescales from one number if the game's resolution changes.
+#
+# This has to match the SCALE THE TYPE IS DRAWN AT, or the chassis and the
+# letters sit on two different pixel grids and the interface stops reading as
+# one piece of pixel art. The face is baked at 7 (gen_font.py) and the
+# interface asks for 14, which is 2x, so a letter's stroke is two device
+# pixels and a bevel must be two as well.
 B = 2
 
 
@@ -122,24 +128,33 @@ def grit(p, x, y, w, h, base, specks, density, avoid=None):
     """A flecked face: the oxidised metal of the reference plates. Density is
     one speck per that many blocks.
 
-    `avoid` is a (x, y, w, h) box in blocks that gets the base colour and no
-    flecks. It exists for a bug that took a while to see and is obvious once
+    `avoid` is the (x, y, w, h) stretch band from stretch_box: any speck whose
+    column OR row falls inside it is dropped, so flecks survive only in the
+    four corners a nine patch draws untouched. It exists for a bug that took a while to see and is obvious once
     stated: a nine patch STRETCHES its centre, so a single one block fleck
     landing in there is not a fleck any more, it is a bar across the whole
     control. Every button carried one dark red speck near the middle and it
     drew on screen as a smeared red blob, which is what a rivet becomes when
     it is scaled by twenty.
 
-    So detail may not live in a stretched centre. The plate is exempt and does
-    not pass this, because its centre TILES rather than stretches and its
-    scanlines depend on that."""
+    So detail may not live in a stretched centre, and it may not live in a
+    TILED one either: a repeat is not randomness, it is a pattern, and the eye
+    finds it immediately. The plate's scanlines are the one thing that wants
+    the tiling, and they are painted after this, inside the glass well."""
     blocks(p, x, y, w, h, base)
     for j in range(h):
         for i in range(w):
             bx, by = x + i, y + j
             if avoid is not None:
+                # BANDS, not a box. A nine patch repeats its middle COLUMNS
+                # across the whole width and its middle ROWS down the whole
+                # height, so a speck is safe only if it is outside both bands:
+                # one sitting in the top frame at a middle column still tiles
+                # along the entire top edge. Testing the two ranges with "and"
+                # protected the centre square and left the four edge strips
+                # dashed, which is what drew a dotted rule across every panel.
                 ax, ay, aw, ah = avoid
-                if ax <= bx < ax + aw and ay <= by < ay + ah:
+                if ax <= bx < ax + aw or ay <= by < ay + ah:
                     continue
             n = hashed(bx, by)
             if n % density == 0:
@@ -180,7 +195,15 @@ def plate(R):
     blocks of centre over a three block period divides evenly, which is what
     makes the tiling seamless."""
     p = Px(20 * B, background=R["outline"], height=20 * B)
-    grit(p, 1, 1, 18, 18, R["face"], [R["fleck_a"], R["fleck_b"]], 23)
+    # The centre is AVOIDED even though it tiles rather than stretches. Tiling
+    # was thought to make flecks safe here, and at two device pixels a block
+    # the twenty four pixel period passed for speckle. At one it is twelve,
+    # and a speck repeating every twelve pixels along the top frame is not
+    # speckle, it is a dashed rule drawn across every panel in the game.
+    # Random looking marks cannot live in a repeating band at any period; they
+    # belong in the four corners, which is where the margins put them.
+    grit(p, 1, 1, 18, 18, R["face"], [R["fleck_a"], R["fleck_b"]], 23,
+         avoid=stretch_box("plate", 20, 20))
     blocks(p, 1, 1, 18, 1, R["bevel_hi"])
     blocks(p, 1, 2, 1, 17, R["bevel_hi_2"])
     blocks(p, 1, 18, 18, 1, R["bevel_lo"])
@@ -213,18 +236,28 @@ def header(R):
             if edge:
                 blocks(p, i, j, 1, 1, R["outline"])
                 continue
+            # Lit from the top left, shaded to the bottom right, which is the
+            # plate's convention and has to be the header's too. The left
+            # column had no bevel at all: the bar was shaded down its right
+            # edge and flat down its left, so it read as half a bar.
             top = j == 1 or i + j == cut + 1
+            left = i == 1
             low = j == h - 2 or i == w - 2
-            blocks(p, i, j, 1, 1,
-                   R["bevel_hi"] if (top and j <= 2) else
-                   (R["bevel_lo"] if low else R["face"]))
-    # The flecks and the rivets used to sit on row 5, which is inside the
-    # vertical stretch band, so both were drawn as vertical bars down the
-    # whole header rather than as specks. They move to row 1, inside the top
-    # margin, where a nine patch repeats them instead of smearing them.
-    for i in range(6, w - 6):
-        if hashed(i, 1) % 9 == 0:
-            blocks(p, i, 1, 1, 1, R["fleck_a"])
+            tone = R["face"]
+            if top and j <= 2:
+                tone = R["bevel_hi"]
+            elif left:
+                tone = R["bevel_hi_2"]
+            elif low:
+                tone = R["bevel_lo"]
+            blocks(p, i, j, 1, 1, tone)
+    # NO FLECKS ON THE BAR. They were moved out of the vertical stretch band
+    # once, which fixed them being drawn as vertical bars, but row 1 columns
+    # 6 to 17 are still inside the HORIZONTAL stretch band: a nine patch
+    # repeats that column across the whole width, so one dark speck became a
+    # dark dash smeared along the highlight. A header is 24 blocks of art
+    # asked to be three hundred pixels wide, and the only marks that survive
+    # that are the ones in the four corners.
     # A rivet at each end of the bar, clear of where the label runs and clear
     # of the stretched middle.
     for rx in (2, w - 3):
