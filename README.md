@@ -36,6 +36,7 @@ hulls to board, capture, and refit into your own.
 | [docs/13-terrain-and-tractors.md](docs/13-terrain-and-tractors.md) | Nebulae, asteroids, gravity wells, and the tractor beam auction |
 | [docs/14-reference-planet-shader.md](docs/14-reference-planet-shader.md) | The vendored planet shader, why the game is GPL-3.0, and what it replaced |
 | [docs/15-worlds.md](docs/15-worlds.md) | Concept for the seven worlds an arena can hold, with plates drawn from the game |
+| [docs/16-multiplayer.md](docs/16-multiplayer.md) | Making the tactical layer multiplayer: what already exists, what is in the way, and the build order |
 
 Project rules live in [CLAUDE.md](CLAUDE.md) and are binding.
 
@@ -50,7 +51,7 @@ Pre-production, first playable prototype. What is in the repository:
 - A **playable prototype** (Godot 4.7.1, GDScript, web first): ship fitting with the
   four budgets and a live SSD dry dock demo, the 12 sector arc wheel, skirmish setup,
   and 1v1 3D tactical combat against an AI opponent. The simulation is a shared library
-  under `src/sim/` with a 91 check headless test suite (`./scripts/run-tests.sh`).
+  under `src/sim/` with a 541 check headless test suite (`./scripts/run-tests.sh`).
 
 Fly.io deployment is deliberately deferred until the prototype mechanics are
 understood. See [docs/08-build-and-deploy.md](docs/08-build-and-deploy.md) section 8.
