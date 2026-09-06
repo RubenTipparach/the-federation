@@ -382,6 +382,19 @@ the pixel art deck that shipped before that date.
 - **The canvas filters linearly.** Icons are supersampled coverage masks and
   are drawn filtered, at a size that leaves them sharp at the reference
   resolution.
+- **Bars, strips and meters are tiled, not painted box by box.** The power
+  strips, the throttle, the shield and hull bars, the fitting budgets and the
+  tug bar all draw one box tile, a committed `.png` coverage mask tinted by
+  the palette role, repeated along the strip at a uniform pitch and filtered.
+  A 42 box strip that has to fit 220 pixels then shows 42 identical boxes at a
+  fractional pitch, instead of a run of 5 pixel boxes with 6 pixel boxes
+  scattered through it, which is what per box rectangles snapped to the pixel
+  grid produce and what this rule exists to stop. The count stays discrete as
+  section 6.2 requires: the tile is the box, a box is lit or it is not, and a
+  fraction of a box is never drawn. The tile is the one texture the interface
+  keeps, because a repeat is the thing a style box cannot draw on its own. The
+  strip and tug bar painters listed in section 7 narrow to writing sim state
+  into a tiled fill once this lands; the entries stay until the code does.
 - **Pixel art lives in the world, not on the glass.** Ship textures and other
   in world art stay pixel art, with nearest filtering on their own materials.
   That was decided earlier (2026-08) and it stands: the one place a pixel
