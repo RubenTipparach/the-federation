@@ -593,6 +593,14 @@ from proportion rather than detail, class read from part count, and silhouette
 designed for a top down camera. It names the models it was drawn from and states
 plainly that none of them are in this repository.
 
+**The starship tradition itself has a design bible.** `docs/17-starship-design-bible.md`
+goes back to the studio floor: the four nacelle rules and why they were written, the
+kit of parts a ship is assembled from, hull lighting and navigation lights, liveries,
+the aztec, greebles, what the kitbashed fleets got wrong, and the dialects each culture
+speaks, mapped onto our five factions. Every rule in it ends in what it means at one
+texel, because the paint stays pixel art. Same IP rule as the two above: study subjects
+are named, nothing of theirs is reproduced.
+
 **Worlds are drawn by someone else's shader, and it is GPL-3.0.** The planets in
 the tactical view use a Godot port of realtime-planet-shader by Julien Sulpis,
 vendored under `assets/vendor/realtime_planet/` with the author's original beside
