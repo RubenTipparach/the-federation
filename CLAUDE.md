@@ -355,6 +355,63 @@ usually a control that needs a better name.
 
 ---
 
+### 6.6 The interface is vector, not pixel art
+
+**Every screen is drawn as crisp, anti-aliased vector rendering.** This is the
+interface style from here on, approved from the vector deck mockup on
+2026-09-06: no pixel art chassis, no bitmap type, no nearest neighbour
+filtering on the canvas, no pixel look of any kind on the glass. It replaces
+the pixel art deck that shipped before that date.
+
+- **The chassis is drawn by the engine.** Plates, header bars, buttons and
+  every other control face are vector style boxes (`StyleBoxFlat` and its
+  relatives) written into the theme by `tools/gen_theme.py` from palette
+  roles. There are no nine patch textures. A shape a style box cannot draw is
+  a painted control under section 7, never a pre-rasterised PNG.
+- **Type is a vector face.** One typeface for the whole interface, Rajdhani
+  under the SIL Open Font License, vendored under `assets/vendor/` with its
+  licence file. Section 10's rules for vendored code apply to it unchanged:
+  GPL compatible, licence kept beside it, not quietly swapped. It renders with
+  grayscale anti-aliasing and light hinting, and **the theme owns every
+  size**: no per node font size override in a scene (section 5.4). Readouts,
+  headers and controls are set in capitals, as they always were.
+- **Painted controls draw anti-aliased.** 2D multisampling is on in
+  `project.godot`, and a painter passes `antialiased` wherever a draw call
+  offers it. The shield rings, the arc wheel and the box strips are smooth
+  because of this, not because of anything in their scripts.
+- **The canvas filters linearly.** Icons are supersampled coverage masks and
+  are drawn filtered, at a size that leaves them sharp at the reference
+  resolution.
+- **Bars, strips and meters are tiled, not painted box by box.** The power
+  strips, the throttle, the shield and hull bars, the fitting budgets and the
+  tug bar all draw one box tile, a committed `.png` coverage mask tinted by
+  the palette role, repeated along the strip at a uniform pitch and filtered.
+  A 42 box strip that has to fit 220 pixels then shows 42 identical boxes at a
+  fractional pitch, instead of a run of 5 pixel boxes with 6 pixel boxes
+  scattered through it, which is what per box rectangles snapped to the pixel
+  grid produce and what this rule exists to stop. The count stays discrete as
+  section 6.2 requires: the tile is the box, a box is lit or it is not, and a
+  fraction of a box is never drawn. The tile is the one texture the interface
+  keeps, because a repeat is the thing a style box cannot draw on its own. The
+  strip and tug bar painters listed in section 7 narrow to writing sim state
+  into a tiled fill once this lands; the entries stay until the code does.
+- **Pixel art lives in the world, not on the glass.** Ship textures and other
+  in world art stay pixel art, with nearest filtering on their own materials.
+  That was decided earlier (2026-08) and it stands: the one place a pixel
+  reads as a pixel is a hull.
+- **Section 3.1 holds as written.** Anti-aliasing happens at draw time, on the
+  screen, exactly as the worlds blend between their palette colours. No
+  committed art carries a blended pixel, and every interface colour is still a
+  palette role resolved by the theme generator. Do not reach for a
+  pre-rasterised plate to get an effect: it would need a section 7 exception,
+  and it is the wrong direction.
+
+The test to apply: **would this still look drawn, rather than stamped, on a
+monitor twice as sharp?** Vector rendering does, and pixel art does not, which
+is the whole reason for the change.
+
+---
+
 ## 7. Documented Exceptions
 
 Exceptions to the rules above live here, with the reason. Nothing may be treated as an
@@ -452,6 +509,14 @@ exception until it is listed in this section and agreed.
   `scenes/ui/subsystem_panel.tscn`, the script paints only what it is handed
   and reports nothing but pixels. Agreed with the approved marines station
   mockup and the instruction to implement boarding (2026-08-04).
+
+- **The interface typeface ships as a `.ttf`.** Section 3 wants every art
+  asset as a `.png`, and the old face was one: a bitmap atlas. Section 6.6
+  retires that on purpose, because a rasterised face IS pixel art, and the
+  vector face that replaces it only exists as an outline file. So the one
+  asset kind that ships as a vector file is the typeface, vendored under
+  `assets/vendor/` with its licence beside it. Nothing else is covered: icons
+  stay `.png` coverage masks. Agreed with the vector deck mockup (2026-09-06).
 
 **One candidate is pending a decision.** Rendering roughly 3,000 hexes with smooth zoom and
 several frequently changing per hex overlays is hard to do with statically authored nodes
