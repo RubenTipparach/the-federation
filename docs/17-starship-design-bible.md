@@ -322,6 +322,7 @@ stripe second, silhouette always.
 | Kthaari Dominion | rust | bronze, gold | moss green | cool drives, warm hull | head, neck, wings, tip pods |
 | Vaelith Ascendancy | dark green | verdigris | none, feathers instead | cool green, a single warm eye | beak, hollow loop, wide flat wings |
 | Sarn Concordance | ochre | amber facets | copper | amber, many small bays | faceted body, forward rake, a ring |
+| Helion Combine | gunmetal | olive, drab | hazard gold and black | warm windows on the command block, cool drives | truss spine, clamped modules, engine cluster |
 | The Bloom | plum black | none | none | bioluminescent, irregular | no axis of symmetry |
 
 The Vaelith and Sarn rows are proposals: neither has a hull yet, and their palette roles do
@@ -447,12 +448,20 @@ proportion, angle, colour and texture. Ours map onto them without copying them.
 | Kthaari Dominion | Klingon | narrow armoured head, thin neck, body deepest aft, swept wings, tip pods | dense irregular plating, warm ridges, chevrons | cool drives, warm hull, few windows |
 | Vaelith Ascendancy | Romulan, plus the Vulcan ring | beak forward, hollow loop, wide flat wings, everything low | smooth, feather bands on the underside | one warm eye at the beak, cool green loop |
 | Sarn Concordance | Cardassian, plus the Vulcan ring | faceted body, forward rake, a ring or hoop for the tractor web, bay mouths in rows | amber facets, copper seams | amber, many small bay lights |
+| Helion Combine | the working ships of section 7, freighters and tugs rather than any navy | a truss spine, a command block forward, standard modules clamped on above and below, an engine cluster on outriggers aft | hazard stripes, exposed frames, containers in three tones | warm windows on the command block, cool drives, nothing decorative |
 | The Bloom | Borg and the organic ships | no symmetry axis, growth, lobes | nodules, no plates | bioluminescent, irregular, never red or green |
 
-The two unbuilt dialects each get one gesture no other faction has: the Vaelith hollow loop,
-which is a silhouette with a hole in it, and the Sarn ring, which is a silhouette with a
-circle in it. From directly above at 60 pixels, a hole and a circle are the two things that
-cannot be confused with a disc, a wedge or a bird.
+The three unbuilt dialects each get one gesture no other faction has: the Vaelith hollow
+loop, which is a silhouette with a hole in it; the Sarn ring, which is a silhouette with a
+circle in it; and the Helion truss, which is a line with boxes clamped to it, so that class
+reads as a count of boxes. From directly above at 60 pixels, a hole, a circle and a line
+of boxes are three things that cannot be confused with a disc, a wedge or a bird.
+
+The Helion Combine is the GDD's sixth faction, the modular mercantile one, and it is not in
+the sections above because its ancestors are not a navy. Its dialect is the kitbash lesson
+of section 7 made deliberate: repeated standard parts, visible fixings, and a silhouette
+that says what the ship carries. Cheapest hulls, most mount flexibility, so the modules
+ARE the mounts, and a refit is a different set of boxes on the same truss.
 
 ---
 
@@ -460,20 +469,32 @@ cannot be confused with a disc, a wedge or a bird.
 
 Docs/12 section 3 states it. This is the table.
 
+The ladder is the one docs/02 section 2 names: seven fighting classes and three variants.
+
 | Class | Disc | Neck | Body | Pods | Spine | Window rows | Pixels across at tactical zoom |
 |---|---|---|---|---|---|---|---|
-| Corvette | small | none | none | 2, on the disc | none | 1 | 30 |
 | Frigate | small | none | none | 2 | short | 1 | 40 |
 | Destroyer | medium | short | short | 2 | medium | 1 | 50 |
-| Cruiser | large | yes | yes | 2 | full | 2 | 60 |
+| Light cruiser | large | yes | yes | 2 | full | 2 | 60 |
 | Heavy cruiser | large | yes | long | 2, long | full | 2 | 70 |
 | Battlecruiser | large | yes | long | 2, long, low | full | 2 | 80 |
-| Carrier | large | yes | doubled or bay lined | 4, stacked pairs | long | 3 | 90 |
-| Dreadnought | large | yes | doubled | 4 | long | 3 | 100 |
+| Battleship | large | yes | doubled | 4, stacked pairs | full | 3 | 90 |
+| Dreadnought | large | yes | doubled | 4, long | long | 3 | 100 |
+| Carrier | large | yes | bay lined | 4, stacked pairs | long | 3 | 90 |
+| Freighter | small | none | a spine of cargo | 2 | long | 1 | 70 |
+| Tender | small | short | a short cargo run, cranes forward | 2 | medium | 1 | 60 |
 
 Size scales the draw, so the last column is only a rough read. The rule is the pods and the
-body: two pods and no body is small, two and a body is a cruiser, four is capital, and the
-body doubling or lining with bays is what a carrier looks like.
+body: two pods and no body is small, two and a body is a cruiser, four is capital, the body
+doubling is a battleship, and the body lining with bays is a carrier. The variants have
+tells of their own: cargo is the silhouette of a freighter, and the cranes are the
+tender's, because nothing else in a fleet reaches forward.
+
+Every faction spends the same row in its own dialect. A Kthaari battleship doubles its
+body with a dorsal hull and puts the second pod pair under the wings; a Vaelith one raises
+a second loop inside the first; a Sarn one stacks a second faceted body above the first;
+a Helion one clamps a module both above and below the truss at every station; and a Bloom
+one simply buds more lobes, because it never had parts to count.
 
 ---
 
@@ -526,19 +547,28 @@ adds triangles that the 60 pixel test can see.
 
 ## 12. The diorama page
 
-The companion page builds six original ships from a parametric kit, in three.js, textured
-with canvas painted pixel art in the project palette at nearest filtering:
+The companion page builds the whole roster, six factions by the ten classes of section 9,
+sixty original hulls from one parametric kit, in three.js, textured with canvas painted
+pixel art in the project palette at nearest filtering. Every face is projected flat along
+its own axis at one texel density, so a plate is the same size on a pod, a wing and a
+hull, and a taper foreshortens by a few percent instead of stretching.
 
-- a Terran cruiser, frigate and carrier, to show class as part count;
-- a Kthaari raider, in the predator grammar the Bloodletter already uses;
-- a Vaelith warbird and a Sarn carrier, as first sight of the two unbuilt dialects.
+Detail is two layers over the plates, both shared by every faction. The painted layer is
+section 6 at one to five texels: aztec sub plates in a third tone, panel lines with a lit
+rivet, lifeboat rows, hatches, thruster quads, phaser strips, sensor domes, docking ports,
+scorch streaks and hull ticks. The mounted layer is one kit of small meshes, domes, drums,
+hoops, fins, spikes, cannons, cranes, containers and blocks, parented to the part they sit
+on so an exploded view carries them. A button hides the mounted layer so a silhouette can
+be judged on its own.
 
-Each can be orbited, snapped to the top down view the game uses, and rendered at 60
-pixels beside the full view, which is the only test that matters. Navigation lights blink
-red to port and green to starboard; collectors, grilles, impulse and deflector glow in the
-colour code of section 4.3; a kitbash panel changes pod count, pylon rake, disc size and
-spine length live so the part count rule can be felt rather than read. The parts can be
-exploded to show the kit.
+Each hull can be orbited, snapped to the top down view the game uses, and rendered at 60
+pixels beside the full view, which is the only test that matters. A roster sheet renders
+all sixty top down at one scale, ten pixels to a unit, so the class ladder can be read
+across a row and the dialects down a column. Navigation lights blink red to port and green
+to starboard; collectors, grilles, impulse and deflector glow in the colour code of
+section 4.3; a kitbash panel changes pod count, pylon rake, disc size and spine length
+live so the part count rule can be felt rather than read. The parts can be exploded to
+show the kit.
 
 It is a review artifact. The ships in it are not assets; the assets are the committed
 `.obj` and `.png` files that `tools/gen_ship_*.py` writes, and the page exists so the next
