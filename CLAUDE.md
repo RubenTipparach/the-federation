@@ -61,7 +61,10 @@ once it started counting. Eyeballing does not find them. Counting does.
   on it, a crane, a container, a spore) and its bounding box grown by one texel. Boxes
   that touch are joined. The result must be ONE component. For a single mesh file the
   same test is run on its shells: triangles that share a vertex form a shell, shells whose
-  grown boxes touch are joined, and the file must be one component.
+  grown boxes touch are joined, and the file must be one component. A mounted greeble
+  is checked against its own part as well, because a plate floating over a wing is inside
+  the wing's box: it casts rays along its six axes and must reach the part's surface
+  within its radius plus two texels, or be embedded in it.
 - **Silhouette.** Render the hull from directly above at the identification size, 60
   pixels, and count the connected blobs of hull pixels, ignoring blobs under three
   pixels. There must be exactly one. Two blobs means a pylon vanished at that size, which
