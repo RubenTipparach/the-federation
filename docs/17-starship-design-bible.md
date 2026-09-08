@@ -570,6 +570,18 @@ section 4.3; a kitbash panel changes pod count, pylon rake, disc size and spine 
 live so the part count rule can be felt rather than read. The parts can be exploded to
 show the kit.
 
+**Windows are decals, and there is one kind per faction.** The page pastes windows
+onto the hull surface rather than painting them into the plate texture, the way Fallen
+Tribes does it: a small quad per window, batched into one mesh per part, cut from a strip
+of six variants whose panes are lit, dim or dark, with the variant picked per window by a
+hash so a run down a flank reads as a ship with people in it rather than a repeated panel.
+The glass is dark in the colour map and only the emissive map carries the light, so a lit
+pane is its palette colour and never white. Every kind is built from one texel panes,
+because one texel is a window (section 10): the Terran pair, the Kthaari slit of three, the
+Vaelith upright oval, the Sarn two by two hex, the Helion single porthole and the Bloom
+pore. The size never changes with class. That is the point: a window is the scale bar,
+and a dreadnought has more rows of the same pane, never a bigger pane.
+
 It is a review artifact. The ships in it are not assets; the assets are the committed
 `.obj` and `.png` files that `tools/gen_ship_*.py` writes, and the page exists so the next
 version of those can be agreed before it is generated.
