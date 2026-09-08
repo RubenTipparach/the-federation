@@ -103,6 +103,36 @@ the single authority: named colors, plus the role map each generator paints from
 - Swapping palettes later means editing `data/palette.json` and regenerating. If the new
   palette lacks a color a role needs, change the role map, not the art code.
 
+### 3.2 Every hull ships a standard graphic set
+
+**A hull is not finished until it has its three standard graphics, and they are drawn
+from the committed model, never by hand.** The set is shown for approval on the diorama
+page's graphics panel and roster sheets (2026-09-08), and it is what every screen reaches for
+when it needs to show a hull without rendering it: the SSD, the fleet roster, the target
+readout, the shipyard listing, the map blip, the post battle report.
+
+| Graphic | What it is | Size | Colour |
+|---|---|---|---|
+| `<hull>_schematic.png` | the hull's edges, hidden lines removed, feature angle 30 degrees | 256 px | one palette role on transparent |
+| `<hull>_icon.png` | the solid silhouette | 64 px | white on transparent |
+| `<hull>_outline.png` | the icon's contour, one pixel wide | 128 px | white on transparent |
+
+Rules that hold for all three:
+
+- **Top down, bow up, fitted to the square** with an eight percent margin. Fitted, not
+  at fleet scale: a frigate's icon fills its box as a dreadnought's does, and class is
+  read from the roster's render column or the SSD, not from the icon's size. The 60 px
+  silhouette check of section 2.1 is the one that runs at fleet scale.
+- **Shape only.** Windows, navigation lights and glow are paint and are left out.
+  Mounted greebles are shape and stay in.
+- **One tool writes them** from the committed `.obj`, beside `tools/gen_wireframes.py`
+  which already draws the SSD wireframe from the same file, so the three can never
+  disagree with the mesh or with each other. Regenerate when the mesh changes; never
+  edit the PNGs. Until that tool lands the diorama page is the reference for how each
+  is drawn, and the rule stands: no hand drawn icon reaches a commit.
+- **Section 3.1 holds.** The schematic's line colour is a palette role. The icon and
+  outline are masks, white and transparent, tinted by the screen that draws them.
+
 ---
 
 ## 4. Architecture and Code Quality
