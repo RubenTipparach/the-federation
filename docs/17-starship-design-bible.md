@@ -445,11 +445,18 @@ proportion, angle, colour and texture. Ours map onto them without copying them.
 | Faction | Takes from | Proportion and angle | Surface | Light |
 |---|---|---|---|---|
 | Terran Concord | Federation, refit and late eras | dominant disc, spine, paired pods above the plane, forward rake | sparse regular plates, one stripe | warm aft, cool bow, lit registry, two window rows |
-| Kthaari Dominion | Klingon | narrow armoured head, thin neck, body deepest aft, swept wings, tip pods | dense irregular plating, warm ridges, chevrons | cool drives, warm hull, few windows |
+| Kthaari Dominion | Klingon | narrow armoured head, thin neck, body deepest aft, swept wings, tip pods; the plan changes with class (below) | dense irregular plating, warm ridges, chevrons | cool drives, warm hull, few windows |
 | Vaelith Ascendancy | Romulan, plus the Vulcan ring | beak forward, hollow loop, wide flat wings, everything low | smooth, feather bands on the underside | one warm eye at the beak, cool green loop |
 | Sarn Concordance | Cardassian, plus the Vulcan ring | faceted body, forward rake, a ring or hoop for the tractor web, bay mouths in rows | amber facets, copper seams | amber, many small bay lights |
 | Helion Combine | the working ships of section 7, freighters and tugs rather than any navy | a truss spine, a command block forward, standard modules clamped on above and below, an engine cluster on outriggers aft | hazard stripes, exposed frames, containers in three tones | warm windows on the command block, cool drives, nothing decorative |
 | The Bloom | Borg and the organic ships | no symmetry axis, growth, lobes | nodules, no plates | bioluminescent, irregular, never red or green |
+
+**The Kthaari plan changes with class.** A fleet where every hull is the same bird at a
+different size reads as one ship, so the grammar stays and the shapes move. The head is
+narrow, a hammer, a bulb or a beak; the body is a box, an oval, a wedge or a slab; the wing
+plan is swept, forward swept, straight, cranked, gull or delta; capital ships carry two
+pairs, stacked or crossed. The roster page keys each class to one combination, and a new
+hull picks its own rather than reusing a neighbour's.
 
 The three unbuilt dialects each get one gesture no other faction has: the Vaelith hollow
 loop, which is a silhouette with a hole in it; the Sarn ring, which is a silhouette with a
