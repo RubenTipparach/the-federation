@@ -113,7 +113,7 @@ readout, the shipyard listing, the map blip, the post battle report.
 
 | Graphic | What it is | Size | Colour |
 |---|---|---|---|
-| `<hull>_schematic.png` | the hull's edges, hidden lines removed, feature angle 30 degrees | 256 px | one palette role on transparent |
+| `<hull>_schematic.png` | the outline, the seams between parts and the greebles, from an ID render, never the mesh edges | 256 px | one palette role on transparent |
 | `<hull>_icon.png` | the solid silhouette | 64 px | white on transparent |
 | `<hull>_outline.png` | the icon's contour, one pixel wide | 128 px | white on transparent |
 
@@ -132,6 +132,12 @@ Rules that hold for all three:
   is drawn, and the rule stands: no hand drawn icon reaches a commit.
 - **Section 3.1 holds.** The schematic's line colour is a palette role. The icon and
   outline are masks, white and transparent, tinted by the screen that draws them.
+- **The schematic is drawn from IDs, not edges.** Every part and every greeble is
+  rendered in its own flat colour and a line goes wherever the colour changes between
+  neighbours. That is the silhouette, the seam where one part meets another, and each
+  greeble's outline, and nothing else: tracing the mesh edges drew every plate and every
+  triangle of a sphere, which is a wireframe, not a schematic. A faint grid inside the
+  silhouette is on the page as a test and is not part of the standard until it is chosen.
 
 ---
 
