@@ -100,9 +100,12 @@ emission_texture = ExtResource("2")
 def paint_faction(faction):
     """Paint and write one culture's three maps and its material."""
     from fleet import paint
-    roles = load_palette(PALETTE, faction)
+    # load_palette returns the role map AND the flat set of every allowed
+    # colour. verify() wants the set, the painter wants the map; handing it
+    # the wrong one is a TypeError deep inside the gate rather than here.
+    roles, allowed = load_palette(PALETTE, faction)
     diffuse, lights, engines = paint.paint_faction(faction, roles)
-    verify(diffuse, lights, engines, roles, kit.ALL_RECTS, kit.TEX)
+    verify(diffuse, lights, engines, allowed, kit.ALL_RECTS, kit.TEX)
     stem = "hull_%s" % faction
     diffuse.save(os.path.join(TEX_OUT, stem + "_diffuse.png"), kit.SCALE)
     lights.save(os.path.join(TEX_OUT, stem + "_lights.png"), kit.SCALE)
@@ -155,9 +158,17 @@ def main():
     if not args.no_extras:
         import gen_wireframes
         gen_wireframes.main([n for (n, _v, _f, _p) in written])
-        import gen_ship_graphics
-        gen_ship_graphics.main([os.path.join(MESH_OUT, n + ".obj")
-                                for (n, _v, _f, _p) in written])
+        # The standard graphic set of CLAUDE.md section 3.2. Guarded because a
+        # half built tree should still be able to write meshes: a missing
+        # graphics tool is a thing to say out loud, not a reason to lose the
+        # hulls that were already generated.
+        try:
+            import gen_ship_graphics
+        except ImportError:
+            print("no tools/gen_ship_graphics.py: skipped the graphic set")
+        else:
+            gen_ship_graphics.main([os.path.join(MESH_OUT, n + ".obj")
+                                    for (n, _v, _f, _p) in written])
 
     print("\n%-34s %6s %6s %6s" % ("hull", "verts", "tris", "parts"))
     for (name, v, f, p) in written:
