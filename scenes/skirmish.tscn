@@ -24,18 +24,71 @@ theme_override_font_sizes/font_size = 14
 text = "YOUR SQUADRON / YOUR DESIGNS"
 theme_type_variation = &"HeaderLabel"
 
-[node name="List" type="VBoxContainer" parent="Yours/V"]
+; The hull lists scroll, they do not push (CLAUDE.md 6.4). Six factions by ten
+; classes is sixty cards in a column that holds eight, and a VBoxContainer given
+; sixty of them grows the panel, which grows the column, which walks the whole
+; screen off the far edge. So the list sits in a ScrollContainer built the way
+; this scene's replay list and the fitting screen's design list are built, and
+; that container is pinned rather than left to ask.
+;
+; The pin is arithmetic from the column, not a guess. The panel is 990 tall
+; inside its content margins; the header takes 28, the fleet roster 174, the
+; tonnage line 18, and three separations 30. What is left is 740. The Foes
+; column carries no roster and no separation for it, so its list is 924.
+;
+; Horizontal is SHOW_NEVER and never DISABLED: DISABLED puts content driven
+; sizing back on that axis, which is the thing being prevented. Vertical is
+; RESERVE so the bar arriving with the tenth card does not narrow the cards and
+; re-wrap every note under every title.
+;
+; propagate_maximum_size is FALSE here, and it is the one node in the project
+; where that is right. A scrolled child is MEANT to be taller than the view:
+; that is what there is to scroll. Propagating the 740 into the list bounds it
+; at 740, and then the scrollbar's range is 740 against a page of 740, so it
+; cannot move and every card past the first few is laid out at zero height
+; and is unreachable. Measured rather than assumed: with 64 cards in it the
+; list is bound to 740 and the range is 740. With propagation off the list is
+; 5499 tall, the range is 5499 against the same page, and the panel, the
+; roster and the tonnage line below it do not move by a pixel. Section 6.4
+; wants nothing below the panel to escape it, and here the maximum on this
+; node plus clip_contents is what holds it in.
+;
+; The width maximum is -1, meaning none: the column's width is the HBox's
+; arithmetic, not this node's business. A 0 there is a maximum of zero and
+; collapses the node, which is why it is never used for "no maximum".
+
+[node name="Scroll" type="ScrollContainer" parent="Yours/V"]
 layout_mode = 2
 size_flags_vertical = 3
+custom_minimum_size = Vector2(0, 740)
+custom_maximum_size = Vector2(-1, 740)
+propagate_maximum_size = false
+clip_contents = true
+horizontal_scroll_mode = 3
+vertical_scroll_mode = 4
+
+[node name="List" type="VBoxContainer" parent="Yours/V/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
 theme_override_constants/separation = 10
 
 [node name="Fleet" parent="Yours/V" instance=ExtResource("2")]
 layout_mode = 2
 
+; The tonnage readout is written every refresh and its number gains a digit as
+; the squadron grows, so it clips and trims (CLAUDE.md 6.4). Without that its
+; minimum width is whatever string landed in it, and it was the one thing left
+; on this screen that could still widen a column: measured at 732 pixels wide
+; at rest and 788 with a long reading in it, which walked the opposition column
+; sideways by the difference. The cards cannot do it, because select_card's
+; title trims and its note wraps.
+
 [node name="Tonnage" type="Label" parent="Yours/V"]
 layout_mode = 2
+clip_text = true
 theme_override_font_sizes/font_size = 14
 text = "COMMAND TONNAGE  0 / 240"
+text_overrun_behavior = 3
 
 [node name="Mid" type="VBoxContainer" parent="."]
 layout_mode = 2
@@ -107,12 +160,28 @@ theme_override_font_sizes/font_size = 14
 text = "OPPOSITION / PREDEFINED AI"
 theme_type_variation = &"HeaderLabel"
 
-[node name="List" type="VBoxContainer" parent="Foes/V"]
+; The opposition list, pinned by the same arithmetic as the Yours column above.
+
+[node name="Scroll" type="ScrollContainer" parent="Foes/V"]
 layout_mode = 2
 size_flags_vertical = 3
+custom_minimum_size = Vector2(0, 924)
+custom_maximum_size = Vector2(-1, 924)
+propagate_maximum_size = false
+clip_contents = true
+horizontal_scroll_mode = 3
+vertical_scroll_mode = 4
+
+[node name="List" type="VBoxContainer" parent="Foes/V/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
 theme_override_constants/separation = 10
+
+; Clipped and trimmed for the reason the other column's is.
 
 [node name="Tonnage" type="Label" parent="Foes/V"]
 layout_mode = 2
+clip_text = true
 theme_override_font_sizes/font_size = 14
 text = "ENEMY TONNAGE  0"
+text_overrun_behavior = 3

@@ -1,0 +1,22 @@
+{
+  "_comment": "Who the navies are and in what order a screen lists them, plus the class ladder a navy is read down. The hulls themselves live in data/ships.json (hand authored) and data/fleet.json (generated); this file only says how they are presented. It is here rather than in a GDScript array for the reason data/stations.json and data/maps.json are (CLAUDE.md 5.4): reordering the skirmish screen is then one diffable line, not a code change, and the two orders cannot drift apart between the screens that read them.",
+  "_order": "The navies, in display order. federation is first because the three hand authored playable hulls carry that faction value from before the cultures were named (docs/18-the-fleet.md section 1); it is left alone rather than corrected because saved designs and recorded battles on players' disks hold the value. A faction with hulls but no entry here is still listed, after these, so forgetting a line loses an ordering and never a ship.",
+  "order": [
+    "federation", "terran", "kthaari", "vaelith", "sarn", "helion", "bloom"
+  ],
+  "_factions": "name is the heading the navy's hulls sit under. It is a name, not a sentence about the navy (CLAUDE.md 6.5).",
+  "factions": {
+    "federation": { "name": "Federation" },
+    "terran": { "name": "Terran Concord" },
+    "kthaari": { "name": "Kthaari Dominion" },
+    "vaelith": { "name": "Vaelith Ascendancy" },
+    "sarn": { "name": "Sarn Concordance" },
+    "helion": { "name": "Helion Combine" },
+    "bloom": { "name": "The Bloom" }
+  },
+  "_ladder": "The class ladder within one navy, smallest hull first, spelled the way a hull's cls field spells it. It is the ladder of data/fleet_rules.json in display form, which is the shipkit class table sorted by hull size, so the tender, the freighter and the carrier sit by how big the hull is rather than by how hard it fights. A class not named here sorts after the ones that are, in catalog order.",
+  "ladder": [
+    "Frigate", "Destroyer", "Light Cruiser", "Heavy Cruiser", "Tender",
+    "Freighter", "Battlecruiser", "Battleship", "Carrier", "Dreadnought"
+  ]
+}

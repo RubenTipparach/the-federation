@@ -1,0 +1,25 @@
+[gd_scene format=3]
+
+; A heading inside a scrolling list: the name of the group whose rows follow it,
+; and nothing else. It names, it does not explain (CLAUDE.md 6.5), so there is
+; one Label here and there is no room for a second.
+;
+; Authored rather than built with Label.new() for the reason every other row in
+; this folder is authored (CLAUDE.md 5.2): the height, the clipping and the
+; theme variation are structure, and the script that instances it should only be
+; writing a name into it.
+;
+; The text arrives at runtime, so clip_text and TRIM_ELLIPSIS are both set
+; (CLAUDE.md 6.4). A navy with a long name is then shortened with an ellipsis
+; instead of widening the column it sits in.
+;
+; 28 tall: the theme's 14 pixel face inside the header style box's 5 pixel
+; margins. Fixed, so a heading can never push the list about.
+
+[node name="ListHeader" type="Label"]
+custom_minimum_size = Vector2(0, 28)
+custom_maximum_size = Vector2(-1, 28)
+clip_text = true
+text = "GROUP"
+text_overrun_behavior = 3
+theme_type_variation = &"HeaderLabel"

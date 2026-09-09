@@ -85,25 +85,19 @@ func _fill_replays() -> void:
 		card.chosen.connect(func(_id: String) -> void: replay_chosen.emit(log))
 
 
+## Your designs: every hull you may fly, by navy and up the class ladder.
+##
+## The grouping and the order are HullList's, and so is the opposition list
+## below, and so is the fitting screen's hull picker. Three lists of the same
+## fleet that each knew how to group it would be three chances to disagree about
+## what order it goes in, which is what CLAUDE.md 4.1 is about; what varies here
+## is which hulls and what a card says about one, and both are arguments.
+##
+## Sixty hulls are what make the grouping worth having. Three cards read as one
+## run; sixty do not, and the scroll they sit in fixes the panel, not the
+## reading (CLAUDE.md 6.4).
 func _fill_yours() -> void:
-	var list: VBoxContainer = $Yours/V/List
-	for child in list.get_children():
-		child.queue_free()
-	for hull_id in Catalog.playable_hull_ids():
-		var h: Dictionary = Catalog.hull(hull_id)
-		var current: bool = hull_id == session.fit.hull_id
-		var card: Button = SELECT_CARD.instantiate()
-		list.add_child(card)
-		var d_label: String = String(h["note"])
-		if current:
-			var d: Dictionary = session.fit.derived()
-			d_label = "Your fit: %d/%d mounts, blind %s" % [
-				int(d["mounts_fitted"]), int(d["mount_count"]), String(d["blind_label"])]
-		card.setup(hull_id, String(h["name"]) + ("  [current]" if current else ""),
-			"%s / %d t / %s" % [String(h["cls"]), int(h["tonnage"]), d_label],
-			Palette.CYAN)
-		card.button_pressed = current
-		card.chosen.connect(_on_yours_chosen)
+	HullList.fill($Yours/V/Scroll/List, Catalog.playable_hull_ids(), _paint_design)
 	var tonnage: int = int(session.fit.hull()["tonnage"])
 	var cap: int = int(Catalog.tuning()["skirmish"]["command_tonnage"])
 	$Yours/V/Tonnage.text = "COMMAND TONNAGE  %d / %d" % [tonnage, cap]
@@ -111,22 +105,41 @@ func _fill_yours() -> void:
 		Palette.CRIT if tonnage > cap else Palette.DIM)
 
 
+## A design card: the hull as it would be flown, and for the hull already in
+## the chair, the fit that is actually on it rather than the catalog blurb.
+func _paint_design(card: Button, hull_id: String) -> void:
+	var h: Dictionary = Catalog.hull(hull_id)
+	var current: bool = hull_id == session.fit.hull_id
+	var d_label: String = String(h["note"])
+	if current:
+		var d: Dictionary = session.fit.derived()
+		d_label = "Your fit: %d/%d mounts, blind %s" % [
+			int(d["mounts_fitted"]), int(d["mount_count"]), String(d["blind_label"])]
+	card.setup(hull_id, String(h["name"]) + ("  [current]" if current else ""),
+		"%s / %d t / %s" % [String(h["cls"]), int(h["tonnage"]), d_label],
+		Palette.CYAN)
+	card.button_pressed = current
+	card.chosen.connect(_on_yours_chosen)
+
+
+## The opposition: the same grouped list as your designs, a different set of
+## hulls in it and a different tint on the cards.
 func _fill_foes() -> void:
-	var list: VBoxContainer = $Foes/V/List
-	for child in list.get_children():
-		child.queue_free()
-	for hull_id in Catalog.ai_hull_ids():
-		var h: Dictionary = Catalog.hull(hull_id)
-		var card: Button = SELECT_CARD.instantiate()
-		list.add_child(card)
-		card.setup(hull_id, String(h["name"]),
-			"%s / %d t / %s" % [String(h["cls"]), int(h["tonnage"]), String(h["note"])],
-			Palette.MAGENTA)
-		card.button_pressed = hull_id == session.enemy_hull_id
-		card.chosen.connect(_on_foe_chosen)
+	HullList.fill($Foes/V/Scroll/List, Catalog.ai_hull_ids(), _paint_foe)
 	$Foes/V/Tonnage.text = "ENEMY TONNAGE  %d" % int(
 		Catalog.hull(session.enemy_hull_id)["tonnage"])
 	Paint.tint($Foes/V/Tonnage, "font_color", Palette.DIM)
+
+
+## An enemy card. It says what the catalog says: there is no fit of the
+## player's on the other side of the battle to report.
+func _paint_foe(card: Button, hull_id: String) -> void:
+	var h: Dictionary = Catalog.hull(hull_id)
+	card.setup(hull_id, String(h["name"]),
+		"%s / %d t / %s" % [String(h["cls"]), int(h["tonnage"]), String(h["note"])],
+		Palette.MAGENTA)
+	card.button_pressed = hull_id == session.enemy_hull_id
+	card.chosen.connect(_on_foe_chosen)
 
 
 func _on_yours_chosen(hull_id: String) -> void:

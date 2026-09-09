@@ -46,6 +46,16 @@ func near(a: float, b: float, label: String, tol: float = 0.001) -> void:
 	ok(absf(a - b) <= tol, "%s  (got %f, want %f)" % [label, a, b])
 
 
+## One check for a sweep over a whole catalog, naming whatever it caught.
+##
+## Sixty hulls turn a per hull assertion into sixty lines nobody reads, and a
+## bare false at the end of a loop says nothing about which hull broke. So a
+## sweep collects its offenders and reports them here.
+func none(bad: PackedStringArray, label: String) -> void:
+	ok(bad.is_empty(), label if bad.is_empty() else "%s  (%s)" % [
+		label, ", ".join(bad)])
+
+
 func _initialize() -> void:
 	test_sectors()
 	test_catalog()
@@ -1202,8 +1212,179 @@ func test_catalog() -> void:
 	ok(CatalogLib.hulls().size() >= 5, "hull catalog loads")
 	ok(CatalogLib.weapons().size() >= 6, "weapon catalog loads")
 	ok(CatalogLib.tuning().has("camera"), "tuning loads")
-	eq(CatalogLib.playable_hull_ids().size(), 3, "three playable hulls")
-	eq(CatalogLib.ai_hull_ids().size(), 2, "two ai hulls")
+
+	# This pair of checks used to count the hulls: three playable, two ai. Six
+	# factions by ten classes fails that while nothing is wrong, and the count
+	# never described anything a player would notice. What the catalog actually
+	# owes the skirmish screen is that every id it offers is a hull, that every
+	# hull can be drawn and ordered, and that no navy is in the file and nowhere
+	# on the screen. Those hold at five hulls and at sixty five.
+	var hulls: Dictionary = CatalogLib.hulls()
+	var playable: Array[String] = CatalogLib.playable_hull_ids()
+	var ai: Array[String] = CatalogLib.ai_hull_ids()
+	ok(playable.size() >= 3, "the catalog offers at least the hulls it used to fly")
+	ok(ai.size() >= 2, "the catalog offers at least the hulls it used to fight")
+
+	# The catalog is two files merged: the hand authored five of data/ships.json
+	# and the sixty of data/fleet.json (docs/18-the-fleet.md section 1). The
+	# merge is the thing that makes the fleet reachable at all, so it is checked
+	# rather than inferred from a total. The generated file is a build product
+	# and may be absent, and a checkout without it is a five hull game rather
+	# than a broken one, which is why this asks the disk first.
+	if FileAccess.file_exists("res://data/fleet.json"):
+		ok(hulls.has("terran_frigate"), "the generated fleet is merged into the catalog")
+		ok(hulls.size() >= 65, "both catalogs are in one table")
+	else:
+		print("note  data/fleet.json is absent: only the hand authored hulls are checked")
+
+	var strays: PackedStringArray = PackedStringArray()
+	for id in playable + ai:
+		if not hulls.has(String(id)):
+			strays.append(String(id))
+	none(strays, "every hull offered is a hull in the catalog")
+
+	# A hull nothing can draw cannot be flown, and both paths are named rather
+	# than derived from the id, so a rename shows up here and not in a battle.
+	var undrawable: PackedStringArray = PackedStringArray()
+	for id in hulls:
+		var h: Dictionary = hulls[id]
+		if not String(h.get("mesh", "")).begins_with("res://") \
+				or not String(h.get("material", "")).begins_with("res://"):
+			undrawable.append(String(id))
+	none(undrawable, "every hull names a mesh and a material")
+
+	# Tonnage is not decoration: the skirmish card prints it, the command tonnage
+	# cap weighs it, and a hull's collision radius is derived from it. One that
+	# arrived without a tonnage would read as free to command and collide as a
+	# point.
+	var unranked: PackedStringArray = PackedStringArray()
+	for id in hulls:
+		if int(hulls[id].get("tonnage", 0)) <= 0:
+			unranked.append(String(id))
+	none(unranked, "every hull carries a tonnage")
+
+	# Faction by faction, because the fleet arrives a navy at a time. A navy with
+	# hulls in neither list is a heading the skirmish screen would never draw and
+	# a dialect nobody can meet.
+	var offered: Dictionary = {}
+	for id in playable + ai:
+		offered[String(hulls[String(id)]["faction"])] = true
+	var unreachable: PackedStringArray = PackedStringArray()
+	for id in hulls:
+		var faction: String = String(hulls[id]["faction"])
+		if not offered.has(faction) and not unreachable.has(faction):
+			unreachable.append(faction)
+	none(unreachable, "every faction with hulls has one to fly or to fight")
+
+	# The five hand tuned hulls are the ones the rest of this file names and the
+	# ones the fitting screen opens on. A generated fleet landing beside them
+	# must not replace one or move it to the other list.
+	var hand: PackedStringArray = PackedStringArray()
+	for id in ["wayfarer", "kestrel", "ironhold"]:
+		if not playable.has(id):
+			hand.append(id)
+	for id in ["bloodletter", "talon"]:
+		if not ai.has(id):
+			hand.append(id)
+	none(hand, "the five hand tuned hulls are still offered as they were")
+
+	# Drawable means more than naming a path. The tactical view loads the hull
+	# mesh the data names, hull_view.gd derives the wireframe from it by suffix
+	# and ship_rig.gd derives the wreck's pieces the same way, so two of the
+	# three paths exist nowhere in the catalog and nothing else would notice
+	# them missing. Sixty of these were written by a generator in one run.
+	var missing: PackedStringArray = PackedStringArray()
+	var cracked: PackedStringArray = PackedStringArray()
+	for id in hulls:
+		var mesh_path: String = String(hulls[id]["mesh"])
+		if not ResourceLoader.exists(mesh_path):
+			missing.append("%s mesh" % [id])
+		if not ResourceLoader.exists(String(hulls[id]["material"])):
+			missing.append("%s material" % [id])
+		var stem: String = mesh_path.trim_suffix(".obj")
+		if not ResourceLoader.exists(stem + "_wire.obj"):
+			missing.append("%s wireframe" % [id])
+		# ship_rig.gd stops at the first index it cannot load, so a hole in the
+		# numbering is not an error: it is a wreck quietly missing its back half.
+		# Count the run and then count the files, and complain if they differ.
+		var run: int = 0
+		while ResourceLoader.exists("%s_frag_%d.obj" % [stem, run]):
+			run += 1
+		var written: int = 0
+		for index in range(16):
+			if ResourceLoader.exists("%s_frag_%d.obj" % [stem, index]):
+				written += 1
+		if run < 2 or run != written:
+			cracked.append("%s %d of %d" % [id, run, written])
+	none(missing, "every hull's mesh, material and wireframe are on disk")
+	none(cracked, "every hull breaks into an unbroken run of fragments")
+
+	# Fittable, and legal. A hull's default loadout is what the fitting screen
+	# opens on and what the skirmish screen flies, so a default that overspends
+	# a budget is a hull nobody can fly and a default the mount would refuse is
+	# a loadout a player could not have built. Both are asked of fit.gd, which
+	# is the same validator the screen projects with and the sim resolves with
+	# (CLAUDE.md 4.1), rather than of a second copy of the rules living here.
+	#
+	# The hand tuned five are exempt from the budget half on purpose: four of
+	# them are over crew, test_fit asserts one of those overages, and the
+	# fitting screen opens on a wayfarer precisely so a player sees what over
+	# budget looks like. A generated hull has no such excuse.
+	var hand_tuned: PackedStringArray = PackedStringArray([
+		"wayfarer", "kestrel", "ironhold", "bloodletter", "talon"])
+	var overspent: PackedStringArray = PackedStringArray()
+	var illegal: PackedStringArray = PackedStringArray()
+	for id in hulls:
+		var trial = FitLib.create_default(String(id))
+		for m in trial.mounts():
+			var weapon_id: String = String(m.get("default", ""))
+			if not weapon_id.is_empty() and not CatalogLib.weapons().has(weapon_id):
+				illegal.append("%s %s wants %s" % [id, String(m["id"]), weapon_id])
+			elif not trial.is_legal(m, CatalogLib.weapon(weapon_id)):
+				illegal.append("%s %s cannot take %s" % [id, String(m["id"]), weapon_id])
+		if hand_tuned.has(String(id)):
+			continue
+		var budget: Dictionary = trial.budgets()
+		for key in budget:
+			if float(budget[key]["used"]) > float(budget[key]["max"]):
+				overspent.append("%s %s %d of %d" % [id, key,
+					int(budget[key]["used"]), int(budget[key]["max"])])
+	none(illegal, "every mount's default weapon is legal for that mount")
+	none(overspent, "every generated hull's default fit is inside its budgets")
+
+	# The order the skirmish screen draws in. Both halves of it, the navies and
+	# the ladder within a navy, are read out of data/factions.json by the
+	# catalog (CLAUDE.md 5.4), and the grouping is the catalog's rather than the
+	# screen's so the shipyard and the fleet roster cannot invent a second one.
+	var every: Array[String] = []
+	for id in hulls:
+		every.append(String(id))
+	var groups: Dictionary = CatalogLib.group_by_faction(every)
+	var ladder: PackedStringArray = CatalogLib.class_ladder()
+	var grouped: int = 0
+	var unnamed: PackedStringArray = PackedStringArray()
+	var out_of_ladder: PackedStringArray = PackedStringArray()
+	var drawn: PackedStringArray = PackedStringArray()
+	for faction in groups:
+		drawn.append(String(faction))
+		if not CatalogLib.factions().has(String(faction)):
+			unnamed.append(String(faction))
+		var rung: int = -1
+		for id in groups[faction]:
+			grouped += 1
+			var next_rung: int = ladder.find(String(hulls[id]["cls"]))
+			if next_rung < rung:
+				out_of_ladder.append("%s is a %s" % [id, String(hulls[id]["cls"])])
+			rung = next_rung
+	eq(grouped, hulls.size(), "every hull lands in exactly one navy")
+	none(unnamed, "every navy with hulls is named in data/factions.json")
+	none(out_of_ladder, "each navy is listed up the class ladder")
+	var expected: PackedStringArray = PackedStringArray()
+	for faction in CatalogLib.faction_ids():
+		if groups.has(faction):
+			expected.append(faction)
+	eq(drawn, expected, "the navies are grouped in the order the data file names them")
+
 	var field: Array = CatalogLib.to_int_array(CatalogLib.hull("wayfarer")["mounts"][0]["field"])
 	ok(field[0] is int, "sector fields coerce to int")
 	var floor_deg: float = float(CatalogLib.tuning()["camera"]["pitch_floor_deg"])
@@ -1409,12 +1590,22 @@ func test_sector_damage() -> void:
 	frigate.apply_internal(2.0, 1)
 	eq(frigate.boxes_in(ShipLib.CORE), frigate_core - 2, "an empty sector passes damage to the core")
 
-	# Every hull's totals survived the regrouping.
+	# Every hull's totals survived the regrouping. Every hull in the catalog,
+	# which is now sixty five of them rather than five: a hull that will not
+	# build a ShipState, or builds one with nothing behind the shields, is a
+	# hull that cannot be flown and only this walk would find it. Reported as
+	# two sweeps rather than a hundred and thirty lines nobody reads.
+	var hollow: PackedStringArray = PackedStringArray()
+	var coreless: PackedStringArray = PackedStringArray()
 	for id in CatalogLib.hulls().keys():
 		var s2 = ShipLib.create(FitLib.create_default(String(id)),
 			RandomNumberGenerator.new(), false)
-		ok(s2.total_boxes() > 0, "%s has internals" % [String(id)])
-		eq(s2.boxes_in(ShipLib.CORE) > 0, true, "%s has a hull core" % [String(id)])
+		if s2.total_boxes() <= 0:
+			hollow.append(String(id))
+		if s2.boxes_in(ShipLib.CORE) <= 0:
+			coreless.append(String(id))
+	none(hollow, "every hull in the catalog loads into a ship with internals")
+	none(coreless, "every hull in the catalog has a hull core")
 
 
 func test_falloff() -> void:
@@ -1790,6 +1981,24 @@ func test_battle_and_ai() -> void:
 	# heading counter clockwise, an ordered heading left of the foe bearing.
 	near(SectorsLib.turn_delta(0.0, ai_ship.ordered_heading), -60.0,
 		"ai turns to present the stronger neighbor facing", 0.5)
+
+	# Two of the generated sixty, flown at each other. test_catalog says every
+	# hull in the catalog builds a ship and fits inside its budgets, which is
+	# that they exist; this says one can fight, because a mount whose arc or
+	# whose family came out of the generator wrong would charge forever and
+	# never bear, and nothing above would notice.
+	var fleet = BattleLib.create_duel(
+		FitLib.create_default("terran_light_cruiser"), "kthaari_destroyer", 2026)
+	fleet.player().set_order(fleet.player().heading, 0.0)
+	var fleet_hit: bool = false
+	for i in range(15 * 120):
+		fleet.step(1.0 / 15.0)
+		if fleet.over:
+			break
+		for f in range(6):
+			if fleet.player().shields[f] < fleet.player().shield_max - 0.5:
+				fleet_hit = true
+	ok(fleet_hit, "a generated hull fights a generated hull")
 
 
 func test_debris() -> void:

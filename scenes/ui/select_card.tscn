@@ -37,7 +37,7 @@ mouse_filter = 2
 [node name="Title" type="Label" parent="Body"]
 layout_mode = 2
 text = "Title"
-text_overrun_behavior = 1
+text_overrun_behavior = 3
 
 [node name="Meta" type="Label" parent="Body"]
 layout_mode = 2

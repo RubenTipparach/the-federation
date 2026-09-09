@@ -20,6 +20,7 @@ theme_override_constants/separation = 14
 
 [node name="HullPanel" type="PanelContainer" parent="Left"]
 layout_mode = 2
+clip_contents = true
 
 [node name="V" type="VBoxContainer" parent="Left/HullPanel"]
 layout_mode = 2
@@ -31,8 +32,33 @@ theme_override_font_sizes/font_size = 14
 text = "HULL"
 theme_type_variation = &"HeaderLabel"
 
-[node name="HullList" type="VBoxContainer" parent="Left/HullPanel/V"]
+; The hull picker scrolls, it does not push (CLAUDE.md 6.4). This list was
+; three cards when there were three hulls to fly; it is sixty three now, and a
+; VBoxContainer given sixty three of them grows this panel until the crew
+; readout and the saved designs are off the bottom of the column.
+;
+; The pin is on the scroll rather than on the panel, so the panel is still the
+; header plus this plus its own margins, and every one of those is a fixed
+; number. 400 is about five cards, which is enough to compare a class against
+; its neighbours without taking the column.
+;
+; Horizontal is SHOW_NEVER and never DISABLED: only DISABLED puts content
+; driven sizing back on that axis, which is the thing being prevented. Vertical
+; is RESERVE, so the bar arriving with the sixth card does not narrow the cards
+; and re-wrap every note under every name.
+
+[node name="Scroll" type="ScrollContainer" parent="Left/HullPanel/V"]
 layout_mode = 2
+custom_minimum_size = Vector2(0, 400)
+custom_maximum_size = Vector2(-1, 400)
+propagate_maximum_size = true
+clip_contents = true
+horizontal_scroll_mode = 3
+vertical_scroll_mode = 4
+
+[node name="HullList" type="VBoxContainer" parent="Left/HullPanel/V/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
 theme_override_constants/separation = 7
 
 [node name="CrewPanel" type="PanelContainer" parent="Left"]
