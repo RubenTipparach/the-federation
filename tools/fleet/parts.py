@@ -87,9 +87,13 @@ def crane(length, r=0.09):
     The one part nothing else in the fleet has, which is what makes a tender
     read as a tender from above (docs/17 section 9).
     """
+    # The arm is r * 1.5 square, not r * 0.8. At 0.8 it measured 0.072 units
+    # across, which over a four and a half unit hull is under one pixel at the
+    # sixty pixel identification size of CLAUDE.md 2.1: the arm pinched off and
+    # left the hook as a loose speck. A crane is a spar and should read as one.
     g = cylinder(r * 1.2, r * 0.9, 8)
-    g.add(box(r * 0.8, r * 0.8, length).translate(0.0, r * 0.6, length * 0.5))
-    g.add(box(r * 0.6, r * 1.8, r * 0.6)
+    g.add(box(r * 1.5, r * 1.5, length).translate(0.0, r * 0.6, length * 0.5))
+    g.add(box(r * 1.2, r * 1.8, r * 1.2)
           .translate(0.0, -r * 0.4, length - r * 0.4))
     return g
 

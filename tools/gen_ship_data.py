@@ -14,8 +14,17 @@ WHERE THE NUMBERS COME FROM.
 
 All of them from data/fleet_rules.json, which is the designer's file: per class
 scalars, per faction dialect, the mount plans, the arcs, the box counts and the
-names. Nothing tunable is written in this script (CLAUDE.md section 5.4).
-Retune the fleet by editing the rules and running this again.
+names. Retune the fleet by editing the rules and running this again, never by
+editing this script (CLAUDE.md section 5.4).
+
+Three numbers here are structural rather than tunable, and are stated in the
+code on purpose. A scaled system floors at one box, because a culture with
+fewer marines still has marines and a system with no boxes is a system the ship
+does not have. Damage control and spare parts floor at one for the same reason.
+And the three handling figures are rounded to one decimal, because that is a
+readout's precision rather than a design decision. Moving any of them into the
+rules file would offer a designer a knob whose only interesting setting is
+zero, which is a different ship rather than a tuned one.
 
 WHAT IT CHECKS, over all sixty hulls, before it writes anything:
 
@@ -416,12 +425,20 @@ def _validate_hull(rules, weapons, icons, cap, hull_id, h, fail):
         if not fail.check(w is not None, "%s mount %s defaults to an unknown "
                           "weapon %r" % (where, m["id"], m["default"])):
             continue
-        fail.check(w["family"] in m["families"],
-                   "%s mount %s defaults to a %s, which its families %s do not "
-                   "permit" % (where, m["id"], w["family"], m["families"]))
+        # The order and the special case both mirror ShipFit.is_legal in
+        # src/sim/fit.gd: size first, unconditional, then families, which a
+        # special weapon skips entirely (docs/02 section 4.3). Applying
+        # families to a special one, as this used to, refuses a default the
+        # game would have accepted, which is the wrong direction for a gate
+        # whose whole job is to never write one the game would reject.
         fail.check(SIZE_RANK[w["size"]] <= SIZE_RANK[m["size"]],
                    "%s mount %s is %s and its default weapon is %s"
                    % (where, m["id"], m["size"], w["size"]))
+        if not w.get("special", False):
+            fail.check(w["family"] in m["families"],
+                       "%s mount %s defaults to a %s, which its families %s do "
+                       "not permit" % (where, m["id"], w["family"],
+                                       m["families"]))
         fail.check(len(m["field"]) > 0, "%s mount %s fires nowhere"
                    % (where, m["id"]))
         fail.check(len(set(m["field"])) == len(m["field"]),

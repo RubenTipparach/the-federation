@@ -20,32 +20,54 @@ WHY THE SCHEMATIC IS DRAWN FROM IDS AND NOT FROM EDGES.
 
 Tracing the mesh edges draws every plate, every bevel and every triangle of a
 sphere. That is a wireframe, tools/gen_wireframes.py already writes one, and it
-is not what a schematic is. So every PART is rastered in its own flat id and a
+is not what a schematic is. So every SOLID is rastered in its own flat id and a
 line goes wherever the id changes between neighbouring samples, plus the outer
 silhouette. What that leaves is exactly the three things section 3.2 asks for:
 the silhouette, the seam where one part meets another, and each greeble's
 outline. Nothing else. A faint grid inside the silhouette is on the diorama
 page as a test and is not part of the standard, so none is drawn here.
 
-WHERE THE PART IDS COME FROM.
+WHERE THE IDS COME FROM, AND WHAT THEY ACTUALLY ARE.
 
 The committed .obj carries no g or o lines and must not grow any: Godot's
 importer and the fragment writer both read these files. It does not need them.
-`shipkit.Hull.emit` builds a fresh vertex table per PART, so no two parts ever
-share a vertex INDEX, and a union find over the raw indices recovers the parts
-exactly. This is deliberately NOT the position based aliasing that
-`shiplib.mesh_components` does: that one is asking "is this hull one piece", so
-it wants two coincident positions to merge, and this one is asking "which part
-is this triangle", where merging them would weld the seam it is looking for.
+`shipkit.Hull.emit` builds a fresh vertex table per part, so no two parts ever
+share a vertex INDEX, and a union find over the raw indices separates them.
+
+It separates MORE than them, and that is the point rather than a defect. A
+`shipkit.Part` may be several disjoint solids fused with `Geo.add`: a crane is
+a slew ring, an arm and a hook, and a faceted body is its own set of solids.
+Those do not touch in the index graph, so each comes back as its own id. On
+about two thirds of the fleet there are more ids than parts, by four to eight.
+
+What comes out is therefore one id per SOLID, not per part, and a solid is
+exactly the unit section 3.2 wants a line drawn around: the seam where one part
+meets another AND each greeble's outline. A per part id would draw one contour
+around a whole crane and lose the hook inside it.
+
+It is deliberately NOT the position based aliasing that
+`shiplib.mesh_components` does. That one is asking "is this hull one piece", so
+it wants two coincident positions to merge; this one is asking "which solid is
+this triangle", where merging them would weld the seam it is looking for.
 
 WHY THE PROJECTION IS WHAT IT IS.
 
 Top down, because that is the camera the game plays on and the size a hull is
-identified at. Bow up, because a chart is read with the ship pointing away from
-the reader. The bow is +z in game space (src/ui/hull_view.gd looks straight
-down with up = (0, 0, 1)), and bow up on a page means the page runs the other
-way, so page_x = +x and page_y = -z: the raster is turned over once, below,
-and every graphic is measured from the turned buffer.
+identified at, and turned to match that camera exactly rather than to a chart
+convention of its own.
+
+`src/ui/hull_view.gd` frames a hull with `look_at_from_position(Vector3(0, 20,
+0), ZERO, Vector3(0, 0, 1))`. A Godot camera looks down its own -Z, so that
+basis is z = (0, 1, 0) and x = up cross z = (0, 0, 1) cross (0, 1, 0) =
+(-1, 0, 0). Screen right is therefore world -X, and screen up is world +Z,
+which is the bow.
+
+So the page is page_x = -x and page_y = -z, and the raster is turned over on
+BOTH axes once, below, with every graphic measured from the turned buffer. The
+first cut of this turned only y and cited the same line for it, which put world
++x on the right and made every graphic a mirror of the view it sits beside.
+Invisible while every hull is symmetric about its centreline, and wrong the
+day one is not.
 
 Fitted, not at fleet scale: the hull is normalised by the larger of its x and z
 spans, so a frigate's icon fills its box exactly as a dreadnought's does and
@@ -102,13 +124,15 @@ OFF4 = ((1, 0), (-1, 0), (0, 1), (0, -1))
 OFF8 = OFF4 + ((1, 1), (1, -1), (-1, 1), (-1, -1))
 
 
-def part_ids(verts, faces):
-    """One part id per face, numbered from 1, and how many parts there are.
+def solid_ids(verts, faces):
+    """One solid id per face, numbered from 1, and how many solids there are.
 
     Union find over the RAW vertex indices, joining the three corners of every
-    triangle. See the module comment: parts do not share vertex indices, so
-    this recovers them exactly, and it must not be replaced by the position
-    based merge in `shiplib.mesh_components`, which would weld the seams."""
+    triangle. See the module comment for what a solid is and why it is not the
+    same thing as a `shipkit.Part`: a part fused from several disjoint solids
+    comes back as one id each, which is what puts a line around a crane's hook
+    as well as around the crane. It must not be replaced by the position based
+    merge in `shiplib.mesh_components`, which would weld the seams."""
     parent = list(range(len(verts)))
 
     def find(i):
@@ -132,11 +156,17 @@ def part_ids(verts, faces):
 
 
 def turn_over(grid, px):
-    """page_y = -z. The rasteriser draws +z down the page and the bow is +z,
-    so the buffer is turned over once and read bow up from here on."""
+    """page_x = -x and page_y = -z: the buffer turned onto the page.
+
+    The rasteriser draws +x rightward and +z down. The view this matches puts
+    world -X to the right of the screen and world +Z up it, so both axes are
+    reversed once here and every graphic is read from the turned buffer. See
+    the module comment for the camera basis this is derived from."""
     out = []
     for y in range(px - 1, -1, -1):
-        out.extend(grid[y * px:(y + 1) * px])
+        row = grid[y * px:(y + 1) * px]
+        row.reverse()
+        out.extend(row)
     return out
 
 
@@ -229,7 +259,7 @@ def write_set(obj_path, line_rgb, out_dir=GFX_OUT):
     """The three graphics of one hull. Returns a line of counts, for the log."""
     name = os.path.splitext(os.path.basename(obj_path))[0]
     verts, faces = read_obj(obj_path)
-    ids, parts = part_ids(verts, faces)
+    ids, solids = solid_ids(verts, faces)
     grid = raster_top_down(verts, faces, MASTER_PX, ids=ids,
                            margin=MARGIN * MASTER_PX)
     grid = turn_over(grid, MASTER_PX)
@@ -261,7 +291,7 @@ def write_set(obj_path, line_rgb, out_dir=GFX_OUT):
     sch_cov, sch_px = coverage(lines, MASTER_PX, SUPER)
     sch_ink = write_mask(os.path.join(out_dir, name + "_schematic.png"),
                          sch_cov, sch_px, line_rgb)
-    return (name, parts, icon_ink, out_ink, sch_ink)
+    return (name, solids, icon_ink, out_ink, sch_ink)
 
 
 def main(paths=None):
@@ -282,10 +312,10 @@ def main(paths=None):
     rows = []
     for path in paths:
         rows.append(write_set(path, line_rgb))
-    print("\n%-34s %6s %8s %8s %10s" % ("hull", "parts", "icon", "outline",
+    print("\n%-34s %6s %8s %8s %10s" % ("hull", "solids", "icon", "outline",
                                         "schematic"))
-    for (name, parts, icon_ink, out_ink, sch_ink) in rows:
-        print("%-34s %6d %8d %8d %10d" % (name, parts, icon_ink, out_ink,
+    for (name, solids, icon_ink, out_ink, sch_ink) in rows:
+        print("%-34s %6d %8d %8d %10d" % (name, solids, icon_ink, out_ink,
                                           sch_ink))
     print("\n%d hulls, %d graphics" % (len(rows), 3 * len(rows)))
     return rows

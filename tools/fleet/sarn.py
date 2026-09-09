@@ -305,7 +305,10 @@ def build(cls):
     # the prow roots in the body's real tip rather than in an arithmetic one.
     tip_z = body.bounds()[1][2]
     prow_len = (0.7 if plan["prow"] == "trident" else 0.9) * Z
-    prow_z = tip_z + prow_len * 0.5 - 0.12 * Z
+    # Seated 0.26 deep, not 0.12. A spindle tapers to a point, so at a
+    # twelfth of a unit the prow met the body where the body was already
+    # thinner than a pixel and the two measured as separate blobs.
+    prow_z = tip_z + prow_len * 0.5 - 0.26 * Z
     if plan["prow"] == "blade":
         prow_geo = prism(0.9 * Z, 0.12 * Z, prow_len, 0.15, 1.0)
         prow_name = "the blade prow"

@@ -60,7 +60,7 @@
                  "BRDG", "SENS", "TRAN", "TRAC", "SHTL", "DRN", "MRNE", "PRB", "LAB", "RPR",
                  "CARGO"],
 
-  "_weapon_boxes": "How much hardware a mount is, by what is fitted in it by default. The code the box wears is the weapon's own short from data/weapons.json, so the two cannot disagree.",
+  "_weapon_boxes": "How much hardware a mount is, by what is fitted in it by default. The code the box wears is the weapon's own short from data/weapons.json, so the two cannot disagree. The omni entry is reserved and cannot be used yet: its short is OMNI and there is no assets/icons/omni.png, so a hull that defaulted to one would fail the generator's icon check. Add the icon in tools/gen_icons.py before pointing a mount plan at it. Players can still fit an omni by hand, because a special weapon ignores a mount's families.",
   "weapon_boxes": { "ph1": 4, "ph3": 2, "photon": 3, "disruptor": 4, "lance": 5, "drone": 2, "omni": 2 },
 
   "_classes": "The per class ladder. budgets are the four fitting budgets of docs/02 section 3. base_load_fraction is how much of each the bare hull spends before a single weapon is fitted, as a fraction of the cap, so a faction that scales a budget scales the room with it. mounts is the mount plan: position, size, the arc from the table above, and the role the faction dialect fills.",

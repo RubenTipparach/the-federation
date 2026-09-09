@@ -88,7 +88,13 @@ def build(cls):
                     for j in range(4):
                         bz = body_z + spine * 0.3 - j * spine * 0.2
                         h.part(bay_housing(0.22 * Z, 0.16 * Z, 0.30 * Z)
-                               .translate(bx + sx * bw * 0.5, body_y - 0.05 * Z, bz),
+                               # 0.42 of the beam, not half of it: the
+                               # hull narrows toward the bow, so a bay
+                               # hung on the nominal flank overhung the
+                               # real one at the forward station and
+                               # measured as a loose block.
+                               .translate(bx + sx * bw * 0.42,
+                                          body_y - 0.05 * Z, bz),
                                "bay", "%s bay %d" % ("port" if sx < 0 else "starboard", j + 1),
                                (sx, 0.0, 0.0))
 

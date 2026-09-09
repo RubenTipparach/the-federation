@@ -1094,11 +1094,24 @@ def raster_top_down(verts, faces, px, ids=None, margin=0.0):
         y0, y1 = int(min(p[1] for p in pts)), int(max(p[1] for p in pts)) + 1
         (ax, ay), (bx, by), (qx, qy) = pts
         area = (bx - ax) * (qy - ay) - (qx - ax) * (by - ay)
-        # A triangle seen exactly edge on has no area to interpolate over, so
-        # it takes its centroid's height. It covers a line of pixels at most
-        # and nothing is ever resting on it.
-        flat = abs(area) < 1e-9
-        mid = (ha + hb + hc) / 3.0
+        # A triangle seen exactly edge on is DROPPED, not drawn.
+        #
+        # It used to be drawn, and the comment here said it "covers a line of
+        # pixels at most", which is only true of a wall that runs along an
+        # axis. A wall set at an angle projects to a diagonal segment whose
+        # bounding box is a rectangle, and since there is no area to test a
+        # sample against, every pixel of that rectangle was painted. On a
+        # lathed disc that is a sliver outside each of thirty six edges; over a
+        # whole hull it was three to twelve percent of ink that no surface put
+        # there, and it inflated the silhouette this same function measures for
+        # CLAUDE.md 2.1, which is the check that is supposed to notice a gap.
+        #
+        # Dropping it loses nothing on a closed solid: whatever an edge on wall
+        # encloses, the top and the bottom faces of that solid already cover.
+        # Measured before the change on eight hulls across all six dialects,
+        # every one of which lost zero pixels and shed between 384 and 3040.
+        if abs(area) < 1e-9:
+            continue
         for y in range(max(0, y0), min(px, y1)):
             sy = y + 0.5
             row = y * px
@@ -1108,9 +1121,9 @@ def raster_top_down(verts, faces, px, ids=None, margin=0.0):
                 w1 = (qx - sx) * (ay - sy) - (ax - sx) * (qy - sy)
                 w2 = (ax - sx) * (by - sy) - (bx - sx) * (ay - sy)
                 inside = (w0 >= 0 and w1 >= 0 and w2 >= 0) if area >= 0 else (w0 <= 0 and w1 <= 0 and w2 <= 0)
-                if not (inside or flat):
+                if not inside:
                     continue
-                h = mid if flat else (w0 * ha + w1 * hb + w2 * hc) / area
+                h = (w0 * ha + w1 * hb + w2 * hc) / area
                 i = row + x
                 if grid[i] == 0 or h > depth[i]:
                     grid[i] = fid
