@@ -458,6 +458,14 @@ plan is swept, forward swept, straight, cranked, gull or delta; capital ships ca
 pairs, stacked or crossed. The roster page keys each class to one combination, and a new
 hull picks its own rather than reusing a neighbour's.
 
+**The Vaelith and Sarn plans change with class the same way.** A Vaelith loop is round,
+oval, a horseshoe open aft, twin loops sharing the core, or concentric; the head is a
+beak, a spade or a lance; the capital ships add flat wings past the loop. A Sarn body is a
+cut diamond, a many faceted hull, a long spindle, a wide flat diamond, a twenty sided gem
+or two stacked; the ring sits aft, round the waist as a belt, over the stern as an arch,
+or twice; the prow is a cone, a blade or a trident. The hole and the circle survive every
+combination, which is the point: the gesture is the faction, the plan is the class.
+
 The three unbuilt dialects each get one gesture no other faction has: the Vaelith hollow
 loop, which is a silhouette with a hole in it; the Sarn ring, which is a silhouette with a
 circle in it; and the Helion truss, which is a line with boxes clamped to it, so that class
