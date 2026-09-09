@@ -149,8 +149,14 @@ def ribbon(o, p, q):
     o.tri(a, d, c, n)
 
 
-def main():
-    for name in HULLS:
+def main(names=None):
+    """Trace `names`, or the hulls this file lists when called with none.
+
+    The fleet driver hands in sixty names, which is why this takes a list at
+    all: a second copy of the edge tracer for the generated hulls would be the
+    divergence CLAUDE.md section 4.1 forbids.
+    """
+    for name in (names if names is not None else HULLS):
         src = os.path.join(OUT, name + ".obj")
         if not os.path.exists(src):
             print("skipped %s, no source mesh" % name)

@@ -5,6 +5,11 @@
 # The characters are matched by codepoint so this script itself stays clean
 # ASCII and does not report itself.
 #
+# The include list is every kind of text this repository writes, because the
+# rule says the WHOLE repository and a checker that only looks at nine
+# extensions quietly stops being that. Python, JSON, HTML and Godot resources
+# were the four it used to miss, and the fleet generators are Python.
+#
 # Usage: ./scripts/check-style.sh
 # Exit:  0 clean, 1 violations found.
 
@@ -17,7 +22,8 @@ cd "$REPO_ROOT"
 if LC_ALL=C.UTF-8 grep -rnP '\x{2014}|\x{2013}' \
      --include='*.md' --include='*.cs' --include='*.gd' --include='*.tscn' \
      --include='*.cfg' --include='*.yml' --include='*.yaml' --include='*.sh' \
-     --include='*.config' --include='*.godot' \
+     --include='*.config' --include='*.godot' --include='*.py' \
+     --include='*.json' --include='*.html' --include='*.tres' \
      --exclude-dir='.git' --exclude-dir='.godot' \
      --exclude-dir='.tools' --exclude-dir='builds' .; then
   printf '\nFAIL: em dash (U+2014) or en dash (U+2013) found above.\n' >&2
