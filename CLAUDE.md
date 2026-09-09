@@ -107,7 +107,9 @@ the single authority: named colors, plus the role map each generator paints from
 
 **A hull is not finished until it has its three standard graphics, and they are drawn
 from the committed model, never by hand.** The set is shown for approval on the diorama
-page's graphics panel and roster sheets (2026-09-08), and it is what every screen reaches for
+page's graphics panel and roster sheets (2026-09-08; the page is committed as
+`docs/mockups/starship-dioramas.html` and built by `tools/gen_dioramas.py`, so every
+change to it is a commit), and it is what every screen reaches for
 when it needs to show a hull without rendering it: the SSD, the fleet roster, the target
 readout, the shipyard listing, the map blip, the post battle report.
 

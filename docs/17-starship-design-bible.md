@@ -19,7 +19,9 @@ Two rules frame everything here, both from CLAUDE.md section 10.
   light and livery below ends in what it means at one texel on a 128 grid, drawn with
   palette roles under CLAUDE.md 3.1.
 
-The interactive companion to this document is the three.js diorama page, which builds
+The interactive companion to this document is the three.js diorama page,
+`docs/mockups/starship-dioramas.html`, built by `tools/gen_dioramas.py` from its template
+under `tools/dioramas/` and the palette. It builds
 original ships in this grammar from a kit of parts, pixel art textured, and lets each one be
 orbited, seen from directly above, and checked at 60 pixels. Section 12 says what it shows.
 
