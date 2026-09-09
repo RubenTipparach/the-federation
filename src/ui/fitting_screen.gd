@@ -119,19 +119,28 @@ func _on_discard_design() -> void:
 	_build_design_list()
 
 
+## The hulls a design can be built on, by navy and up the class ladder.
+##
+## The grouping and the order are HullList's, which is the skirmish screen's
+## list too: two pickers of the same fleet that disagreed about what order it
+## goes in would be exactly the divergence CLAUDE.md 4.1 is about, and a player
+## reads that order across screens without thinking about it.
 func _build_hull_list() -> void:
-	for child in $Left/HullPanel/V/HullList.get_children():
-		child.queue_free()
-	for hull_id in Catalog.playable_hull_ids():
-		var h: Dictionary = Catalog.hull(hull_id)
-		var card: Button = SELECT_CARD.instantiate()
-		$Left/HullPanel/V/HullList.add_child(card)
-		card.setup(hull_id, String(h["name"]),
-			"%s / %d t / %d mounts" % [String(h["cls"]), int(h["tonnage"]),
-				Array(h["mounts"]).size()],
-			Palette.CYAN)
-		card.button_pressed = hull_id == session.fit.hull_id
-		card.chosen.connect(_on_hull_chosen)
+	HullList.fill($Left/HullPanel/V/Scroll/HullList,
+		Catalog.playable_hull_ids(), _paint_hull)
+
+
+## What a hull card says here: the class, the weight and how many guns it can
+## carry, which is what a hull is being chosen ON in this screen. The skirmish
+## screen's card says something else, which is why painting is the caller's.
+func _paint_hull(card: Button, hull_id: String) -> void:
+	var h: Dictionary = Catalog.hull(hull_id)
+	card.setup(hull_id, String(h["name"]),
+		"%s / %d t / %d mounts" % [String(h["cls"]), int(h["tonnage"]),
+			Array(h["mounts"]).size()],
+		Palette.CYAN)
+	card.button_pressed = hull_id == session.fit.hull_id
+	card.chosen.connect(_on_hull_chosen)
 
 
 func _on_hull_chosen(hull_id: String) -> void:

@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://dih5vhmo7dor8"
+path="res://.godot/imported/hull_terran_light_cruiser.obj-0ff905ab924fef955eac2f485ae6a97b.mesh"
+
+[deps]
+
+files=["res://.godot/imported/hull_terran_light_cruiser.obj-0ff905ab924fef955eac2f485ae6a97b.mesh"]
+
+source_file="res://assets/meshes/hull_terran_light_cruiser.obj"
+dest_files=["res://.godot/imported/hull_terran_light_cruiser.obj-0ff905ab924fef955eac2f485ae6a97b.mesh", "res://.godot/imported/hull_terran_light_cruiser.obj-0ff905ab924fef955eac2f485ae6a97b.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

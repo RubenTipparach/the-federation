@@ -1,0 +1,440 @@
+{
+  "_comment": "Every knob the generated fleet is built from. tools/gen_ship_data.py reads this file, data/weapons.json and data/tuning.json, and writes data/fleet.json. Retune the whole fleet by editing this file and running the tool again, never by editing the Python (CLAUDE.md section 5.4). data/ships.json is the hand authored catalog and is not touched by any of this.",
+
+  "_tonnage": "Tonnage is per class and carries no faction modifier, on purpose. Three things read it: the skirmish command tonnage cap, the hull radius the sim collides, and the size ship_rig.gd draws a hull at. The meshes are normalised to one footprint per class (docs/18 section 5), so a faction scalar would make two hulls of the same footprint collide and draw at different sizes. A faction shows itself in shields, speed, boxes and mounts instead.",
+
+  "_ladder": "The order tonnage has to climb in. It is the shipkit CLASSES table sorted by 'size', ties broken by 'foot', so the carrier, freighter and tender sit by how big the hull is rather than by how hard it fights. tools/gen_ship_data.py asserts this list still agrees with tools/shipkit.py.",
+  "ladder": ["frigate", "destroyer", "light_cruiser", "heavy_cruiser", "tender",
+             "freighter", "battlecruiser", "battleship", "carrier", "dreadnought"],
+
+  "_headroom": "A hull is unfittable if its default weapons do not fit its budgets, and the fitting screen shows that red on first open. min_headroom_fraction is how much of each budget cap must still be free after the bare hull and its default weapons are counted, so there is room to refit upward rather than only sideways.",
+  "min_headroom_fraction": 0.05,
+  "min_headroom_absolute": 2,
+
+  "_arcs": "The sector list a mount fires into: 12 sectors of 30 degrees, 0 dead ahead, clockwise (docs/02 section 4.1). 'facing' is which of the six shield facings the mount's hardware lives behind, numbered 1 to 6 from the bow clockwise and stored 0 based. The tool asserts the facing is one the sectors actually cover. Every arc here is symmetric about the centreline or has a mirror in the table, so a port battery and a starboard battery are the same gun.",
+  "arcs": {
+    "fore_spinal": { "sectors": [11, 0], "facing": 0 },
+    "fore_wide":   { "sectors": [10, 11, 0, 1], "facing": 0 },
+    "fore_stbd":   { "sectors": [0, 1, 2], "facing": 1 },
+    "fore_port":   { "sectors": [9, 10, 11], "facing": 5 },
+    "stbd_waist":  { "sectors": [2, 3, 4], "facing": 2 },
+    "port_waist":  { "sectors": [7, 8, 9], "facing": 4 },
+    "dorsal":      { "sectors": [9, 10, 11, 0, 1, 2], "facing": 0 },
+    "rack_wide":   { "sectors": [8, 9, 10, 11, 0, 1, 2, 3], "facing": 0 },
+    "waist_aft":   { "sectors": [3, 4, 5, 6, 7, 8], "facing": 3 },
+    "aft_wide":    { "sectors": [4, 5, 6, 7], "facing": 3 }
+  },
+
+  "_systems": "The internal boxes a hull can carry. family is what the damage model and the repair costs treat the box as (data/tuning.json repair): weapon, power, control, hull. Every code here has a committed mask in assets/icons, which the tool checks, because the ship systems display draws the icon from the code. The codes come from the hand authored hulls in data/ships.json, plus SENS, RPR and CARGO, which data/stations.json already names as stations. Nothing here is invented.",
+  "systems": {
+    "BRDG":  { "family": "control" },
+    "SENS":  { "family": "control" },
+    "TRAN":  { "family": "control" },
+    "TRAC":  { "family": "control" },
+    "MRNE":  { "family": "control" },
+    "SHTL":  { "family": "control" },
+    "DRN":   { "family": "control" },
+    "PRB":   { "family": "control" },
+    "LAB":   { "family": "control" },
+    "RPR":   { "family": "control" },
+    "WARP":  { "family": "power" },
+    "IMP":   { "family": "power" },
+    "AUXP":  { "family": "power" },
+    "BTTY":  { "family": "power" },
+    "CARGO": { "family": "hull" },
+    "HULL":  { "family": "hull" },
+    "ARMR":  { "family": "hull" }
+  },
+
+  "_placement": "Which shield facing each support system sits behind, and the order the boxes are listed in inside a facing. code_order runs power, then control, then hull, which is the order data/ships.json lists a facing in and the order the ship systems display reads. A code with two facings splits its boxes between them, which is what makes the warp drive two nacelles rather than one block. Weapons are listed first in their facing, in mount order, then these in this order.",
+  "placement": {
+    "BRDG": [0], "SENS": [0],
+    "TRAN": [1],
+    "WARP": [2, 4], "TRAC": [2],
+    "IMP": [3], "AUXP": [3], "SHTL": [3], "DRN": [3],
+    "BTTY": [4], "MRNE": [4], "PRB": [4],
+    "LAB": [5], "RPR": [5],
+    "CARGO": [2, 4]
+  },
+  "code_order": ["WARP", "IMP", "AUXP", "BTTY",
+                 "BRDG", "SENS", "TRAN", "TRAC", "SHTL", "DRN", "MRNE", "PRB", "LAB", "RPR",
+                 "CARGO"],
+
+  "_weapon_boxes": "How much hardware a mount is, by what is fitted in it by default. The code the box wears is the weapon's own short from data/weapons.json, so the two cannot disagree. The omni entry is reserved and cannot be used yet: its short is OMNI and there is no assets/icons/omni.png, so a hull that defaulted to one would fail the generator's icon check. Add the icon in tools/gen_icons.py before pointing a mount plan at it. Players can still fit an omni by hand, because a special weapon ignores a mount's families.",
+  "weapon_boxes": { "ph1": 4, "ph3": 2, "photon": 3, "disruptor": 4, "lance": 5, "drone": 2, "omni": 2 },
+
+  "_classes": "The per class ladder. budgets are the four fitting budgets of docs/02 section 3. base_load_fraction is how much of each the bare hull spends before a single weapon is fitted, as a fraction of the cap, so a faction that scales a budget scales the room with it. mounts is the mount plan: position, size, the arc from the table above, and the role the faction dialect fills.",
+  "classes": {
+    "frigate": {
+      "display": "Frigate",
+      "tonnage": 45,
+      "budgets": { "space": 76, "power": 26, "mass": 74, "crew": 84 },
+      "base_load_fraction": { "space": 0.58, "mass": 0.68, "crew": 0.63, "power": 0.46 },
+      "shield_per_facing": 12,
+      "max_speed": 30.0, "accel": 10.0, "turn_rate_deg": 44.0,
+      "cargo_space": 14, "damage_control": 1, "spare_parts": 10,
+      "weapon_box_bonus": 0,
+      "note": "Picket and escort.",
+      "mounts": [
+        { "pos": "Fore starboard", "size": "Medium", "arc": "fore_stbd", "role": "primary" },
+        { "pos": "Fore port", "size": "Medium", "arc": "fore_port", "role": "primary" },
+        { "pos": "Dorsal", "size": "Light", "arc": "waist_aft", "role": "light" }
+      ],
+      "systems": { "BRDG": 1, "SENS": 1, "TRAN": 2, "TRAC": 1, "WARP": 4, "IMP": 2, "BTTY": 1, "MRNE": 3 },
+      "core": { "HULL": 4, "ARMR": 2 }
+    },
+    "destroyer": {
+      "display": "Destroyer",
+      "tonnage": 70,
+      "budgets": { "space": 100, "power": 32, "mass": 98, "crew": 108 },
+      "base_load_fraction": { "space": 0.58, "mass": 0.68, "crew": 0.63, "power": 0.46 },
+      "shield_per_facing": 16,
+      "max_speed": 27.0, "accel": 8.8, "turn_rate_deg": 38.0,
+      "cargo_space": 20, "damage_control": 1, "spare_parts": 14,
+      "weapon_box_bonus": 0,
+      "note": "Line escort.",
+      "mounts": [
+        { "pos": "Fore starboard", "size": "Medium", "arc": "fore_stbd", "role": "primary" },
+        { "pos": "Fore port", "size": "Medium", "arc": "fore_port", "role": "primary" },
+        { "pos": "Dorsal rack", "size": "Light", "arc": "dorsal", "role": "rack" },
+        { "pos": "Aft", "size": "Light", "arc": "waist_aft", "role": "light" }
+      ],
+      "systems": { "BRDG": 1, "SENS": 1, "TRAN": 2, "TRAC": 1, "WARP": 6, "IMP": 3, "BTTY": 1, "SHTL": 1, "MRNE": 4 },
+      "core": { "HULL": 6, "ARMR": 2 }
+    },
+    "light_cruiser": {
+      "display": "Light Cruiser",
+      "tonnage": 95,
+      "budgets": { "space": 128, "power": 40, "mass": 134, "crew": 142 },
+      "base_load_fraction": { "space": 0.59, "mass": 0.69, "crew": 0.64, "power": 0.46 },
+      "shield_per_facing": 20,
+      "max_speed": 24.0, "accel": 7.6, "turn_rate_deg": 32.0,
+      "cargo_space": 26, "damage_control": 2, "spare_parts": 18,
+      "weapon_box_bonus": 0,
+      "note": "Patrol cruiser.",
+      "mounts": [
+        { "pos": "Fore spinal", "size": "Heavy", "arc": "fore_spinal", "role": "spinal" },
+        { "pos": "Fore starboard", "size": "Medium", "arc": "fore_stbd", "role": "primary" },
+        { "pos": "Fore port", "size": "Medium", "arc": "fore_port", "role": "primary" },
+        { "pos": "Aft", "size": "Light", "arc": "waist_aft", "role": "light" }
+      ],
+      "systems": { "BRDG": 2, "SENS": 2, "TRAN": 3, "TRAC": 2, "WARP": 8, "IMP": 4, "AUXP": 1, "BTTY": 2, "SHTL": 1, "MRNE": 4, "LAB": 1 },
+      "core": { "HULL": 8, "ARMR": 3 }
+    },
+    "heavy_cruiser": {
+      "display": "Heavy Cruiser",
+      "tonnage": 125,
+      "budgets": { "space": 152, "power": 46, "mass": 150, "crew": 168 },
+      "base_load_fraction": { "space": 0.60, "mass": 0.70, "crew": 0.64, "power": 0.47 },
+      "shield_per_facing": 26,
+      "max_speed": 20.0, "accel": 6.4, "turn_rate_deg": 26.0,
+      "cargo_space": 32, "damage_control": 2, "spare_parts": 24,
+      "weapon_box_bonus": 0,
+      "note": "Line cruiser.",
+      "mounts": [
+        { "pos": "Fore spinal", "size": "Heavy", "arc": "fore_spinal", "role": "spinal" },
+        { "pos": "Fore starboard", "size": "Medium", "arc": "fore_stbd", "role": "primary" },
+        { "pos": "Fore port", "size": "Medium", "arc": "fore_port", "role": "primary" },
+        { "pos": "Dorsal rack", "size": "Light", "arc": "dorsal", "role": "rack" },
+        { "pos": "Aft", "size": "Light", "arc": "waist_aft", "role": "light" }
+      ],
+      "systems": { "BRDG": 2, "SENS": 2, "TRAN": 3, "TRAC": 2, "WARP": 10, "IMP": 5, "AUXP": 2, "BTTY": 2, "SHTL": 2, "MRNE": 5, "PRB": 1, "LAB": 2 },
+      "core": { "HULL": 12, "ARMR": 4 }
+    },
+    "tender": {
+      "display": "Tender",
+      "tonnage": 140,
+      "budgets": { "space": 150, "power": 40, "mass": 152, "crew": 150 },
+      "base_load_fraction": { "space": 0.64, "mass": 0.72, "crew": 0.61, "power": 0.45 },
+      "shield_per_facing": 22,
+      "max_speed": 18.0, "accel": 5.6, "turn_rate_deg": 24.0,
+      "cargo_space": 70, "damage_control": 4, "spare_parts": 60,
+      "weapon_box_bonus": 0,
+      "note": "Repair tender.",
+      "mounts": [
+        { "pos": "Fore", "size": "Medium", "arc": "fore_wide", "role": "primary" },
+        { "pos": "Dorsal rack", "size": "Light", "arc": "dorsal", "role": "rack" },
+        { "pos": "Aft", "size": "Light", "arc": "waist_aft", "role": "light" }
+      ],
+      "systems": { "BRDG": 1, "SENS": 1, "TRAN": 3, "TRAC": 3, "WARP": 7, "IMP": 4, "AUXP": 1, "BTTY": 2, "SHTL": 2, "MRNE": 3, "RPR": 6, "CARGO": 6 },
+      "core": { "HULL": 12, "ARMR": 3 }
+    },
+    "freighter": {
+      "display": "Freighter",
+      "tonnage": 160,
+      "budgets": { "space": 160, "power": 38, "mass": 170, "crew": 140 },
+      "base_load_fraction": { "space": 0.66, "mass": 0.76, "crew": 0.59, "power": 0.44 },
+      "shield_per_facing": 20,
+      "max_speed": 15.0, "accel": 4.4, "turn_rate_deg": 18.0,
+      "cargo_space": 140, "damage_control": 2, "spare_parts": 30,
+      "weapon_box_bonus": 0,
+      "note": "Bulk hauler.",
+      "mounts": [
+        { "pos": "Dorsal", "size": "Light", "arc": "dorsal", "role": "light" },
+        { "pos": "Aft", "size": "Light", "arc": "waist_aft", "role": "light" }
+      ],
+      "systems": { "BRDG": 1, "SENS": 1, "TRAN": 2, "TRAC": 2, "WARP": 8, "IMP": 4, "BTTY": 2, "MRNE": 2, "CARGO": 12 },
+      "core": { "HULL": 18, "ARMR": 2 }
+    },
+    "battlecruiser": {
+      "display": "Battlecruiser",
+      "tonnage": 175,
+      "budgets": { "space": 196, "power": 60, "mass": 204, "crew": 220 },
+      "base_load_fraction": { "space": 0.60, "mass": 0.70, "crew": 0.65, "power": 0.47 },
+      "shield_per_facing": 32,
+      "max_speed": 16.0, "accel": 4.8, "turn_rate_deg": 20.0,
+      "cargo_space": 40, "damage_control": 3, "spare_parts": 32,
+      "weapon_box_bonus": 1,
+      "note": "Heavy line hull.",
+      "mounts": [
+        { "pos": "Fore spinal", "size": "Heavy", "arc": "fore_spinal", "role": "spinal" },
+        { "pos": "Fore starboard", "size": "Medium", "arc": "fore_stbd", "role": "primary" },
+        { "pos": "Fore port", "size": "Medium", "arc": "fore_port", "role": "primary" },
+        { "pos": "Starboard waist", "size": "Medium", "arc": "stbd_waist", "role": "battery" },
+        { "pos": "Port waist", "size": "Medium", "arc": "port_waist", "role": "battery" },
+        { "pos": "Aft", "size": "Light", "arc": "aft_wide", "role": "light" }
+      ],
+      "systems": { "BRDG": 2, "SENS": 2, "TRAN": 4, "TRAC": 2, "WARP": 12, "IMP": 6, "AUXP": 2, "BTTY": 3, "SHTL": 2, "MRNE": 6, "PRB": 1, "LAB": 1 },
+      "core": { "HULL": 16, "ARMR": 8 }
+    },
+    "battleship": {
+      "display": "Battleship",
+      "tonnage": 205,
+      "budgets": { "space": 240, "power": 74, "mass": 258, "crew": 272 },
+      "base_load_fraction": { "space": 0.61, "mass": 0.71, "crew": 0.65, "power": 0.48 },
+      "shield_per_facing": 38,
+      "max_speed": 14.0, "accel": 4.0, "turn_rate_deg": 16.0,
+      "cargo_space": 48, "damage_control": 3, "spare_parts": 40,
+      "weapon_box_bonus": 1,
+      "note": "Battle line.",
+      "mounts": [
+        { "pos": "Fore spinal", "size": "Heavy", "arc": "fore_spinal", "role": "spinal" },
+        { "pos": "Bow battery", "size": "Heavy", "arc": "fore_wide", "role": "spinal" },
+        { "pos": "Fore starboard", "size": "Medium", "arc": "fore_stbd", "role": "primary" },
+        { "pos": "Fore port", "size": "Medium", "arc": "fore_port", "role": "primary" },
+        { "pos": "Starboard waist", "size": "Medium", "arc": "stbd_waist", "role": "battery" },
+        { "pos": "Port waist", "size": "Medium", "arc": "port_waist", "role": "battery" },
+        { "pos": "Aft", "size": "Light", "arc": "aft_wide", "role": "light" }
+      ],
+      "systems": { "BRDG": 3, "SENS": 3, "TRAN": 5, "TRAC": 3, "WARP": 14, "IMP": 7, "AUXP": 3, "BTTY": 3, "SHTL": 3, "MRNE": 8, "PRB": 1, "LAB": 2 },
+      "core": { "HULL": 20, "ARMR": 10 }
+    },
+    "carrier": {
+      "display": "Carrier",
+      "tonnage": 220,
+      "budgets": { "space": 236, "power": 62, "mass": 244, "crew": 250 },
+      "base_load_fraction": { "space": 0.62, "mass": 0.72, "crew": 0.67, "power": 0.48 },
+      "shield_per_facing": 34,
+      "max_speed": 15.0, "accel": 4.4, "turn_rate_deg": 15.0,
+      "cargo_space": 44, "damage_control": 3, "spare_parts": 36,
+      "weapon_box_bonus": 1,
+      "note": "Drone carrier.",
+      "mounts": [
+        { "pos": "Fore spinal", "size": "Heavy", "arc": "fore_spinal", "role": "spinal" },
+        { "pos": "Fore starboard", "size": "Medium", "arc": "fore_stbd", "role": "primary" },
+        { "pos": "Fore port", "size": "Medium", "arc": "fore_port", "role": "primary" },
+        { "pos": "Dorsal rack", "size": "Light", "arc": "rack_wide", "role": "rack" },
+        { "pos": "Ventral rack", "size": "Light", "arc": "dorsal", "role": "rack" },
+        { "pos": "Aft", "size": "Light", "arc": "aft_wide", "role": "light" }
+      ],
+      "systems": { "BRDG": 3, "SENS": 3, "TRAN": 4, "TRAC": 2, "WARP": 12, "IMP": 6, "AUXP": 3, "BTTY": 3, "SHTL": 8, "DRN": 4, "MRNE": 6, "PRB": 1, "LAB": 1 },
+      "core": { "HULL": 20, "ARMR": 8 }
+    },
+    "dreadnought": {
+      "display": "Dreadnought",
+      "tonnage": 240,
+      "budgets": { "space": 292, "power": 88, "mass": 306, "crew": 332 },
+      "base_load_fraction": { "space": 0.62, "mass": 0.72, "crew": 0.66, "power": 0.48 },
+      "shield_per_facing": 46,
+      "max_speed": 12.0, "accel": 3.6, "turn_rate_deg": 12.0,
+      "cargo_space": 60, "damage_control": 4, "spare_parts": 52,
+      "weapon_box_bonus": 2,
+      "note": "Fleet flagship.",
+      "mounts": [
+        { "pos": "Fore spinal", "size": "Heavy", "arc": "fore_spinal", "role": "spinal" },
+        { "pos": "Bow battery", "size": "Heavy", "arc": "fore_wide", "role": "spinal" },
+        { "pos": "Fore starboard", "size": "Medium", "arc": "fore_stbd", "role": "primary" },
+        { "pos": "Fore port", "size": "Medium", "arc": "fore_port", "role": "primary" },
+        { "pos": "Starboard waist", "size": "Medium", "arc": "stbd_waist", "role": "battery" },
+        { "pos": "Port waist", "size": "Medium", "arc": "port_waist", "role": "battery" },
+        { "pos": "Dorsal rack", "size": "Light", "arc": "dorsal", "role": "rack" },
+        { "pos": "Aft", "size": "Light", "arc": "aft_wide", "role": "light" }
+      ],
+      "systems": { "BRDG": 3, "SENS": 3, "TRAN": 6, "TRAC": 3, "WARP": 16, "IMP": 8, "AUXP": 4, "BTTY": 4, "SHTL": 4, "MRNE": 10, "PRB": 2, "LAB": 2, "RPR": 2 },
+      "core": { "HULL": 26, "ARMR": 14 }
+    }
+  },
+
+  "_factions": "The dialect. roles say what each mount role is allowed to carry and what it carries by default, which is where a Kthaari cruiser stops being a Terran one with different paint. budget_scale and base_load_scale move the four budgets; base_load_scale is applied on top of the class fraction, so a culture that berths more marines eats its own room rather than everybody's. system_scale multiplies box counts by code, and a scale of 0 removes the system from that culture entirely. names are ten per culture, in ladder order.",
+  "factions": {
+    "terran": {
+      "note": "Multi arc beams, deep shields.",
+      "budget_scale": { "space": 1.0, "power": 1.05, "mass": 1.0, "crew": 1.05 },
+      "base_load_scale": { "space": 1.0, "mass": 1.0, "crew": 1.0, "power": 1.0 },
+      "shield_scale": 1.15, "speed_scale": 1.0, "accel_scale": 1.0, "turn_scale": 1.0,
+      "cargo_scale": 1.0, "damage_control_scale": 1.5, "spare_parts_scale": 1.25,
+      "system_scale": { "RPR": 1.5, "SENS": 1.25, "TRAN": 1.25 },
+      "roles": {
+        "spinal":  { "families": ["torpedo", "lance"], "default": "photon" },
+        "primary": { "families": ["beam", "disruptor"], "default": "ph1" },
+        "battery": { "families": ["beam"], "default": "ph1" },
+        "rack":    { "families": ["beam", "drone"], "default": "ph3" },
+        "light":   { "families": ["beam", "drone"], "default": "ph3" }
+      },
+      "names": {
+        "frigate": "Swiftsure",
+        "destroyer": "Vigilant",
+        "light_cruiser": "Endeavour",
+        "heavy_cruiser": "Meridian",
+        "battlecruiser": "Bastion",
+        "battleship": "Sovereign",
+        "dreadnought": "Indomitable",
+        "carrier": "Highwater",
+        "freighter": "Longhaul",
+        "tender": "Cornerstone"
+      }
+    },
+    "kthaari": {
+      "note": "Disruptors and drones, marines aboard.",
+      "budget_scale": { "space": 1.0, "power": 0.95, "mass": 1.1, "crew": 1.05 },
+      "base_load_scale": { "space": 1.0, "mass": 1.02, "crew": 1.04, "power": 1.0 },
+      "shield_scale": 1.0, "speed_scale": 0.95, "accel_scale": 0.95, "turn_scale": 0.85,
+      "cargo_scale": 1.0, "damage_control_scale": 1.0, "spare_parts_scale": 0.9,
+      "system_scale": { "MRNE": 1.75, "ARMR": 1.25, "HULL": 1.1, "SENS": 0.5, "LAB": 0 },
+      "roles": {
+        "spinal":  { "families": ["torpedo", "lance"], "default": "photon" },
+        "primary": { "families": ["disruptor", "beam"], "default": "disruptor" },
+        "battery": { "families": ["disruptor"], "default": "disruptor" },
+        "rack":    { "families": ["drone"], "default": "drone" },
+        "light":   { "families": ["beam", "drone"], "default": "ph3" }
+      },
+      "names": {
+        "frigate": "Cutthroat",
+        "destroyer": "Ravener",
+        "light_cruiser": "Blackfang",
+        "heavy_cruiser": "Warhowl",
+        "battlecruiser": "Deathgrip",
+        "battleship": "Ironclaw",
+        "dreadnought": "Doomcaller",
+        "carrier": "Bloodmoot",
+        "freighter": "Spoilhauler",
+        "tender": "Bonesetter"
+      }
+    },
+    "vaelith": {
+      "note": "Lance alpha, thin skin.",
+      "budget_scale": { "space": 0.95, "power": 1.1, "mass": 0.9, "crew": 0.92 },
+      "base_load_scale": { "space": 1.0, "mass": 1.0, "crew": 0.96, "power": 1.0 },
+      "shield_scale": 0.8, "speed_scale": 1.12, "accel_scale": 1.15, "turn_scale": 1.1,
+      "cargo_scale": 0.85, "damage_control_scale": 0.75, "spare_parts_scale": 0.8,
+      "system_scale": { "HULL": 0.75, "ARMR": 0.5, "SENS": 1.25, "WARP": 1.15 },
+      "roles": {
+        "spinal":  { "families": ["lance", "torpedo"], "default": "lance" },
+        "primary": { "families": ["beam", "disruptor"], "default": "disruptor" },
+        "battery": { "families": ["beam"], "default": "ph1" },
+        "rack":    { "families": ["beam", "drone"], "default": "ph3" },
+        "light":   { "families": ["beam"], "default": "ph3" }
+      },
+      "names": {
+        "frigate": "Sable Wing",
+        "destroyer": "Quiet Hunter",
+        "light_cruiser": "Glass Feather",
+        "heavy_cruiser": "Pale Ascendant",
+        "battlecruiser": "Silent Crown",
+        "battleship": "Verdant Throne",
+        "dreadnought": "First Circle",
+        "carrier": "Ten Thousand Eyes",
+        "freighter": "Slow Tide",
+        "tender": "Mending Hand"
+      }
+    },
+    "sarn": {
+      "note": "Drone swarm and tractor web.",
+      "budget_scale": { "space": 1.05, "power": 1.0, "mass": 1.0, "crew": 1.0 },
+      "base_load_scale": { "space": 1.03, "mass": 1.0, "crew": 1.0, "power": 1.0 },
+      "shield_scale": 0.9, "speed_scale": 0.95, "accel_scale": 1.0, "turn_scale": 1.05,
+      "cargo_scale": 1.0, "damage_control_scale": 1.0, "spare_parts_scale": 1.0,
+      "system_scale": { "TRAC": 2.0, "SHTL": 1.5, "HULL": 0.9 },
+      "roles": {
+        "spinal":  { "families": ["torpedo", "lance"], "default": "photon" },
+        "primary": { "families": ["beam", "drone"], "default": "ph1" },
+        "battery": { "families": ["beam", "drone"], "default": "drone" },
+        "rack":    { "families": ["drone"], "default": "drone" },
+        "light":   { "families": ["beam", "drone"], "default": "drone" }
+      },
+      "names": {
+        "frigate": "Flint Warden",
+        "destroyer": "Obsidian Ward",
+        "light_cruiser": "Amber Lattice",
+        "heavy_cruiser": "Third Accord",
+        "battlecruiser": "Copper Assize",
+        "battleship": "Grand Concord",
+        "dreadnought": "First Decree",
+        "carrier": "Nine Gates",
+        "freighter": "Tribute Line",
+        "tender": "Keystone"
+      }
+    },
+    "helion": {
+      "note": "Mixed mounts, wide holds.",
+      "budget_scale": { "space": 1.08, "power": 0.92, "mass": 1.05, "crew": 0.95 },
+      "base_load_scale": { "space": 1.0, "mass": 1.0, "crew": 1.0, "power": 1.0 },
+      "shield_scale": 0.85, "speed_scale": 0.9, "accel_scale": 0.9, "turn_scale": 0.95,
+      "cargo_scale": 1.5, "damage_control_scale": 1.0, "spare_parts_scale": 1.1,
+      "system_scale": { "CARGO": 1.5, "HULL": 1.1, "ARMR": 0.75, "MRNE": 0.75, "PRB": 0 },
+      "roles": {
+        "spinal":  { "families": ["torpedo", "lance"], "default": "photon" },
+        "primary": { "families": ["beam", "disruptor", "drone"], "default": "ph1" },
+        "battery": { "families": ["beam", "disruptor", "drone"], "default": "disruptor" },
+        "rack":    { "families": ["beam", "drone"], "default": "drone" },
+        "light":   { "families": ["beam", "drone"], "default": "ph3" }
+      },
+      "names": {
+        "frigate": "Dockhand",
+        "destroyer": "Hard Bargain",
+        "light_cruiser": "Ledger",
+        "heavy_cruiser": "Freeport",
+        "battlecruiser": "Strikebreaker",
+        "battleship": "Charter Prime",
+        "dreadnought": "Foundry",
+        "carrier": "Drop Yard",
+        "freighter": "Deep Hold",
+        "tender": "Jury Rig"
+      }
+    },
+    "bloom": {
+      "note": "Spore racks, regrowing hull.",
+      "budget_scale": { "space": 1.0, "power": 1.0, "mass": 1.05, "crew": 0.9 },
+      "base_load_scale": { "space": 1.0, "mass": 1.0, "crew": 0.96, "power": 1.0 },
+      "shield_scale": 1.05, "speed_scale": 0.92, "accel_scale": 0.95, "turn_scale": 0.9,
+      "cargo_scale": 0.8, "damage_control_scale": 1.5, "spare_parts_scale": 1.0,
+      "system_scale": { "HULL": 1.3, "ARMR": 1.25, "MRNE": 1.25, "SENS": 0.75, "TRAN": 0.5, "LAB": 0, "PRB": 0, "RPR": 0.5 },
+      "roles": {
+        "spinal":  { "families": ["torpedo"], "default": "photon" },
+        "primary": { "families": ["beam"], "default": "ph1" },
+        "battery": { "families": ["beam"], "default": "ph1" },
+        "rack":    { "families": ["drone"], "default": "drone" },
+        "light":   { "families": ["beam", "drone"], "default": "drone" }
+      },
+      "names": {
+        "frigate": "Tendril",
+        "destroyer": "Sporefall",
+        "light_cruiser": "Bloomlight",
+        "heavy_cruiser": "Rotwake",
+        "battlecruiser": "Pale Thicket",
+        "battleship": "Mother Lobe",
+        "dreadnought": "Deep Bloom",
+        "carrier": "Seedhold",
+        "freighter": "Full Crop",
+        "tender": "Scar Tissue"
+      }
+    }
+  },
+
+  "_note_text": "The one line a hull carries on the roster. Class phrase, then culture phrase, then the mount count. CLAUDE.md 6.5: it says what the ship is and does not explain the game.",
+  "note_mount_word": { "one": "mount", "many": "mounts" },
+
+  "_paths": "Where the generated assets live. The tool checks every hull's mesh and material are actually on disk before it writes an entry that names them.",
+  "mesh_path": "res://assets/meshes/hull_{faction}_{cls}.obj",
+  "material_path": "res://assets/materials/mat_hull_{faction}.tres"
+}

@@ -39,6 +39,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(__file__))
 from gen_meshes import Obj, OUT  # noqa: E402
+from shiplib import read_obj as shiplib_read_obj  # noqa: E402
 
 ## Hulls to trace. Named rather than globbed, because assets/meshes also holds
 ## the debris fragments and every overlay shape, and a wireframe of a beam is
@@ -65,18 +66,12 @@ MIN_LEN = 0.06
 
 
 def read_obj(path):
-    """Vertices and triangles from one of our own .obj files. Only what this
-    needs: positions and face indices, no normals, no materials."""
-    verts, tris = [], []
-    with open(path) as f:
-        for line in f:
-            if line.startswith("v "):
-                verts.append(tuple(float(t) for t in line.split()[1:4]))
-            elif line.startswith("f "):
-                idx = [int(t.split("/")[0]) - 1 for t in line.split()[1:]]
-                for i in range(1, len(idx) - 1):
-                    tris.append((idx[0], idx[i], idx[i + 1]))
-    return verts, tris
+    """Vertices and triangles from one of our own .obj files, as zero based
+    index triples. The parsing is `shiplib.read_obj`, which is the only reader
+    in the project (CLAUDE.md 4.1); this is the corner shape the edge tracing
+    below wants, and it is the whole of the difference."""
+    verts, faces = shiplib_read_obj(path)
+    return verts, [tuple(c[0] - 1 for c in f) for f in faces]
 
 
 def face_normal(verts, tri):
@@ -149,8 +144,14 @@ def ribbon(o, p, q):
     o.tri(a, d, c, n)
 
 
-def main():
-    for name in HULLS:
+def main(names=None):
+    """Trace `names`, or the hulls this file lists when called with none.
+
+    The fleet driver hands in sixty names, which is why this takes a list at
+    all: a second copy of the edge tracer for the generated hulls would be the
+    divergence CLAUDE.md section 4.1 forbids.
+    """
+    for name in (names if names is not None else HULLS):
         src = os.path.join(OUT, name + ".obj")
         if not os.path.exists(src):
             print("skipped %s, no source mesh" % name)

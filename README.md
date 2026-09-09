@@ -37,6 +37,8 @@ hulls to board, capture, and refit into your own.
 | [docs/14-reference-planet-shader.md](docs/14-reference-planet-shader.md) | The vendored planet shader, why the game is GPL-3.0, and what it replaced |
 | [docs/15-worlds.md](docs/15-worlds.md) | Concept for the seven worlds an arena can hold, with plates drawn from the game |
 | [docs/16-multiplayer.md](docs/16-multiplayer.md) | Making the tactical layer multiplayer: what already exists, what is in the way, and the build order |
+| [docs/17-starship-design-bible.md](docs/17-starship-design-bible.md) | The starship tradition from the studio floor: parts, light, liveries, kitbashing, dialects, and what our pixel art hulls take from it |
+| [docs/18-the-fleet.md](docs/18-the-fleet.md) | How the sixty hulls are generated, painted and checked, and what each stage decides |
 
 Project rules live in [CLAUDE.md](CLAUDE.md) and are binding.
 

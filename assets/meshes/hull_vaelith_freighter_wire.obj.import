@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://cv0lw2ox5rd3w"
+path="res://.godot/imported/hull_vaelith_freighter_wire.obj-97af29e88068a20b86e4b67d57f60ada.mesh"
+
+[deps]
+
+files=["res://.godot/imported/hull_vaelith_freighter_wire.obj-97af29e88068a20b86e4b67d57f60ada.mesh"]
+
+source_file="res://assets/meshes/hull_vaelith_freighter_wire.obj"
+dest_files=["res://.godot/imported/hull_vaelith_freighter_wire.obj-97af29e88068a20b86e4b67d57f60ada.mesh", "res://.godot/imported/hull_vaelith_freighter_wire.obj-97af29e88068a20b86e4b67d57f60ada.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

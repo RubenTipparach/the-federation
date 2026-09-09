@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://bt8fvf6lb3c1v"
+path="res://.godot/imported/hull_vaelith_tender_wire.obj-8c9b5d5ebe9c78b9ba0786882a7b5539.mesh"
+
+[deps]
+
+files=["res://.godot/imported/hull_vaelith_tender_wire.obj-8c9b5d5ebe9c78b9ba0786882a7b5539.mesh"]
+
+source_file="res://assets/meshes/hull_vaelith_tender_wire.obj"
+dest_files=["res://.godot/imported/hull_vaelith_tender_wire.obj-8c9b5d5ebe9c78b9ba0786882a7b5539.mesh", "res://.godot/imported/hull_vaelith_tender_wire.obj-8c9b5d5ebe9c78b9ba0786882a7b5539.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

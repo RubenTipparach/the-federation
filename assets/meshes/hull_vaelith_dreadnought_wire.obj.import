@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://b6dh1hvr65oqt"
+path="res://.godot/imported/hull_vaelith_dreadnought_wire.obj-73c5f638a84a0e9a270f93ae25a161ce.mesh"
+
+[deps]
+
+files=["res://.godot/imported/hull_vaelith_dreadnought_wire.obj-73c5f638a84a0e9a270f93ae25a161ce.mesh"]
+
+source_file="res://assets/meshes/hull_vaelith_dreadnought_wire.obj"
+dest_files=["res://.godot/imported/hull_vaelith_dreadnought_wire.obj-73c5f638a84a0e9a270f93ae25a161ce.mesh", "res://.godot/imported/hull_vaelith_dreadnought_wire.obj-73c5f638a84a0e9a270f93ae25a161ce.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false
