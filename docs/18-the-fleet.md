@@ -16,16 +16,26 @@ section 2 with its three variants:
 
 | | Frigate | Destroyer | Light cruiser | Heavy cruiser | Battlecruiser | Battleship | Dreadnought | Carrier | Freighter | Tender |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Terran Concord | Kestrel | | | Wayfarer Mk III | Ironhold | | | | | |
-| Kthaari Dominion | Talon | Bloodletter | | | | | | | | |
-| Vaelith Ascendancy | | | | | | | | | | |
-| Sarn Concordance | | | | | | | | | | |
-| Helion Combine | | | | | | | | | | |
-| The Bloom | | | | | | | | | | |
+| Terran Concord | Swiftsure | Vigilant | Endeavour | Meridian | Bastion | Sovereign | Indomitable | Highwater | Longhaul | Cornerstone |
+| Kthaari Dominion | Cutthroat | Ravener | Blackfang | Warhowl | Deathgrip | Ironclaw | Doomcaller | Bloodmoot | Spoilhauler | Bonesetter |
+| Vaelith Ascendancy | Sable Wing | Quiet Hunter | Glass Feather | Pale Ascendant | Silent Crown | Verdant Throne | First Circle | Ten Thousand Eyes | Slow Tide | Mending Hand |
+| Sarn Concordance | Flint Warden | Obsidian Ward | Amber Lattice | Third Accord | Copper Assize | Grand Concord | First Decree | Nine Gates | Tribute Line | Keystone |
+| Helion Combine | Dockhand | Hard Bargain | Ledger | Freeport | Strikebreaker | Charter Prime | Foundry | Drop Yard | Deep Hold | Jury Rig |
+| The Bloom | Tendril | Sporefall | Bloomlight | Rotwake | Pale Thicket | Mother Lobe | Deep Bloom | Seedhold | Full Crop | Scar Tissue |
 
 The five named hulls were in `data/ships.json` before the fleet existed and are hand
-tuned; the other fifty five are generated. Named or not, every one of them is built from
+tuned; the sixty generated ones are in `data/fleet.json`, written by
+`tools/gen_ship_data.py` from the knobs in `data/fleet_rules.json`. Two files rather than
+one because a generator that rewrote the hand authored five would reserialise them on
+every run, and a reviewer could not tell a real change from a reformatting.
+`src/sim/catalog.gd` loads both. Named or not, every one of them is built from
 the same kit, so the Wayfarer is a Terran heavy cruiser rather than a special case.
+
+The five hand authored hulls carry `faction` values from before the cultures were
+named, so the three Terran ones say `federation`. That is left alone rather than
+quietly corrected: the value is written into saved designs and recorded battles on
+players' disks, and renaming it would strand them. Every screen groups by whatever
+the field says, so those three list under a heading of their own.
 
 ---
 
@@ -148,8 +158,14 @@ pixel silhouette both want.
 
     python3 tools/gen_fleet.py                  every asset for every hull
     python3 tools/gen_fleet.py --faction terran one culture
-    python3 tools/gen_ship_data.py --write      the sixty entries in data/ships.json
+    python3 tools/gen_ship_graphics.py          the standard graphic set, section 3.2
+    python3 tools/gen_ship_data.py              the sixty hull entries in data/fleet.json
+    python3 tools/gen_ship_data.py --check      prove that file still matches its generator
+    python3 tools/check_hulls.py                both one piece measures over the committed meshes
     ./scripts/run-tests.sh                      the suite, including the catalog checks
+
+`gen_fleet.py` calls the graphics tool itself at the end of a run, so the third line is
+only needed when a graphic changes without its mesh changing.
 
 A palette swap is `data/palette.json` and then the first of those, which is the property
 section 3.1 exists to buy.

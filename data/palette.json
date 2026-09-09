@@ -110,9 +110,15 @@
     "alert": "#cf6a53",
     "alert_hi": "#eb8b6d"
   },
+  "_ui_factions_note": "Which deck each navy's console wears. Every faction a hull can carry MUST appear here: src/ui/main.gd hands the flown hull's faction straight to Palette.use_faction, which asserts on a name it does not know, so a fleet of sixty hulls across six cultures needs six entries. Four of them share the two decks that have been approved, because a deck is a design decision and not a thing to invent in passing. The pairing is by temperament: steel is cool and institutional, verdant is warm and grown. The rose skin below is deliberately still unassigned; read its own note before reaching for it.",
   "ui_factions": {
     "federation": "steel",
-    "kthaari": "verdant"
+    "terran": "steel",
+    "sarn": "steel",
+    "helion": "steel",
+    "kthaari": "verdant",
+    "vaelith": "verdant",
+    "bloom": "verdant"
   },
   "ui_default_faction": "federation",
   "ui_skins": {
@@ -516,6 +522,21 @@
       "glow_drive": ["taupe", "clay", "wine", "plum", "black"],
       "glow_eye": ["gray_blue_light", "blue_light", "blue", "navy", "black"]
     }
+  },
+  "graphics_note": [
+    "The standard hull graphic set of CLAUDE.md section 3.2, written from the",
+    "committed .obj by tools/gen_ship_graphics.py. Only the schematic carries a",
+    "colour. The icon and the outline are white coverage masks that the screen",
+    "drawing them tints, so they name no role here and are not palette entries",
+    "at all.",
+    "",
+    "schematic_line is gray_blue_light, the coolest pale entry in the palette.",
+    "A drafting line should read as an instrument rather than as paint, and it",
+    "has to stay legible on the dark plate colours every deck is built from",
+    "without reaching cream, which is where a tinted mask goes."
+  ],
+  "graphics": {
+    "schematic_line": "gray_blue_light"
   },
   "fx_note": "Colour ramps for the effect sprite sheets, hottest entry first. A ramp is named here rather than written into a generator so that a palette swap stays a one file change (CLAUDE.md 3.1). Entries resolve against colors and ui_colors together, because the hot end of a fire is the same orange every critical readout in the interface already wears, and naming a second one would be inventing a colour.",
   "fx": {
