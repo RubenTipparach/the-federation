@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://c4c6x3wymtu0y"
+path="res://.godot/imported/hull_vaelith_freighter_frag_5.obj-82b4ed15bdd2882635396cb0351bad6b.mesh"
+
+[deps]
+
+files=["res://.godot/imported/hull_vaelith_freighter_frag_5.obj-82b4ed15bdd2882635396cb0351bad6b.mesh"]
+
+source_file="res://assets/meshes/hull_vaelith_freighter_frag_5.obj"
+dest_files=["res://.godot/imported/hull_vaelith_freighter_frag_5.obj-82b4ed15bdd2882635396cb0351bad6b.mesh", "res://.godot/imported/hull_vaelith_freighter_frag_5.obj-82b4ed15bdd2882635396cb0351bad6b.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

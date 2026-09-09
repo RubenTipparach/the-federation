@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://c2e7r0najsrbg"
+path="res://.godot/imported/hull_kthaari_battlecruiser.obj-7771a6f88cee663c689cbe339c190adc.mesh"
+
+[deps]
+
+files=["res://.godot/imported/hull_kthaari_battlecruiser.obj-7771a6f88cee663c689cbe339c190adc.mesh"]
+
+source_file="res://assets/meshes/hull_kthaari_battlecruiser.obj"
+dest_files=["res://.godot/imported/hull_kthaari_battlecruiser.obj-7771a6f88cee663c689cbe339c190adc.mesh", "res://.godot/imported/hull_kthaari_battlecruiser.obj-7771a6f88cee663c689cbe339c190adc.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

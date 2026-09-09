@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://dj4yef5rd3be1"
+path="res://.godot/imported/hull_vaelith_heavy_cruiser.obj-0870d448af508e826f7a2700bb2b596e.mesh"
+
+[deps]
+
+files=["res://.godot/imported/hull_vaelith_heavy_cruiser.obj-0870d448af508e826f7a2700bb2b596e.mesh"]
+
+source_file="res://assets/meshes/hull_vaelith_heavy_cruiser.obj"
+dest_files=["res://.godot/imported/hull_vaelith_heavy_cruiser.obj-0870d448af508e826f7a2700bb2b596e.mesh", "res://.godot/imported/hull_vaelith_heavy_cruiser.obj-0870d448af508e826f7a2700bb2b596e.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

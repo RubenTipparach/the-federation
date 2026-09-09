@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://b45do0slnvuy1"
+path="res://.godot/imported/hull_bloom_carrier_frag_4.obj-005ff1caf39b62fc408cc20604da0722.mesh"
+
+[deps]
+
+files=["res://.godot/imported/hull_bloom_carrier_frag_4.obj-005ff1caf39b62fc408cc20604da0722.mesh"]
+
+source_file="res://assets/meshes/hull_bloom_carrier_frag_4.obj"
+dest_files=["res://.godot/imported/hull_bloom_carrier_frag_4.obj-005ff1caf39b62fc408cc20604da0722.mesh", "res://.godot/imported/hull_bloom_carrier_frag_4.obj-005ff1caf39b62fc408cc20604da0722.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false
