@@ -32,9 +32,11 @@ def load_colors(path):
     return colors, data
 
 
-def load_palette(path, ship):
-    """One ship's role map plus the whole palette, read from the committed
-    config file. Returns (roles, palette): roles maps a role name to an RGB
+def load_role_map(path, *keys):
+    """One role map plus the whole palette, read from the committed config
+    file. `keys` is the path to the map inside data/palette.json, so
+    ("ships", "cruiser") is one ship's map and ("graphics",) is the hull
+    graphic set's. Returns (roles, palette): roles maps a role name to an RGB
     tuple (or a tuple of them, for ramps), palette is every allowed color.
 
     A role naming a color the palette does not have raises here rather than
@@ -45,8 +47,11 @@ def load_palette(path, ship):
         assert name in colors, "%r is not a palette color" % (name,)
         return colors[name]
 
+    node = data
+    for key in keys:
+        node = node[key]
     roles = {}
-    for role, value in data["ships"][ship].items():
+    for role, value in node.items():
         # Underscore keys are the comment convention every data file in this
         # repo uses. They are prose, not colours.
         if role.startswith("_"):
@@ -56,6 +61,12 @@ def load_palette(path, ship):
         else:
             roles[role] = resolve(value)
     return roles, set(colors.values())
+
+
+def load_palette(path, ship):
+    """One ship's role map, by ship name. The general form is
+    `load_role_map`; this is the caller every ship painter already had."""
+    return load_role_map(path, "ships", ship)
 
 
 def load_ramps(path):
@@ -423,6 +434,33 @@ def verify(diffuse, lights, engines, palette, rects, tex,
 
 
 # ---- mesh -------------------------------------------------------------------
+
+
+def read_obj(path):
+    """Vertices and triangles from one of our own .obj files.
+
+    Returns (verts, faces) in exactly the shape `Obj` holds them and the
+    checks below want them: verts are (x, y, z), a face is three corner
+    tuples whose first entry is a ONE based vertex index. A polygon is fanned
+    into triangles, though nothing we write is anything but a triangle.
+
+    This is the only reader (CLAUDE.md 4.1): tools/check_hulls.py and
+    tools/gen_ship_graphics.py both call it, so a hull is parsed the same way
+    whether it is being checked or being drawn.
+    """
+    verts, faces = [], []
+    with open(path) as f:
+        for line in f:
+            if line.startswith("v "):
+                verts.append(tuple(float(t) for t in line.split()[1:4]))
+            elif line.startswith("f "):
+                corners = []
+                for tok in line.split()[1:]:
+                    corners.append(tuple(int(t) if t else 0
+                                         for t in tok.split("/")))
+                for i in range(1, len(corners) - 1):
+                    faces.append((corners[0], corners[i], corners[i + 1]))
+    return verts, faces
 
 
 class Obj:
@@ -1010,37 +1048,84 @@ def mesh_components(verts, faces, tol=1e-4, grow=0.01):
     return len({sfind(i) for i in range(len(shells))})
 
 
-def silhouette_blobs(verts, faces, px=SILHOUETTE_PX, min_blob=3):
-    """How many separate blobs the hull leaves when its triangles are drawn
-    from directly above into a px by px grid. Blobs under `min_blob` pixels are
-    noise and ignored; anything else is a piece the eye will see as loose."""
+def raster_top_down(verts, faces, px, ids=None, margin=0.0):
+    """Draw a triangle list from directly above into a px by px id buffer.
+
+    Returns a flat list of px * px integers: 0 where nothing was drawn, and
+    otherwise the id of the triangle that owns that sample. `ids` gives one
+    id per face and every id must be 1 or more; without it every triangle is
+    id 1, which makes the buffer a plain coverage mask.
+
+    The hull is centred and fitted to the square by its LARGER horizontal
+    span, so a frigate fills the raster exactly as a dreadnought does.
+    `margin` is the empty border left on each side, in pixels of this raster,
+    so a caller asking for the eight percent of CLAUDE.md 3.2 passes
+    0.08 * px and the silhouette check below passes its historic one pixel.
+
+    Looking straight down, a sample belongs to the triangle with the greatest
+    y there, so y is interpolated barycentrically and the greatest wins.
+    Per triangle depth would not do: a saucer resting on a hull and a wing
+    passing over one both need the answer per pixel rather than per part, and
+    a centroid test loses whichever of the two happens to be longer.
+
+    This is the ONE top down rasteriser in the project (CLAUDE.md 4.1).
+    `silhouette_blobs` counts the blobs in what it returns, and
+    tools/gen_ship_graphics.py reads the ids to find the seams between parts.
+    """
     xs = [v[0] for v in verts]
     zs = [v[2] for v in verts]
+    grid = [0] * (px * px)
     if not xs:
-        return 0
+        return grid
+    depth = [0.0] * (px * px)
     span = max(max(xs) - min(xs), max(zs) - min(zs)) or 1.0
     cx, cz = (max(xs) + min(xs)) / 2, (max(zs) + min(zs)) / 2
-    scale = (px - 2) / span
+    scale = (px - 2 * margin) / span
 
     def to_px(v):
         return ((v[0] - cx) * scale + px / 2, (v[2] - cz) * scale + px / 2)
 
-    grid = bytearray(px * px)
-    for face in faces:
-        pts = [to_px(verts[c[0] - 1]) for c in face]
+    for n, face in enumerate(faces):
+        fid = 1 if ids is None else ids[n]
+        corners = [verts[c[0] - 1] for c in face]
+        pts = [to_px(v) for v in corners]
+        ha, hb, hc = corners[0][1], corners[1][1], corners[2][1]
         x0, x1 = int(min(p[0] for p in pts)), int(max(p[0] for p in pts)) + 1
         y0, y1 = int(min(p[1] for p in pts)), int(max(p[1] for p in pts)) + 1
         (ax, ay), (bx, by), (qx, qy) = pts
         area = (bx - ax) * (qy - ay) - (qx - ax) * (by - ay)
+        # A triangle seen exactly edge on has no area to interpolate over, so
+        # it takes its centroid's height. It covers a line of pixels at most
+        # and nothing is ever resting on it.
+        flat = abs(area) < 1e-9
+        mid = (ha + hb + hc) / 3.0
         for y in range(max(0, y0), min(px, y1)):
+            sy = y + 0.5
+            row = y * px
             for x in range(max(0, x0), min(px, x1)):
-                sx, sy = x + 0.5, y + 0.5
+                sx = x + 0.5
                 w0 = (bx - sx) * (qy - sy) - (qx - sx) * (by - sy)
                 w1 = (qx - sx) * (ay - sy) - (ax - sx) * (qy - sy)
                 w2 = (ax - sx) * (by - sy) - (bx - sx) * (ay - sy)
                 inside = (w0 >= 0 and w1 >= 0 and w2 >= 0) if area >= 0 else (w0 <= 0 and w1 <= 0 and w2 <= 0)
-                if inside or abs(area) < 1e-9:
-                    grid[y * px + x] = 1
+                if not (inside or flat):
+                    continue
+                h = mid if flat else (w0 * ha + w1 * hb + w2 * hc) / area
+                i = row + x
+                if grid[i] == 0 or h > depth[i]:
+                    grid[i] = fid
+                    depth[i] = h
+    return grid
+
+
+def silhouette_blobs(verts, faces, px=SILHOUETTE_PX, min_blob=3):
+    """How many separate blobs the hull leaves when its triangles are drawn
+    from directly above into a px by px grid. Blobs under `min_blob` pixels are
+    noise and ignored; anything else is a piece the eye will see as loose.
+
+    The drawing is `raster_top_down` with one pixel of border, which is what
+    this check has always fitted the hull to; only the counting is here."""
+    grid = raster_top_down(verts, faces, px, margin=1.0)
     seen = bytearray(px * px)
     blobs = 0
     for start in range(px * px):

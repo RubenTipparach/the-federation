@@ -1,0 +1,1794 @@
+{
+  "_comment": "Generated hulls, sixty of them, six factions by ten classes. Written by tools/gen_ship_data.py from data/fleet_rules.json: do not hand edit, the next run would drop the edit. The schema is data/ships.json's, field for field, and src/sim/catalog.gd loads both files. Hand authored hulls live there; this file is a build product.",
+  "_rules": "Every number here comes from data/fleet_rules.json (CLAUDE.md 5.4): the per class ladder and the per faction dialect. Retune by editing that file and running the tool again. Run it with --check to prove this file still matches its generator.",
+  "hulls": {
+    "terran_frigate": {
+      "name": "Swiftsure", "cls": "Frigate", "tonnage": 45, "faction": "terran", "playable": true, "ai": true,
+      "note": "Picket and escort. Multi arc beams, deep shields. 3 mounts.",
+      "mesh": "res://assets/meshes/hull_terran_frigate.obj",
+      "material": "res://assets/materials/mat_hull_terran.tres",
+      "cargo_space": 14,
+      "damage_control": 2, "spare_parts": 13,
+      "budgets": { "space": 76, "power": 27, "mass": 74, "crew": 88 },
+      "base_load": { "space": 44, "mass": 50, "crew": 55, "power_draw": 12 },
+      "shield_per_facing": 14,
+      "max_speed": 30.0, "accel": 10.0, "turn_rate_deg": 44.0,
+      "mounts": [
+        { "id": "M1", "pos": "Fore starboard", "size": "Medium", "families": ["beam", "disruptor"], "field": [0, 1, 2], "default": "ph1" },
+        { "id": "M2", "pos": "Fore port", "size": "Medium", "families": ["beam", "disruptor"], "field": [9, 10, 11], "default": "ph1" },
+        { "id": "M3", "pos": "Dorsal", "size": "Light", "families": ["beam", "drone"], "field": [3, 4, 5, 6, 7, 8], "default": "ph3" }
+      ],
+      "internals": {
+        "sectors": [
+          [["BRDG", 1, "control"], ["SENS", 1, "control"]],
+          [["PH-1", 4, "weapon", "M1"], ["TRAN", 3, "control"]],
+          [["WARP", 2, "power"], ["TRAC", 1, "control"]],
+          [["PH-3", 2, "weapon", "M3"], ["IMP", 2, "power"]],
+          [["WARP", 2, "power"], ["BTTY", 1, "power"], ["MRNE", 3, "control"]],
+          [["PH-1", 4, "weapon", "M2"]]
+        ],
+        "core": [["HULL", 4, "hull"], ["ARMR", 2, "hull"]]
+      }
+    },
+    "terran_destroyer": {
+      "name": "Vigilant", "cls": "Destroyer", "tonnage": 70, "faction": "terran", "playable": true, "ai": true,
+      "note": "Line escort. Multi arc beams, deep shields. 4 mounts.",
+      "mesh": "res://assets/meshes/hull_terran_destroyer.obj",
+      "material": "res://assets/materials/mat_hull_terran.tres",
+      "cargo_space": 20,
+      "damage_control": 2, "spare_parts": 18,
+      "budgets": { "space": 100, "power": 34, "mass": 98, "crew": 113 },
+      "base_load": { "space": 58, "mass": 67, "crew": 71, "power_draw": 16 },
+      "shield_per_facing": 18,
+      "max_speed": 27.0, "accel": 8.8, "turn_rate_deg": 38.0,
+      "mounts": [
+        { "id": "M1", "pos": "Fore starboard", "size": "Medium", "families": ["beam", "disruptor"], "field": [0, 1, 2], "default": "ph1" },
+        { "id": "M2", "pos": "Fore port", "size": "Medium", "families": ["beam", "disruptor"], "field": [9, 10, 11], "default": "ph1" },
+        { "id": "M3", "pos": "Dorsal rack", "size": "Light", "families": ["beam", "drone"], "field": [9, 10, 11, 0, 1, 2], "default": "ph3" },
+        { "id": "M4", "pos": "Aft", "size": "Light", "families": ["beam", "drone"], "field": [3, 4, 5, 6, 7, 8], "default": "ph3" }
+      ],
+      "internals": {
+        "sectors": [
+          [["PH-3", 2, "weapon", "M3"], ["BRDG", 1, "control"], ["SENS", 1, "control"]],
+          [["PH-1", 4, "weapon", "M1"], ["TRAN", 3, "control"]],
+          [["WARP", 3, "power"], ["TRAC", 1, "control"]],
+          [["PH-3", 2, "weapon", "M4"], ["IMP", 3, "power"], ["SHTL", 1, "control"]],
+          [["WARP", 3, "power"], ["BTTY", 1, "power"], ["MRNE", 4, "control"]],
+          [["PH-1", 4, "weapon", "M2"]]
+        ],
+        "core": [["HULL", 6, "hull"], ["ARMR", 2, "hull"]]
+      }
+    },
+    "terran_light_cruiser": {
+      "name": "Endeavour", "cls": "Light Cruiser", "tonnage": 95, "faction": "terran", "playable": true, "ai": true,
+      "note": "Patrol cruiser. Multi arc beams, deep shields. 4 mounts.",
+      "mesh": "res://assets/meshes/hull_terran_light_cruiser.obj",
+      "material": "res://assets/materials/mat_hull_terran.tres",
+      "cargo_space": 26,
+      "damage_control": 3, "spare_parts": 23,
+      "budgets": { "space": 128, "power": 42, "mass": 134, "crew": 149 },
+      "base_load": { "space": 76, "mass": 92, "crew": 95, "power_draw": 19 },
+      "shield_per_facing": 23,
+      "max_speed": 24.0, "accel": 7.6, "turn_rate_deg": 32.0,
+      "mounts": [
+        { "id": "M1", "pos": "Fore spinal", "size": "Heavy", "families": ["torpedo", "lance"], "field": [11, 0], "default": "photon" },
+        { "id": "M2", "pos": "Fore starboard", "size": "Medium", "families": ["beam", "disruptor"], "field": [0, 1, 2], "default": "ph1" },
+        { "id": "M3", "pos": "Fore port", "size": "Medium", "families": ["beam", "disruptor"], "field": [9, 10, 11], "default": "ph1" },
+        { "id": "M4", "pos": "Aft", "size": "Light", "families": ["beam", "drone"], "field": [3, 4, 5, 6, 7, 8], "default": "ph3" }
+      ],
+      "internals": {
+        "sectors": [
+          [["PHOT", 3, "weapon", "M1"], ["BRDG", 2, "control"], ["SENS", 3, "control"]],
+          [["PH-1", 4, "weapon", "M2"], ["TRAN", 4, "control"]],
+          [["WARP", 4, "power"], ["TRAC", 2, "control"]],
+          [["PH-3", 2, "weapon", "M4"], ["IMP", 4, "power"], ["AUXP", 1, "power"], ["SHTL", 1, "control"]],
+          [["WARP", 4, "power"], ["BTTY", 2, "power"], ["MRNE", 4, "control"]],
+          [["PH-1", 4, "weapon", "M3"], ["LAB", 1, "control"]]
+        ],
+        "core": [["HULL", 8, "hull"], ["ARMR", 3, "hull"]]
+      }
+    },
+    "terran_heavy_cruiser": {
+      "name": "Meridian", "cls": "Heavy Cruiser", "tonnage": 125, "faction": "terran", "playable": true, "ai": true,
+      "note": "Line cruiser. Multi arc beams, deep shields. 5 mounts.",
+      "mesh": "res://assets/meshes/hull_terran_heavy_cruiser.obj",
+      "material": "res://assets/materials/mat_hull_terran.tres",
+      "cargo_space": 32,
+      "damage_control": 3, "spare_parts": 30,
+      "budgets": { "space": 152, "power": 48, "mass": 150, "crew": 176 },
+      "base_load": { "space": 91, "mass": 105, "crew": 113, "power_draw": 23 },
+      "shield_per_facing": 30,
+      "max_speed": 20.0, "accel": 6.4, "turn_rate_deg": 26.0,
+      "mounts": [
+        { "id": "M1", "pos": "Fore spinal", "size": "Heavy", "families": ["torpedo", "lance"], "field": [11, 0], "default": "photon" },
+        { "id": "M2", "pos": "Fore starboard", "size": "Medium", "families": ["beam", "disruptor"], "field": [0, 1, 2], "default": "ph1" },
+        { "id": "M3", "pos": "Fore port", "size": "Medium", "families": ["beam", "disruptor"], "field": [9, 10, 11], "default": "ph1" },
+        { "id": "M4", "pos": "Dorsal rack", "size": "Light", "families": ["beam", "drone"], "field": [9, 10, 11, 0, 1, 2], "default": "ph3" },
+        { "id": "M5", "pos": "Aft", "size": "Light", "families": ["beam", "drone"], "field": [3, 4, 5, 6, 7, 8], "default": "ph3" }
+      ],
+      "internals": {
+        "sectors": [
+          [["PHOT", 3, "weapon", "M1"], ["PH-3", 2, "weapon", "M4"], ["BRDG", 2, "control"], ["SENS", 3, "control"]],
+          [["PH-1", 4, "weapon", "M2"], ["TRAN", 4, "control"]],
+          [["WARP", 5, "power"], ["TRAC", 2, "control"]],
+          [["PH-3", 2, "weapon", "M5"], ["IMP", 5, "power"], ["AUXP", 2, "power"], ["SHTL", 2, "control"]],
+          [["WARP", 5, "power"], ["BTTY", 2, "power"], ["MRNE", 5, "control"], ["PRB", 1, "control"]],
+          [["PH-1", 4, "weapon", "M3"], ["LAB", 2, "control"]]
+        ],
+        "core": [["HULL", 12, "hull"], ["ARMR", 4, "hull"]]
+      }
+    },
+    "terran_battlecruiser": {
+      "name": "Bastion", "cls": "Battlecruiser", "tonnage": 175, "faction": "terran", "playable": true, "ai": true,
+      "note": "Heavy line hull. Multi arc beams, deep shields. 6 mounts.",
+      "mesh": "res://assets/meshes/hull_terran_battlecruiser.obj",
+      "material": "res://assets/materials/mat_hull_terran.tres",
+      "cargo_space": 40,
+      "damage_control": 5, "spare_parts": 40,
+      "budgets": { "space": 196, "power": 63, "mass": 204, "crew": 231 },
+      "base_load": { "space": 118, "mass": 143, "crew": 150, "power_draw": 30 },
+      "shield_per_facing": 37,
+      "max_speed": 16.0, "accel": 4.8, "turn_rate_deg": 20.0,
+      "mounts": [
+        { "id": "M1", "pos": "Fore spinal", "size": "Heavy", "families": ["torpedo", "lance"], "field": [11, 0], "default": "photon" },
+        { "id": "M2", "pos": "Fore starboard", "size": "Medium", "families": ["beam", "disruptor"], "field": [0, 1, 2], "default": "ph1" },
+        { "id": "M3", "pos": "Fore port", "size": "Medium", "families": ["beam", "disruptor"], "field": [9, 10, 11], "default": "ph1" },
+        { "id": "M4", "pos": "Starboard waist", "size": "Medium", "families": ["beam"], "field": [2, 3, 4], "default": "ph1" },
+        { "id": "M5", "pos": "Port waist", "size": "Medium", "families": ["beam"], "field": [7, 8, 9], "default": "ph1" },
+        { "id": "M6", "pos": "Aft", "size": "Light", "families": ["beam", "drone"], "field": [4, 5, 6, 7], "default": "ph3" }
+      ],
+      "internals": {
+        "sectors": [
+          [["PHOT", 4, "weapon", "M1"], ["BRDG", 2, "control"], ["SENS", 3, "control"]],
+          [["PH-1", 5, "weapon", "M2"], ["TRAN", 5, "control"]],
+          [["PH-1", 5, "weapon", "M4"], ["WARP", 6, "power"], ["TRAC", 2, "control"]],
+          [["PH-3", 3, "weapon", "M6"], ["IMP", 6, "power"], ["AUXP", 2, "power"], ["SHTL", 2, "control"]],
+          [["PH-1", 5, "weapon", "M5"], ["WARP", 6, "power"], ["BTTY", 3, "power"], ["MRNE", 6, "control"], ["PRB", 1, "control"]],
+          [["PH-1", 5, "weapon", "M3"], ["LAB", 1, "control"]]
+        ],
+        "core": [["HULL", 16, "hull"], ["ARMR", 8, "hull"]]
+      }
+    },
+    "terran_battleship": {
+      "name": "Sovereign", "cls": "Battleship", "tonnage": 205, "faction": "terran", "playable": true, "ai": true,
+      "note": "Battle line. Multi arc beams, deep shields. 7 mounts.",
+      "mesh": "res://assets/meshes/hull_terran_battleship.obj",
+      "material": "res://assets/materials/mat_hull_terran.tres",
+      "cargo_space": 48,
+      "damage_control": 5, "spare_parts": 50,
+      "budgets": { "space": 240, "power": 78, "mass": 258, "crew": 286 },
+      "base_load": { "space": 146, "mass": 183, "crew": 186, "power_draw": 37 },
+      "shield_per_facing": 44,
+      "max_speed": 14.0, "accel": 4.0, "turn_rate_deg": 16.0,
+      "mounts": [
+        { "id": "M1", "pos": "Fore spinal", "size": "Heavy", "families": ["torpedo", "lance"], "field": [11, 0], "default": "photon" },
+        { "id": "M2", "pos": "Bow battery", "size": "Heavy", "families": ["torpedo", "lance"], "field": [10, 11, 0, 1], "default": "photon" },
+        { "id": "M3", "pos": "Fore starboard", "size": "Medium", "families": ["beam", "disruptor"], "field": [0, 1, 2], "default": "ph1" },
+        { "id": "M4", "pos": "Fore port", "size": "Medium", "families": ["beam", "disruptor"], "field": [9, 10, 11], "default": "ph1" },
+        { "id": "M5", "pos": "Starboard waist", "size": "Medium", "families": ["beam"], "field": [2, 3, 4], "default": "ph1" },
+        { "id": "M6", "pos": "Port waist", "size": "Medium", "families": ["beam"], "field": [7, 8, 9], "default": "ph1" },
+        { "id": "M7", "pos": "Aft", "size": "Light", "families": ["beam", "drone"], "field": [4, 5, 6, 7], "default": "ph3" }
+      ],
+      "internals": {
+        "sectors": [
+          [["PHOT", 4, "weapon", "M1"], ["PHOT", 4, "weapon", "M2"], ["BRDG", 3, "control"], ["SENS", 4, "control"]],
+          [["PH-1", 5, "weapon", "M3"], ["TRAN", 6, "control"]],
+          [["PH-1", 5, "weapon", "M5"], ["WARP", 7, "power"], ["TRAC", 3, "control"]],
+          [["PH-3", 3, "weapon", "M7"], ["IMP", 7, "power"], ["AUXP", 3, "power"], ["SHTL", 3, "control"]],
+          [["PH-1", 5, "weapon", "M6"], ["WARP", 7, "power"], ["BTTY", 3, "power"], ["MRNE", 8, "control"], ["PRB", 1, "control"]],
+          [["PH-1", 5, "weapon", "M4"], ["LAB", 2, "control"]]
+        ],
+        "core": [["HULL", 20, "hull"], ["ARMR", 10, "hull"]]
+      }
+    },
+    "terran_dreadnought": {
+      "name": "Indomitable", "cls": "Dreadnought", "tonnage": 240, "faction": "terran", "playable": true, "ai": true,
+      "note": "Fleet flagship. Multi arc beams, deep shields. 8 mounts.",
+      "mesh": "res://assets/meshes/hull_terran_dreadnought.obj",
+      "material": "res://assets/materials/mat_hull_terran.tres",
+      "cargo_space": 60,
+      "damage_control": 6, "spare_parts": 65,
+      "budgets": { "space": 292, "power": 92, "mass": 306, "crew": 349 },
+      "base_load": { "space": 181, "mass": 220, "crew": 230, "power_draw": 44 },
+      "shield_per_facing": 53,
+      "max_speed": 12.0, "accel": 3.6, "turn_rate_deg": 12.0,
+      "mounts": [
+        { "id": "M1", "pos": "Fore spinal", "size": "Heavy", "families": ["torpedo", "lance"], "field": [11, 0], "default": "photon" },
+        { "id": "M2", "pos": "Bow battery", "size": "Heavy", "families": ["torpedo", "lance"], "field": [10, 11, 0, 1], "default": "photon" },
+        { "id": "M3", "pos": "Fore starboard", "size": "Medium", "families": ["beam", "disruptor"], "field": [0, 1, 2], "default": "ph1" },
+        { "id": "M4", "pos": "Fore port", "size": "Medium", "families": ["beam", "disruptor"], "field": [9, 10, 11], "default": "ph1" },
+        { "id": "M5", "pos": "Starboard waist", "size": "Medium", "families": ["beam"], "field": [2, 3, 4], "default": "ph1" },
+        { "id": "M6", "pos": "Port waist", "size": "Medium", "families": ["beam"], "field": [7, 8, 9], "default": "ph1" },
+        { "id": "M7", "pos": "Dorsal rack", "size": "Light", "families": ["beam", "drone"], "field": [9, 10, 11, 0, 1, 2], "default": "ph3" },
+        { "id": "M8", "pos": "Aft", "size": "Light", "families": ["beam", "drone"], "field": [4, 5, 6, 7], "default": "ph3" }
+      ],
+      "internals": {
+        "sectors": [
+          [["PHOT", 5, "weapon", "M1"], ["PHOT", 5, "weapon", "M2"], ["PH-3", 4, "weapon", "M7"], ["BRDG", 3, "control"], ["SENS", 4, "control"]],
+          [["PH-1", 6, "weapon", "M3"], ["TRAN", 8, "control"]],
+          [["PH-1", 6, "weapon", "M5"], ["WARP", 8, "power"], ["TRAC", 3, "control"]],
+          [["PH-3", 4, "weapon", "M8"], ["IMP", 8, "power"], ["AUXP", 4, "power"], ["SHTL", 4, "control"]],
+          [["PH-1", 6, "weapon", "M6"], ["WARP", 8, "power"], ["BTTY", 4, "power"], ["MRNE", 10, "control"], ["PRB", 2, "control"]],
+          [["PH-1", 6, "weapon", "M4"], ["LAB", 2, "control"], ["RPR", 3, "control"]]
+        ],
+        "core": [["HULL", 26, "hull"], ["ARMR", 14, "hull"]]
+      }
+    },
+    "terran_carrier": {
+      "name": "Highwater", "cls": "Carrier", "tonnage": 220, "faction": "terran", "playable": true, "ai": true,
+      "note": "Drone carrier. Multi arc beams, deep shields. 6 mounts.",
+      "mesh": "res://assets/meshes/hull_terran_carrier.obj",
+      "material": "res://assets/materials/mat_hull_terran.tres",
+      "cargo_space": 44,
+      "damage_control": 5, "spare_parts": 45,
+      "budgets": { "space": 236, "power": 65, "mass": 244, "crew": 263 },
+      "base_load": { "space": 146, "mass": 176, "crew": 176, "power_draw": 31 },
+      "shield_per_facing": 39,
+      "max_speed": 15.0, "accel": 4.4, "turn_rate_deg": 15.0,
+      "mounts": [
+        { "id": "M1", "pos": "Fore spinal", "size": "Heavy", "families": ["torpedo", "lance"], "field": [11, 0], "default": "photon" },
+        { "id": "M2", "pos": "Fore starboard", "size": "Medium", "families": ["beam", "disruptor"], "field": [0, 1, 2], "default": "ph1" },
+        { "id": "M3", "pos": "Fore port", "size": "Medium", "families": ["beam", "disruptor"], "field": [9, 10, 11], "default": "ph1" },
+        { "id": "M4", "pos": "Dorsal rack", "size": "Light", "families": ["beam", "drone"], "field": [8, 9, 10, 11, 0, 1, 2, 3], "default": "ph3" },
+        { "id": "M5", "pos": "Ventral rack", "size": "Light", "families": ["beam", "drone"], "field": [9, 10, 11, 0, 1, 2], "default": "ph3" },
+        { "id": "M6", "pos": "Aft", "size": "Light", "families": ["beam", "drone"], "field": [4, 5, 6, 7], "default": "ph3" }
+      ],
+      "internals": {
+        "sectors": [
+          [["PHOT", 4, "weapon", "M1"], ["PH-3", 3, "weapon", "M4"], ["PH-3", 3, "weapon", "M5"], ["BRDG", 3, "control"], ["SENS", 4, "control"]],
+          [["PH-1", 5, "weapon", "M2"], ["TRAN", 5, "control"]],
+          [["WARP", 6, "power"], ["TRAC", 2, "control"]],
+          [["PH-3", 3, "weapon", "M6"], ["IMP", 6, "power"], ["AUXP", 3, "power"], ["SHTL", 8, "control"], ["DRN", 4, "control"]],
+          [["WARP", 6, "power"], ["BTTY", 3, "power"], ["MRNE", 6, "control"], ["PRB", 1, "control"]],
+          [["PH-1", 5, "weapon", "M3"], ["LAB", 1, "control"]]
+        ],
+        "core": [["HULL", 20, "hull"], ["ARMR", 8, "hull"]]
+      }
+    },
+    "terran_freighter": {
+      "name": "Longhaul", "cls": "Freighter", "tonnage": 160, "faction": "terran", "playable": true, "ai": true,
+      "note": "Bulk hauler. Multi arc beams, deep shields. 2 mounts.",
+      "mesh": "res://assets/meshes/hull_terran_freighter.obj",
+      "material": "res://assets/materials/mat_hull_terran.tres",
+      "cargo_space": 140,
+      "damage_control": 3, "spare_parts": 38,
+      "budgets": { "space": 160, "power": 40, "mass": 170, "crew": 147 },
+      "base_load": { "space": 106, "mass": 129, "crew": 87, "power_draw": 18 },
+      "shield_per_facing": 23,
+      "max_speed": 15.0, "accel": 4.4, "turn_rate_deg": 18.0,
+      "mounts": [
+        { "id": "M1", "pos": "Dorsal", "size": "Light", "families": ["beam", "drone"], "field": [9, 10, 11, 0, 1, 2], "default": "ph3" },
+        { "id": "M2", "pos": "Aft", "size": "Light", "families": ["beam", "drone"], "field": [3, 4, 5, 6, 7, 8], "default": "ph3" }
+      ],
+      "internals": {
+        "sectors": [
+          [["PH-3", 2, "weapon", "M1"], ["BRDG", 1, "control"], ["SENS", 1, "control"]],
+          [["TRAN", 3, "control"]],
+          [["WARP", 4, "power"], ["TRAC", 2, "control"], ["CARGO", 6, "hull"]],
+          [["PH-3", 2, "weapon", "M2"], ["IMP", 4, "power"]],
+          [["WARP", 4, "power"], ["BTTY", 2, "power"], ["MRNE", 2, "control"], ["CARGO", 6, "hull"]],
+          []
+        ],
+        "core": [["HULL", 18, "hull"], ["ARMR", 2, "hull"]]
+      }
+    },
+    "terran_tender": {
+      "name": "Cornerstone", "cls": "Tender", "tonnage": 140, "faction": "terran", "playable": true, "ai": true,
+      "note": "Repair tender. Multi arc beams, deep shields. 3 mounts.",
+      "mesh": "res://assets/meshes/hull_terran_tender.obj",
+      "material": "res://assets/materials/mat_hull_terran.tres",
+      "cargo_space": 70,
+      "damage_control": 6, "spare_parts": 75,
+      "budgets": { "space": 150, "power": 42, "mass": 152, "crew": 158 },
+      "base_load": { "space": 96, "mass": 109, "crew": 96, "power_draw": 19 },
+      "shield_per_facing": 25,
+      "max_speed": 18.0, "accel": 5.6, "turn_rate_deg": 24.0,
+      "mounts": [
+        { "id": "M1", "pos": "Fore", "size": "Medium", "families": ["beam", "disruptor"], "field": [10, 11, 0, 1], "default": "ph1" },
+        { "id": "M2", "pos": "Dorsal rack", "size": "Light", "families": ["beam", "drone"], "field": [9, 10, 11, 0, 1, 2], "default": "ph3" },
+        { "id": "M3", "pos": "Aft", "size": "Light", "families": ["beam", "drone"], "field": [3, 4, 5, 6, 7, 8], "default": "ph3" }
+      ],
+      "internals": {
+        "sectors": [
+          [["PH-1", 4, "weapon", "M1"], ["PH-3", 2, "weapon", "M2"], ["BRDG", 1, "control"], ["SENS", 1, "control"]],
+          [["TRAN", 4, "control"]],
+          [["WARP", 4, "power"], ["TRAC", 3, "control"], ["CARGO", 3, "hull"]],
+          [["PH-3", 2, "weapon", "M3"], ["IMP", 4, "power"], ["AUXP", 1, "power"], ["SHTL", 2, "control"]],
+          [["WARP", 3, "power"], ["BTTY", 2, "power"], ["MRNE", 3, "control"], ["CARGO", 3, "hull"]],
+          [["RPR", 9, "control"]]
+        ],
+        "core": [["HULL", 12, "hull"], ["ARMR", 3, "hull"]]
+      }
+    },
+    "kthaari_frigate": {
+      "name": "Cutthroat", "cls": "Frigate", "tonnage": 45, "faction": "kthaari", "playable": true, "ai": true,
+      "note": "Picket and escort. Disruptors and drones, marines aboard. 3 mounts.",
+      "mesh": "res://assets/meshes/hull_kthaari_frigate.obj",
+      "material": "res://assets/materials/mat_hull_kthaari.tres",
+      "cargo_space": 14,
+      "damage_control": 1, "spare_parts": 9,
+      "budgets": { "space": 76, "power": 25, "mass": 81, "crew": 88 },
+      "base_load": { "space": 44, "mass": 56, "crew": 58, "power_draw": 12 },
+      "shield_per_facing": 12,
+      "max_speed": 28.5, "accel": 9.5, "turn_rate_deg": 37.4,
+      "mounts": [
+        { "id": "M1", "pos": "Fore starboard", "size": "Medium", "families": ["disruptor", "beam"], "field": [0, 1, 2], "default": "disruptor" },
+        { "id": "M2", "pos": "Fore port", "size": "Medium", "families": ["disruptor", "beam"], "field": [9, 10, 11], "default": "disruptor" },
+        { "id": "M3", "pos": "Dorsal", "size": "Light", "families": ["beam", "drone"], "field": [3, 4, 5, 6, 7, 8], "default": "ph3" }
+      ],
+      "internals": {
+        "sectors": [
+          [["BRDG", 1, "control"], ["SENS", 1, "control"]],
+          [["DISR", 4, "weapon", "M1"], ["TRAN", 2, "control"]],
+          [["WARP", 2, "power"], ["TRAC", 1, "control"]],
+          [["PH-3", 2, "weapon", "M3"], ["IMP", 2, "power"]],
+          [["WARP", 2, "power"], ["BTTY", 1, "power"], ["MRNE", 5, "control"]],
+          [["DISR", 4, "weapon", "M2"]]
+        ],
+        "core": [["HULL", 4, "hull"], ["ARMR", 3, "hull"]]
+      }
+    },
+    "kthaari_destroyer": {
+      "name": "Ravener", "cls": "Destroyer", "tonnage": 70, "faction": "kthaari", "playable": true, "ai": true,
+      "note": "Line escort. Disruptors and drones, marines aboard. 4 mounts.",
+      "mesh": "res://assets/meshes/hull_kthaari_destroyer.obj",
+      "material": "res://assets/materials/mat_hull_kthaari.tres",
+      "cargo_space": 20,
+      "damage_control": 1, "spare_parts": 13,
+      "budgets": { "space": 100, "power": 30, "mass": 108, "crew": 113 },
+      "base_load": { "space": 58, "mass": 75, "crew": 74, "power_draw": 14 },
+      "shield_per_facing": 16,
+      "max_speed": 25.6, "accel": 8.4, "turn_rate_deg": 32.3,
+      "mounts": [
+        { "id": "M1", "pos": "Fore starboard", "size": "Medium", "families": ["disruptor", "beam"], "field": [0, 1, 2], "default": "disruptor" },
+        { "id": "M2", "pos": "Fore port", "size": "Medium", "families": ["disruptor", "beam"], "field": [9, 10, 11], "default": "disruptor" },
+        { "id": "M3", "pos": "Dorsal rack", "size": "Light", "families": ["drone"], "field": [9, 10, 11, 0, 1, 2], "default": "drone" },
+        { "id": "M4", "pos": "Aft", "size": "Light", "families": ["beam", "drone"], "field": [3, 4, 5, 6, 7, 8], "default": "ph3" }
+      ],
+      "internals": {
+        "sectors": [
+          [["DRN", 2, "weapon", "M3"], ["BRDG", 1, "control"], ["SENS", 1, "control"]],
+          [["DISR", 4, "weapon", "M1"], ["TRAN", 2, "control"]],
+          [["WARP", 3, "power"], ["TRAC", 1, "control"]],
+          [["PH-3", 2, "weapon", "M4"], ["IMP", 3, "power"], ["SHTL", 1, "control"]],
+          [["WARP", 3, "power"], ["BTTY", 1, "power"], ["MRNE", 7, "control"]],
+          [["DISR", 4, "weapon", "M2"]]
+        ],
+        "core": [["HULL", 7, "hull"], ["ARMR", 3, "hull"]]
+      }
+    },
+    "kthaari_light_cruiser": {
+      "name": "Blackfang", "cls": "Light Cruiser", "tonnage": 95, "faction": "kthaari", "playable": true, "ai": true,
+      "note": "Patrol cruiser. Disruptors and drones, marines aboard. 4 mounts.",
+      "mesh": "res://assets/meshes/hull_kthaari_light_cruiser.obj",
+      "material": "res://assets/materials/mat_hull_kthaari.tres",
+      "cargo_space": 26,
+      "damage_control": 2, "spare_parts": 16,
+      "budgets": { "space": 128, "power": 38, "mass": 147, "crew": 149 },
+      "base_load": { "space": 76, "mass": 103, "crew": 99, "power_draw": 17 },
+      "shield_per_facing": 20,
+      "max_speed": 22.8, "accel": 7.2, "turn_rate_deg": 27.2,
+      "mounts": [
+        { "id": "M1", "pos": "Fore spinal", "size": "Heavy", "families": ["torpedo", "lance"], "field": [11, 0], "default": "photon" },
+        { "id": "M2", "pos": "Fore starboard", "size": "Medium", "families": ["disruptor", "beam"], "field": [0, 1, 2], "default": "disruptor" },
+        { "id": "M3", "pos": "Fore port", "size": "Medium", "families": ["disruptor", "beam"], "field": [9, 10, 11], "default": "disruptor" },
+        { "id": "M4", "pos": "Aft", "size": "Light", "families": ["beam", "drone"], "field": [3, 4, 5, 6, 7, 8], "default": "ph3" }
+      ],
+      "internals": {
+        "sectors": [
+          [["PHOT", 3, "weapon", "M1"], ["BRDG", 2, "control"], ["SENS", 1, "control"]],
+          [["DISR", 4, "weapon", "M2"], ["TRAN", 3, "control"]],
+          [["WARP", 4, "power"], ["TRAC", 2, "control"]],
+          [["PH-3", 2, "weapon", "M4"], ["IMP", 4, "power"], ["AUXP", 1, "power"], ["SHTL", 1, "control"]],
+          [["WARP", 4, "power"], ["BTTY", 2, "power"], ["MRNE", 7, "control"]],
+          [["DISR", 4, "weapon", "M3"]]
+        ],
+        "core": [["HULL", 9, "hull"], ["ARMR", 4, "hull"]]
+      }
+    },
+    "kthaari_heavy_cruiser": {
+      "name": "Warhowl", "cls": "Heavy Cruiser", "tonnage": 125, "faction": "kthaari", "playable": true, "ai": true,
+      "note": "Line cruiser. Disruptors and drones, marines aboard. 5 mounts.",
+      "mesh": "res://assets/meshes/hull_kthaari_heavy_cruiser.obj",
+      "material": "res://assets/materials/mat_hull_kthaari.tres",
+      "cargo_space": 32,
+      "damage_control": 2, "spare_parts": 22,
+      "budgets": { "space": 152, "power": 44, "mass": 165, "crew": 176 },
+      "base_load": { "space": 91, "mass": 118, "crew": 117, "power_draw": 21 },
+      "shield_per_facing": 26,
+      "max_speed": 19.0, "accel": 6.1, "turn_rate_deg": 22.1,
+      "mounts": [
+        { "id": "M1", "pos": "Fore spinal", "size": "Heavy", "families": ["torpedo", "lance"], "field": [11, 0], "default": "photon" },
+        { "id": "M2", "pos": "Fore starboard", "size": "Medium", "families": ["disruptor", "beam"], "field": [0, 1, 2], "default": "disruptor" },
+        { "id": "M3", "pos": "Fore port", "size": "Medium", "families": ["disruptor", "beam"], "field": [9, 10, 11], "default": "disruptor" },
+        { "id": "M4", "pos": "Dorsal rack", "size": "Light", "families": ["drone"], "field": [9, 10, 11, 0, 1, 2], "default": "drone" },
+        { "id": "M5", "pos": "Aft", "size": "Light", "families": ["beam", "drone"], "field": [3, 4, 5, 6, 7, 8], "default": "ph3" }
+      ],
+      "internals": {
+        "sectors": [
+          [["PHOT", 3, "weapon", "M1"], ["DRN", 2, "weapon", "M4"], ["BRDG", 2, "control"], ["SENS", 1, "control"]],
+          [["DISR", 4, "weapon", "M2"], ["TRAN", 3, "control"]],
+          [["WARP", 5, "power"], ["TRAC", 2, "control"]],
+          [["PH-3", 2, "weapon", "M5"], ["IMP", 5, "power"], ["AUXP", 2, "power"], ["SHTL", 2, "control"]],
+          [["WARP", 5, "power"], ["BTTY", 2, "power"], ["MRNE", 9, "control"], ["PRB", 1, "control"]],
+          [["DISR", 4, "weapon", "M3"]]
+        ],
+        "core": [["HULL", 13, "hull"], ["ARMR", 5, "hull"]]
+      }
+    },
+    "kthaari_battlecruiser": {
+      "name": "Deathgrip", "cls": "Battlecruiser", "tonnage": 175, "faction": "kthaari", "playable": true, "ai": true,
+      "note": "Heavy line hull. Disruptors and drones, marines aboard. 6 mounts.",
+      "mesh": "res://assets/meshes/hull_kthaari_battlecruiser.obj",
+      "material": "res://assets/materials/mat_hull_kthaari.tres",
+      "cargo_space": 40,
+      "damage_control": 3, "spare_parts": 29,
+      "budgets": { "space": 196, "power": 57, "mass": 224, "crew": 231 },
+      "base_load": { "space": 118, "mass": 160, "crew": 156, "power_draw": 27 },
+      "shield_per_facing": 32,
+      "max_speed": 15.2, "accel": 4.6, "turn_rate_deg": 17.0,
+      "mounts": [
+        { "id": "M1", "pos": "Fore spinal", "size": "Heavy", "families": ["torpedo", "lance"], "field": [11, 0], "default": "photon" },
+        { "id": "M2", "pos": "Fore starboard", "size": "Medium", "families": ["disruptor", "beam"], "field": [0, 1, 2], "default": "disruptor" },
+        { "id": "M3", "pos": "Fore port", "size": "Medium", "families": ["disruptor", "beam"], "field": [9, 10, 11], "default": "disruptor" },
+        { "id": "M4", "pos": "Starboard waist", "size": "Medium", "families": ["disruptor"], "field": [2, 3, 4], "default": "disruptor" },
+        { "id": "M5", "pos": "Port waist", "size": "Medium", "families": ["disruptor"], "field": [7, 8, 9], "default": "disruptor" },
+        { "id": "M6", "pos": "Aft", "size": "Light", "families": ["beam", "drone"], "field": [4, 5, 6, 7], "default": "ph3" }
+      ],
+      "internals": {
+        "sectors": [
+          [["PHOT", 4, "weapon", "M1"], ["BRDG", 2, "control"], ["SENS", 1, "control"]],
+          [["DISR", 5, "weapon", "M2"], ["TRAN", 4, "control"]],
+          [["DISR", 5, "weapon", "M4"], ["WARP", 6, "power"], ["TRAC", 2, "control"]],
+          [["PH-3", 3, "weapon", "M6"], ["IMP", 6, "power"], ["AUXP", 2, "power"], ["SHTL", 2, "control"]],
+          [["DISR", 5, "weapon", "M5"], ["WARP", 6, "power"], ["BTTY", 3, "power"], ["MRNE", 11, "control"], ["PRB", 1, "control"]],
+          [["DISR", 5, "weapon", "M3"]]
+        ],
+        "core": [["HULL", 18, "hull"], ["ARMR", 10, "hull"]]
+      }
+    },
+    "kthaari_battleship": {
+      "name": "Ironclaw", "cls": "Battleship", "tonnage": 205, "faction": "kthaari", "playable": true, "ai": true,
+      "note": "Battle line. Disruptors and drones, marines aboard. 7 mounts.",
+      "mesh": "res://assets/meshes/hull_kthaari_battleship.obj",
+      "material": "res://assets/materials/mat_hull_kthaari.tres",
+      "cargo_space": 48,
+      "damage_control": 3, "spare_parts": 36,
+      "budgets": { "space": 240, "power": 70, "mass": 284, "crew": 286 },
+      "base_load": { "space": 146, "mass": 206, "crew": 193, "power_draw": 34 },
+      "shield_per_facing": 38,
+      "max_speed": 13.3, "accel": 3.8, "turn_rate_deg": 13.6,
+      "mounts": [
+        { "id": "M1", "pos": "Fore spinal", "size": "Heavy", "families": ["torpedo", "lance"], "field": [11, 0], "default": "photon" },
+        { "id": "M2", "pos": "Bow battery", "size": "Heavy", "families": ["torpedo", "lance"], "field": [10, 11, 0, 1], "default": "photon" },
+        { "id": "M3", "pos": "Fore starboard", "size": "Medium", "families": ["disruptor", "beam"], "field": [0, 1, 2], "default": "disruptor" },
+        { "id": "M4", "pos": "Fore port", "size": "Medium", "families": ["disruptor", "beam"], "field": [9, 10, 11], "default": "disruptor" },
+        { "id": "M5", "pos": "Starboard waist", "size": "Medium", "families": ["disruptor"], "field": [2, 3, 4], "default": "disruptor" },
+        { "id": "M6", "pos": "Port waist", "size": "Medium", "families": ["disruptor"], "field": [7, 8, 9], "default": "disruptor" },
+        { "id": "M7", "pos": "Aft", "size": "Light", "families": ["beam", "drone"], "field": [4, 5, 6, 7], "default": "ph3" }
+      ],
+      "internals": {
+        "sectors": [
+          [["PHOT", 4, "weapon", "M1"], ["PHOT", 4, "weapon", "M2"], ["BRDG", 3, "control"], ["SENS", 2, "control"]],
+          [["DISR", 5, "weapon", "M3"], ["TRAN", 5, "control"]],
+          [["DISR", 5, "weapon", "M5"], ["WARP", 7, "power"], ["TRAC", 3, "control"]],
+          [["PH-3", 3, "weapon", "M7"], ["IMP", 7, "power"], ["AUXP", 3, "power"], ["SHTL", 3, "control"]],
+          [["DISR", 5, "weapon", "M6"], ["WARP", 7, "power"], ["BTTY", 3, "power"], ["MRNE", 14, "control"], ["PRB", 1, "control"]],
+          [["DISR", 5, "weapon", "M4"]]
+        ],
+        "core": [["HULL", 22, "hull"], ["ARMR", 13, "hull"]]
+      }
+    },
+    "kthaari_dreadnought": {
+      "name": "Doomcaller", "cls": "Dreadnought", "tonnage": 240, "faction": "kthaari", "playable": true, "ai": true,
+      "note": "Fleet flagship. Disruptors and drones, marines aboard. 8 mounts.",
+      "mesh": "res://assets/meshes/hull_kthaari_dreadnought.obj",
+      "material": "res://assets/materials/mat_hull_kthaari.tres",
+      "cargo_space": 60,
+      "damage_control": 4, "spare_parts": 47,
+      "budgets": { "space": 292, "power": 84, "mass": 337, "crew": 349 },
+      "base_load": { "space": 181, "mass": 247, "crew": 240, "power_draw": 40 },
+      "shield_per_facing": 46,
+      "max_speed": 11.4, "accel": 3.4, "turn_rate_deg": 10.2,
+      "mounts": [
+        { "id": "M1", "pos": "Fore spinal", "size": "Heavy", "families": ["torpedo", "lance"], "field": [11, 0], "default": "photon" },
+        { "id": "M2", "pos": "Bow battery", "size": "Heavy", "families": ["torpedo", "lance"], "field": [10, 11, 0, 1], "default": "photon" },
+        { "id": "M3", "pos": "Fore starboard", "size": "Medium", "families": ["disruptor", "beam"], "field": [0, 1, 2], "default": "disruptor" },
+        { "id": "M4", "pos": "Fore port", "size": "Medium", "families": ["disruptor", "beam"], "field": [9, 10, 11], "default": "disruptor" },
+        { "id": "M5", "pos": "Starboard waist", "size": "Medium", "families": ["disruptor"], "field": [2, 3, 4], "default": "disruptor" },
+        { "id": "M6", "pos": "Port waist", "size": "Medium", "families": ["disruptor"], "field": [7, 8, 9], "default": "disruptor" },
+        { "id": "M7", "pos": "Dorsal rack", "size": "Light", "families": ["drone"], "field": [9, 10, 11, 0, 1, 2], "default": "drone" },
+        { "id": "M8", "pos": "Aft", "size": "Light", "families": ["beam", "drone"], "field": [4, 5, 6, 7], "default": "ph3" }
+      ],
+      "internals": {
+        "sectors": [
+          [["PHOT", 5, "weapon", "M1"], ["PHOT", 5, "weapon", "M2"], ["DRN", 4, "weapon", "M7"], ["BRDG", 3, "control"], ["SENS", 2, "control"]],
+          [["DISR", 6, "weapon", "M3"], ["TRAN", 6, "control"]],
+          [["DISR", 6, "weapon", "M5"], ["WARP", 8, "power"], ["TRAC", 3, "control"]],
+          [["PH-3", 4, "weapon", "M8"], ["IMP", 8, "power"], ["AUXP", 4, "power"], ["SHTL", 4, "control"]],
+          [["DISR", 6, "weapon", "M6"], ["WARP", 8, "power"], ["BTTY", 4, "power"], ["MRNE", 18, "control"], ["PRB", 2, "control"]],
+          [["DISR", 6, "weapon", "M4"], ["RPR", 2, "control"]]
+        ],
+        "core": [["HULL", 29, "hull"], ["ARMR", 18, "hull"]]
+      }
+    },
+    "kthaari_carrier": {
+      "name": "Bloodmoot", "cls": "Carrier", "tonnage": 220, "faction": "kthaari", "playable": true, "ai": true,
+      "note": "Drone carrier. Disruptors and drones, marines aboard. 6 mounts.",
+      "mesh": "res://assets/meshes/hull_kthaari_carrier.obj",
+      "material": "res://assets/materials/mat_hull_kthaari.tres",
+      "cargo_space": 44,
+      "damage_control": 3, "spare_parts": 32,
+      "budgets": { "space": 236, "power": 59, "mass": 268, "crew": 263 },
+      "base_load": { "space": 146, "mass": 197, "crew": 183, "power_draw": 28 },
+      "shield_per_facing": 34,
+      "max_speed": 14.2, "accel": 4.2, "turn_rate_deg": 12.8,
+      "mounts": [
+        { "id": "M1", "pos": "Fore spinal", "size": "Heavy", "families": ["torpedo", "lance"], "field": [11, 0], "default": "photon" },
+        { "id": "M2", "pos": "Fore starboard", "size": "Medium", "families": ["disruptor", "beam"], "field": [0, 1, 2], "default": "disruptor" },
+        { "id": "M3", "pos": "Fore port", "size": "Medium", "families": ["disruptor", "beam"], "field": [9, 10, 11], "default": "disruptor" },
+        { "id": "M4", "pos": "Dorsal rack", "size": "Light", "families": ["drone"], "field": [8, 9, 10, 11, 0, 1, 2, 3], "default": "drone" },
+        { "id": "M5", "pos": "Ventral rack", "size": "Light", "families": ["drone"], "field": [9, 10, 11, 0, 1, 2], "default": "drone" },
+        { "id": "M6", "pos": "Aft", "size": "Light", "families": ["beam", "drone"], "field": [4, 5, 6, 7], "default": "ph3" }
+      ],
+      "internals": {
+        "sectors": [
+          [["PHOT", 4, "weapon", "M1"], ["DRN", 3, "weapon", "M4"], ["DRN", 3, "weapon", "M5"], ["BRDG", 3, "control"], ["SENS", 2, "control"]],
+          [["DISR", 5, "weapon", "M2"], ["TRAN", 4, "control"]],
+          [["WARP", 6, "power"], ["TRAC", 2, "control"]],
+          [["PH-3", 3, "weapon", "M6"], ["IMP", 6, "power"], ["AUXP", 3, "power"], ["SHTL", 8, "control"], ["DRN", 4, "control"]],
+          [["WARP", 6, "power"], ["BTTY", 3, "power"], ["MRNE", 11, "control"], ["PRB", 1, "control"]],
+          [["DISR", 5, "weapon", "M3"]]
+        ],
+        "core": [["HULL", 22, "hull"], ["ARMR", 10, "hull"]]
+      }
+    },
+    "kthaari_freighter": {
+      "name": "Spoilhauler", "cls": "Freighter", "tonnage": 160, "faction": "kthaari", "playable": true, "ai": true,
+      "note": "Bulk hauler. Disruptors and drones, marines aboard. 2 mounts.",
+      "mesh": "res://assets/meshes/hull_kthaari_freighter.obj",
+      "material": "res://assets/materials/mat_hull_kthaari.tres",
+      "cargo_space": 140,
+      "damage_control": 2, "spare_parts": 27,
+      "budgets": { "space": 160, "power": 36, "mass": 187, "crew": 147 },
+      "base_load": { "space": 106, "mass": 145, "crew": 90, "power_draw": 16 },
+      "shield_per_facing": 20,
+      "max_speed": 14.2, "accel": 4.2, "turn_rate_deg": 15.3,
+      "mounts": [
+        { "id": "M1", "pos": "Dorsal", "size": "Light", "families": ["beam", "drone"], "field": [9, 10, 11, 0, 1, 2], "default": "ph3" },
+        { "id": "M2", "pos": "Aft", "size": "Light", "families": ["beam", "drone"], "field": [3, 4, 5, 6, 7, 8], "default": "ph3" }
+      ],
+      "internals": {
+        "sectors": [
+          [["PH-3", 2, "weapon", "M1"], ["BRDG", 1, "control"], ["SENS", 1, "control"]],
+          [["TRAN", 2, "control"]],
+          [["WARP", 4, "power"], ["TRAC", 2, "control"], ["CARGO", 6, "hull"]],
+          [["PH-3", 2, "weapon", "M2"], ["IMP", 4, "power"]],
+          [["WARP", 4, "power"], ["BTTY", 2, "power"], ["MRNE", 4, "control"], ["CARGO", 6, "hull"]],
+          []
+        ],
+        "core": [["HULL", 20, "hull"], ["ARMR", 3, "hull"]]
+      }
+    },
+    "kthaari_tender": {
+      "name": "Bonesetter", "cls": "Tender", "tonnage": 140, "faction": "kthaari", "playable": true, "ai": true,
+      "note": "Repair tender. Disruptors and drones, marines aboard. 3 mounts.",
+      "mesh": "res://assets/meshes/hull_kthaari_tender.obj",
+      "material": "res://assets/materials/mat_hull_kthaari.tres",
+      "cargo_space": 70,
+      "damage_control": 4, "spare_parts": 54,
+      "budgets": { "space": 150, "power": 38, "mass": 167, "crew": 158 },
+      "base_load": { "space": 96, "mass": 123, "crew": 100, "power_draw": 17 },
+      "shield_per_facing": 22,
+      "max_speed": 17.1, "accel": 5.3, "turn_rate_deg": 20.4,
+      "mounts": [
+        { "id": "M1", "pos": "Fore", "size": "Medium", "families": ["disruptor", "beam"], "field": [10, 11, 0, 1], "default": "disruptor" },
+        { "id": "M2", "pos": "Dorsal rack", "size": "Light", "families": ["drone"], "field": [9, 10, 11, 0, 1, 2], "default": "drone" },
+        { "id": "M3", "pos": "Aft", "size": "Light", "families": ["beam", "drone"], "field": [3, 4, 5, 6, 7, 8], "default": "ph3" }
+      ],
+      "internals": {
+        "sectors": [
+          [["DISR", 4, "weapon", "M1"], ["DRN", 2, "weapon", "M2"], ["BRDG", 1, "control"], ["SENS", 1, "control"]],
+          [["TRAN", 3, "control"]],
+          [["WARP", 4, "power"], ["TRAC", 3, "control"], ["CARGO", 3, "hull"]],
+          [["PH-3", 2, "weapon", "M3"], ["IMP", 4, "power"], ["AUXP", 1, "power"], ["SHTL", 2, "control"]],
+          [["WARP", 3, "power"], ["BTTY", 2, "power"], ["MRNE", 5, "control"], ["CARGO", 3, "hull"]],
+          [["RPR", 6, "control"]]
+        ],
+        "core": [["HULL", 13, "hull"], ["ARMR", 4, "hull"]]
+      }
+    },
+    "vaelith_frigate": {
+      "name": "Sable Wing", "cls": "Frigate", "tonnage": 45, "faction": "vaelith", "playable": true, "ai": true,
+      "note": "Picket and escort. Lance alpha, thin skin. 3 mounts.",
+      "mesh": "res://assets/meshes/hull_vaelith_frigate.obj",
+      "material": "res://assets/materials/mat_hull_vaelith.tres",
+      "cargo_space": 12,
+      "damage_control": 1, "spare_parts": 8,
+      "budgets": { "space": 72, "power": 29, "mass": 67, "crew": 77 },
+      "base_load": { "space": 42, "mass": 46, "crew": 47, "power_draw": 13 },
+      "shield_per_facing": 10,
+      "max_speed": 33.6, "accel": 11.5, "turn_rate_deg": 48.4,
+      "mounts": [
+        { "id": "M1", "pos": "Fore starboard", "size": "Medium", "families": ["beam", "disruptor"], "field": [0, 1, 2], "default": "disruptor" },
+        { "id": "M2", "pos": "Fore port", "size": "Medium", "families": ["beam", "disruptor"], "field": [9, 10, 11], "default": "disruptor" },
+        { "id": "M3", "pos": "Dorsal", "size": "Light", "families": ["beam"], "field": [3, 4, 5, 6, 7, 8], "default": "ph3" }
+      ],
+      "internals": {
+        "sectors": [
+          [["BRDG", 1, "control"], ["SENS", 1, "control"]],
+          [["DISR", 4, "weapon", "M1"], ["TRAN", 2, "control"]],
+          [["WARP", 3, "power"], ["TRAC", 1, "control"]],
+          [["PH-3", 2, "weapon", "M3"], ["IMP", 2, "power"]],
+          [["WARP", 2, "power"], ["BTTY", 1, "power"], ["MRNE", 3, "control"]],
+          [["DISR", 4, "weapon", "M2"]]
+        ],
+        "core": [["HULL", 3, "hull"], ["ARMR", 1, "hull"]]
+      }
+    },
+    "vaelith_destroyer": {
+      "name": "Quiet Hunter", "cls": "Destroyer", "tonnage": 70, "faction": "vaelith", "playable": true, "ai": true,
+      "note": "Line escort. Lance alpha, thin skin. 4 mounts.",
+      "mesh": "res://assets/meshes/hull_vaelith_destroyer.obj",
+      "material": "res://assets/materials/mat_hull_vaelith.tres",
+      "cargo_space": 17,
+      "damage_control": 1, "spare_parts": 11,
+      "budgets": { "space": 95, "power": 35, "mass": 88, "crew": 99 },
+      "base_load": { "space": 55, "mass": 60, "crew": 60, "power_draw": 16 },
+      "shield_per_facing": 13,
+      "max_speed": 30.2, "accel": 10.1, "turn_rate_deg": 41.8,
+      "mounts": [
+        { "id": "M1", "pos": "Fore starboard", "size": "Medium", "families": ["beam", "disruptor"], "field": [0, 1, 2], "default": "disruptor" },
+        { "id": "M2", "pos": "Fore port", "size": "Medium", "families": ["beam", "disruptor"], "field": [9, 10, 11], "default": "disruptor" },
+        { "id": "M3", "pos": "Dorsal rack", "size": "Light", "families": ["beam", "drone"], "field": [9, 10, 11, 0, 1, 2], "default": "ph3" },
+        { "id": "M4", "pos": "Aft", "size": "Light", "families": ["beam"], "field": [3, 4, 5, 6, 7, 8], "default": "ph3" }
+      ],
+      "internals": {
+        "sectors": [
+          [["PH-3", 2, "weapon", "M3"], ["BRDG", 1, "control"], ["SENS", 1, "control"]],
+          [["DISR", 4, "weapon", "M1"], ["TRAN", 2, "control"]],
+          [["WARP", 4, "power"], ["TRAC", 1, "control"]],
+          [["PH-3", 2, "weapon", "M4"], ["IMP", 3, "power"], ["SHTL", 1, "control"]],
+          [["WARP", 3, "power"], ["BTTY", 1, "power"], ["MRNE", 4, "control"]],
+          [["DISR", 4, "weapon", "M2"]]
+        ],
+        "core": [["HULL", 5, "hull"], ["ARMR", 1, "hull"]]
+      }
+    },
+    "vaelith_light_cruiser": {
+      "name": "Glass Feather", "cls": "Light Cruiser", "tonnage": 95, "faction": "vaelith", "playable": true, "ai": true,
+      "note": "Patrol cruiser. Lance alpha, thin skin. 4 mounts.",
+      "mesh": "res://assets/meshes/hull_vaelith_light_cruiser.obj",
+      "material": "res://assets/materials/mat_hull_vaelith.tres",
+      "cargo_space": 22,
+      "damage_control": 2, "spare_parts": 14,
+      "budgets": { "space": 122, "power": 44, "mass": 121, "crew": 131 },
+      "base_load": { "space": 72, "mass": 83, "crew": 80, "power_draw": 20 },
+      "shield_per_facing": 16,
+      "max_speed": 26.9, "accel": 8.7, "turn_rate_deg": 35.2,
+      "mounts": [
+        { "id": "M1", "pos": "Fore spinal", "size": "Heavy", "families": ["lance", "torpedo"], "field": [11, 0], "default": "lance" },
+        { "id": "M2", "pos": "Fore starboard", "size": "Medium", "families": ["beam", "disruptor"], "field": [0, 1, 2], "default": "disruptor" },
+        { "id": "M3", "pos": "Fore port", "size": "Medium", "families": ["beam", "disruptor"], "field": [9, 10, 11], "default": "disruptor" },
+        { "id": "M4", "pos": "Aft", "size": "Light", "families": ["beam"], "field": [3, 4, 5, 6, 7, 8], "default": "ph3" }
+      ],
+      "internals": {
+        "sectors": [
+          [["LNCE", 5, "weapon", "M1"], ["BRDG", 2, "control"], ["SENS", 3, "control"]],
+          [["DISR", 4, "weapon", "M2"], ["TRAN", 3, "control"]],
+          [["WARP", 5, "power"], ["TRAC", 2, "control"]],
+          [["PH-3", 2, "weapon", "M4"], ["IMP", 4, "power"], ["AUXP", 1, "power"], ["SHTL", 1, "control"]],
+          [["WARP", 4, "power"], ["BTTY", 2, "power"], ["MRNE", 4, "control"]],
+          [["DISR", 4, "weapon", "M3"], ["LAB", 1, "control"]]
+        ],
+        "core": [["HULL", 6, "hull"], ["ARMR", 2, "hull"]]
+      }
+    },
+    "vaelith_heavy_cruiser": {
+      "name": "Pale Ascendant", "cls": "Heavy Cruiser", "tonnage": 125, "faction": "vaelith", "playable": true, "ai": true,
+      "note": "Line cruiser. Lance alpha, thin skin. 5 mounts.",
+      "mesh": "res://assets/meshes/hull_vaelith_heavy_cruiser.obj",
+      "material": "res://assets/materials/mat_hull_vaelith.tres",
+      "cargo_space": 27,
+      "damage_control": 2, "spare_parts": 19,
+      "budgets": { "space": 144, "power": 51, "mass": 135, "crew": 155 },
+      "base_load": { "space": 86, "mass": 95, "crew": 95, "power_draw": 24 },
+      "shield_per_facing": 21,
+      "max_speed": 22.4, "accel": 7.4, "turn_rate_deg": 28.6,
+      "mounts": [
+        { "id": "M1", "pos": "Fore spinal", "size": "Heavy", "families": ["lance", "torpedo"], "field": [11, 0], "default": "lance" },
+        { "id": "M2", "pos": "Fore starboard", "size": "Medium", "families": ["beam", "disruptor"], "field": [0, 1, 2], "default": "disruptor" },
+        { "id": "M3", "pos": "Fore port", "size": "Medium", "families": ["beam", "disruptor"], "field": [9, 10, 11], "default": "disruptor" },
+        { "id": "M4", "pos": "Dorsal rack", "size": "Light", "families": ["beam", "drone"], "field": [9, 10, 11, 0, 1, 2], "default": "ph3" },
+        { "id": "M5", "pos": "Aft", "size": "Light", "families": ["beam"], "field": [3, 4, 5, 6, 7, 8], "default": "ph3" }
+      ],
+      "internals": {
+        "sectors": [
+          [["LNCE", 5, "weapon", "M1"], ["PH-3", 2, "weapon", "M4"], ["BRDG", 2, "control"], ["SENS", 3, "control"]],
+          [["DISR", 4, "weapon", "M2"], ["TRAN", 3, "control"]],
+          [["WARP", 6, "power"], ["TRAC", 2, "control"]],
+          [["PH-3", 2, "weapon", "M5"], ["IMP", 5, "power"], ["AUXP", 2, "power"], ["SHTL", 2, "control"]],
+          [["WARP", 6, "power"], ["BTTY", 2, "power"], ["MRNE", 5, "control"], ["PRB", 1, "control"]],
+          [["DISR", 4, "weapon", "M3"], ["LAB", 2, "control"]]
+        ],
+        "core": [["HULL", 9, "hull"], ["ARMR", 2, "hull"]]
+      }
+    },
+    "vaelith_battlecruiser": {
+      "name": "Silent Crown", "cls": "Battlecruiser", "tonnage": 175, "faction": "vaelith", "playable": true, "ai": true,
+      "note": "Heavy line hull. Lance alpha, thin skin. 6 mounts.",
+      "mesh": "res://assets/meshes/hull_vaelith_battlecruiser.obj",
+      "material": "res://assets/materials/mat_hull_vaelith.tres",
+      "cargo_space": 34,
+      "damage_control": 2, "spare_parts": 26,
+      "budgets": { "space": 186, "power": 66, "mass": 184, "crew": 202 },
+      "base_load": { "space": 112, "mass": 129, "crew": 126, "power_draw": 31 },
+      "shield_per_facing": 26,
+      "max_speed": 17.9, "accel": 5.5, "turn_rate_deg": 22.0,
+      "mounts": [
+        { "id": "M1", "pos": "Fore spinal", "size": "Heavy", "families": ["lance", "torpedo"], "field": [11, 0], "default": "lance" },
+        { "id": "M2", "pos": "Fore starboard", "size": "Medium", "families": ["beam", "disruptor"], "field": [0, 1, 2], "default": "disruptor" },
+        { "id": "M3", "pos": "Fore port", "size": "Medium", "families": ["beam", "disruptor"], "field": [9, 10, 11], "default": "disruptor" },
+        { "id": "M4", "pos": "Starboard waist", "size": "Medium", "families": ["beam"], "field": [2, 3, 4], "default": "ph1" },
+        { "id": "M5", "pos": "Port waist", "size": "Medium", "families": ["beam"], "field": [7, 8, 9], "default": "ph1" },
+        { "id": "M6", "pos": "Aft", "size": "Light", "families": ["beam"], "field": [4, 5, 6, 7], "default": "ph3" }
+      ],
+      "internals": {
+        "sectors": [
+          [["LNCE", 6, "weapon", "M1"], ["BRDG", 2, "control"], ["SENS", 3, "control"]],
+          [["DISR", 5, "weapon", "M2"], ["TRAN", 4, "control"]],
+          [["PH-1", 5, "weapon", "M4"], ["WARP", 7, "power"], ["TRAC", 2, "control"]],
+          [["PH-3", 3, "weapon", "M6"], ["IMP", 6, "power"], ["AUXP", 2, "power"], ["SHTL", 2, "control"]],
+          [["PH-1", 5, "weapon", "M5"], ["WARP", 7, "power"], ["BTTY", 3, "power"], ["MRNE", 6, "control"], ["PRB", 1, "control"]],
+          [["DISR", 5, "weapon", "M3"], ["LAB", 1, "control"]]
+        ],
+        "core": [["HULL", 12, "hull"], ["ARMR", 4, "hull"]]
+      }
+    },
+    "vaelith_battleship": {
+      "name": "Verdant Throne", "cls": "Battleship", "tonnage": 205, "faction": "vaelith", "playable": true, "ai": true,
+      "note": "Battle line. Lance alpha, thin skin. 7 mounts.",
+      "mesh": "res://assets/meshes/hull_vaelith_battleship.obj",
+      "material": "res://assets/materials/mat_hull_vaelith.tres",
+      "cargo_space": 41,
+      "damage_control": 2, "spare_parts": 32,
+      "budgets": { "space": 228, "power": 81, "mass": 232, "crew": 250 },
+      "base_load": { "space": 139, "mass": 165, "crew": 156, "power_draw": 39 },
+      "shield_per_facing": 30,
+      "max_speed": 15.7, "accel": 4.6, "turn_rate_deg": 17.6,
+      "mounts": [
+        { "id": "M1", "pos": "Fore spinal", "size": "Heavy", "families": ["lance", "torpedo"], "field": [11, 0], "default": "lance" },
+        { "id": "M2", "pos": "Bow battery", "size": "Heavy", "families": ["lance", "torpedo"], "field": [10, 11, 0, 1], "default": "lance" },
+        { "id": "M3", "pos": "Fore starboard", "size": "Medium", "families": ["beam", "disruptor"], "field": [0, 1, 2], "default": "disruptor" },
+        { "id": "M4", "pos": "Fore port", "size": "Medium", "families": ["beam", "disruptor"], "field": [9, 10, 11], "default": "disruptor" },
+        { "id": "M5", "pos": "Starboard waist", "size": "Medium", "families": ["beam"], "field": [2, 3, 4], "default": "ph1" },
+        { "id": "M6", "pos": "Port waist", "size": "Medium", "families": ["beam"], "field": [7, 8, 9], "default": "ph1" },
+        { "id": "M7", "pos": "Aft", "size": "Light", "families": ["beam"], "field": [4, 5, 6, 7], "default": "ph3" }
+      ],
+      "internals": {
+        "sectors": [
+          [["LNCE", 6, "weapon", "M1"], ["LNCE", 6, "weapon", "M2"], ["BRDG", 3, "control"], ["SENS", 4, "control"]],
+          [["DISR", 5, "weapon", "M3"], ["TRAN", 5, "control"]],
+          [["PH-1", 5, "weapon", "M5"], ["WARP", 8, "power"], ["TRAC", 3, "control"]],
+          [["PH-3", 3, "weapon", "M7"], ["IMP", 7, "power"], ["AUXP", 3, "power"], ["SHTL", 3, "control"]],
+          [["PH-1", 5, "weapon", "M6"], ["WARP", 8, "power"], ["BTTY", 3, "power"], ["MRNE", 8, "control"], ["PRB", 1, "control"]],
+          [["DISR", 5, "weapon", "M4"], ["LAB", 2, "control"]]
+        ],
+        "core": [["HULL", 15, "hull"], ["ARMR", 5, "hull"]]
+      }
+    },
+    "vaelith_dreadnought": {
+      "name": "First Circle", "cls": "Dreadnought", "tonnage": 240, "faction": "vaelith", "playable": true, "ai": true,
+      "note": "Fleet flagship. Lance alpha, thin skin. 8 mounts.",
+      "mesh": "res://assets/meshes/hull_vaelith_dreadnought.obj",
+      "material": "res://assets/materials/mat_hull_vaelith.tres",
+      "cargo_space": 51,
+      "damage_control": 3, "spare_parts": 42,
+      "budgets": { "space": 277, "power": 97, "mass": 275, "crew": 305 },
+      "base_load": { "space": 172, "mass": 198, "crew": 193, "power_draw": 47 },
+      "shield_per_facing": 37,
+      "max_speed": 13.4, "accel": 4.1, "turn_rate_deg": 13.2,
+      "mounts": [
+        { "id": "M1", "pos": "Fore spinal", "size": "Heavy", "families": ["lance", "torpedo"], "field": [11, 0], "default": "lance" },
+        { "id": "M2", "pos": "Bow battery", "size": "Heavy", "families": ["lance", "torpedo"], "field": [10, 11, 0, 1], "default": "lance" },
+        { "id": "M3", "pos": "Fore starboard", "size": "Medium", "families": ["beam", "disruptor"], "field": [0, 1, 2], "default": "disruptor" },
+        { "id": "M4", "pos": "Fore port", "size": "Medium", "families": ["beam", "disruptor"], "field": [9, 10, 11], "default": "disruptor" },
+        { "id": "M5", "pos": "Starboard waist", "size": "Medium", "families": ["beam"], "field": [2, 3, 4], "default": "ph1" },
+        { "id": "M6", "pos": "Port waist", "size": "Medium", "families": ["beam"], "field": [7, 8, 9], "default": "ph1" },
+        { "id": "M7", "pos": "Dorsal rack", "size": "Light", "families": ["beam", "drone"], "field": [9, 10, 11, 0, 1, 2], "default": "ph3" },
+        { "id": "M8", "pos": "Aft", "size": "Light", "families": ["beam"], "field": [4, 5, 6, 7], "default": "ph3" }
+      ],
+      "internals": {
+        "sectors": [
+          [["LNCE", 7, "weapon", "M1"], ["LNCE", 7, "weapon", "M2"], ["PH-3", 4, "weapon", "M7"], ["BRDG", 3, "control"], ["SENS", 4, "control"]],
+          [["DISR", 6, "weapon", "M3"], ["TRAN", 6, "control"]],
+          [["PH-1", 6, "weapon", "M5"], ["WARP", 9, "power"], ["TRAC", 3, "control"]],
+          [["PH-3", 4, "weapon", "M8"], ["IMP", 8, "power"], ["AUXP", 4, "power"], ["SHTL", 4, "control"]],
+          [["PH-1", 6, "weapon", "M6"], ["WARP", 9, "power"], ["BTTY", 4, "power"], ["MRNE", 10, "control"], ["PRB", 2, "control"]],
+          [["DISR", 6, "weapon", "M4"], ["LAB", 2, "control"], ["RPR", 2, "control"]]
+        ],
+        "core": [["HULL", 20, "hull"], ["ARMR", 7, "hull"]]
+      }
+    },
+    "vaelith_carrier": {
+      "name": "Ten Thousand Eyes", "cls": "Carrier", "tonnage": 220, "faction": "vaelith", "playable": true, "ai": true,
+      "note": "Drone carrier. Lance alpha, thin skin. 6 mounts.",
+      "mesh": "res://assets/meshes/hull_vaelith_carrier.obj",
+      "material": "res://assets/materials/mat_hull_vaelith.tres",
+      "cargo_space": 37,
+      "damage_control": 2, "spare_parts": 29,
+      "budgets": { "space": 224, "power": 68, "mass": 220, "crew": 230 },
+      "base_load": { "space": 139, "mass": 158, "crew": 148, "power_draw": 33 },
+      "shield_per_facing": 27,
+      "max_speed": 16.8, "accel": 5.1, "turn_rate_deg": 16.5,
+      "mounts": [
+        { "id": "M1", "pos": "Fore spinal", "size": "Heavy", "families": ["lance", "torpedo"], "field": [11, 0], "default": "lance" },
+        { "id": "M2", "pos": "Fore starboard", "size": "Medium", "families": ["beam", "disruptor"], "field": [0, 1, 2], "default": "disruptor" },
+        { "id": "M3", "pos": "Fore port", "size": "Medium", "families": ["beam", "disruptor"], "field": [9, 10, 11], "default": "disruptor" },
+        { "id": "M4", "pos": "Dorsal rack", "size": "Light", "families": ["beam", "drone"], "field": [8, 9, 10, 11, 0, 1, 2, 3], "default": "ph3" },
+        { "id": "M5", "pos": "Ventral rack", "size": "Light", "families": ["beam", "drone"], "field": [9, 10, 11, 0, 1, 2], "default": "ph3" },
+        { "id": "M6", "pos": "Aft", "size": "Light", "families": ["beam"], "field": [4, 5, 6, 7], "default": "ph3" }
+      ],
+      "internals": {
+        "sectors": [
+          [["LNCE", 6, "weapon", "M1"], ["PH-3", 3, "weapon", "M4"], ["PH-3", 3, "weapon", "M5"], ["BRDG", 3, "control"], ["SENS", 4, "control"]],
+          [["DISR", 5, "weapon", "M2"], ["TRAN", 4, "control"]],
+          [["WARP", 7, "power"], ["TRAC", 2, "control"]],
+          [["PH-3", 3, "weapon", "M6"], ["IMP", 6, "power"], ["AUXP", 3, "power"], ["SHTL", 8, "control"], ["DRN", 4, "control"]],
+          [["WARP", 7, "power"], ["BTTY", 3, "power"], ["MRNE", 6, "control"], ["PRB", 1, "control"]],
+          [["DISR", 5, "weapon", "M3"], ["LAB", 1, "control"]]
+        ],
+        "core": [["HULL", 15, "hull"], ["ARMR", 4, "hull"]]
+      }
+    },
+    "vaelith_freighter": {
+      "name": "Slow Tide", "cls": "Freighter", "tonnage": 160, "faction": "vaelith", "playable": true, "ai": true,
+      "note": "Bulk hauler. Lance alpha, thin skin. 2 mounts.",
+      "mesh": "res://assets/meshes/hull_vaelith_freighter.obj",
+      "material": "res://assets/materials/mat_hull_vaelith.tres",
+      "cargo_space": 119,
+      "damage_control": 2, "spare_parts": 24,
+      "budgets": { "space": 152, "power": 42, "mass": 153, "crew": 129 },
+      "base_load": { "space": 100, "mass": 116, "crew": 73, "power_draw": 18 },
+      "shield_per_facing": 16,
+      "max_speed": 16.8, "accel": 5.1, "turn_rate_deg": 19.8,
+      "mounts": [
+        { "id": "M1", "pos": "Dorsal", "size": "Light", "families": ["beam"], "field": [9, 10, 11, 0, 1, 2], "default": "ph3" },
+        { "id": "M2", "pos": "Aft", "size": "Light", "families": ["beam"], "field": [3, 4, 5, 6, 7, 8], "default": "ph3" }
+      ],
+      "internals": {
+        "sectors": [
+          [["PH-3", 2, "weapon", "M1"], ["BRDG", 1, "control"], ["SENS", 1, "control"]],
+          [["TRAN", 2, "control"]],
+          [["WARP", 5, "power"], ["TRAC", 2, "control"], ["CARGO", 6, "hull"]],
+          [["PH-3", 2, "weapon", "M2"], ["IMP", 4, "power"]],
+          [["WARP", 4, "power"], ["BTTY", 2, "power"], ["MRNE", 2, "control"], ["CARGO", 6, "hull"]],
+          []
+        ],
+        "core": [["HULL", 14, "hull"], ["ARMR", 1, "hull"]]
+      }
+    },
+    "vaelith_tender": {
+      "name": "Mending Hand", "cls": "Tender", "tonnage": 140, "faction": "vaelith", "playable": true, "ai": true,
+      "note": "Repair tender. Lance alpha, thin skin. 3 mounts.",
+      "mesh": "res://assets/meshes/hull_vaelith_tender.obj",
+      "material": "res://assets/materials/mat_hull_vaelith.tres",
+      "cargo_space": 60,
+      "damage_control": 3, "spare_parts": 48,
+      "budgets": { "space": 143, "power": 44, "mass": 137, "crew": 138 },
+      "base_load": { "space": 92, "mass": 99, "crew": 81, "power_draw": 20 },
+      "shield_per_facing": 18,
+      "max_speed": 20.2, "accel": 6.4, "turn_rate_deg": 26.4,
+      "mounts": [
+        { "id": "M1", "pos": "Fore", "size": "Medium", "families": ["beam", "disruptor"], "field": [10, 11, 0, 1], "default": "disruptor" },
+        { "id": "M2", "pos": "Dorsal rack", "size": "Light", "families": ["beam", "drone"], "field": [9, 10, 11, 0, 1, 2], "default": "ph3" },
+        { "id": "M3", "pos": "Aft", "size": "Light", "families": ["beam"], "field": [3, 4, 5, 6, 7, 8], "default": "ph3" }
+      ],
+      "internals": {
+        "sectors": [
+          [["DISR", 4, "weapon", "M1"], ["PH-3", 2, "weapon", "M2"], ["BRDG", 1, "control"], ["SENS", 1, "control"]],
+          [["TRAN", 3, "control"]],
+          [["WARP", 4, "power"], ["TRAC", 3, "control"], ["CARGO", 3, "hull"]],
+          [["PH-3", 2, "weapon", "M3"], ["IMP", 4, "power"], ["AUXP", 1, "power"], ["SHTL", 2, "control"]],
+          [["WARP", 4, "power"], ["BTTY", 2, "power"], ["MRNE", 3, "control"], ["CARGO", 3, "hull"]],
+          [["RPR", 6, "control"]]
+        ],
+        "core": [["HULL", 9, "hull"], ["ARMR", 2, "hull"]]
+      }
+    },
+    "sarn_frigate": {
+      "name": "Flint Warden", "cls": "Frigate", "tonnage": 45, "faction": "sarn", "playable": true, "ai": true,
+      "note": "Picket and escort. Drone swarm and tractor web. 3 mounts.",
+      "mesh": "res://assets/meshes/hull_sarn_frigate.obj",
+      "material": "res://assets/materials/mat_hull_sarn.tres",
+      "cargo_space": 14,
+      "damage_control": 1, "spare_parts": 10,
+      "budgets": { "space": 80, "power": 26, "mass": 74, "crew": 84 },
+      "base_load": { "space": 48, "mass": 50, "crew": 53, "power_draw": 12 },
+      "shield_per_facing": 11,
+      "max_speed": 28.5, "accel": 10.0, "turn_rate_deg": 46.2,
+      "mounts": [
+        { "id": "M1", "pos": "Fore starboard", "size": "Medium", "families": ["beam", "drone"], "field": [0, 1, 2], "default": "ph1" },
+        { "id": "M2", "pos": "Fore port", "size": "Medium", "families": ["beam", "drone"], "field": [9, 10, 11], "default": "ph1" },
+        { "id": "M3", "pos": "Dorsal", "size": "Light", "families": ["beam", "drone"], "field": [3, 4, 5, 6, 7, 8], "default": "drone" }
+      ],
+      "internals": {
+        "sectors": [
+          [["BRDG", 1, "control"], ["SENS", 1, "control"]],
+          [["PH-1", 4, "weapon", "M1"], ["TRAN", 2, "control"]],
+          [["WARP", 2, "power"], ["TRAC", 2, "control"]],
+          [["DRN", 2, "weapon", "M3"], ["IMP", 2, "power"]],
+          [["WARP", 2, "power"], ["BTTY", 1, "power"], ["MRNE", 3, "control"]],
+          [["PH-1", 4, "weapon", "M2"]]
+        ],
+        "core": [["HULL", 4, "hull"], ["ARMR", 2, "hull"]]
+      }
+    },
+    "sarn_destroyer": {
+      "name": "Obsidian Ward", "cls": "Destroyer", "tonnage": 70, "faction": "sarn", "playable": true, "ai": true,
+      "note": "Line escort. Drone swarm and tractor web. 4 mounts.",
+      "mesh": "res://assets/meshes/hull_sarn_destroyer.obj",
+      "material": "res://assets/materials/mat_hull_sarn.tres",
+      "cargo_space": 20,
+      "damage_control": 1, "spare_parts": 14,
+      "budgets": { "space": 105, "power": 32, "mass": 98, "crew": 108 },
+      "base_load": { "space": 63, "mass": 67, "crew": 68, "power_draw": 15 },
+      "shield_per_facing": 14,
+      "max_speed": 25.6, "accel": 8.8, "turn_rate_deg": 39.9,
+      "mounts": [
+        { "id": "M1", "pos": "Fore starboard", "size": "Medium", "families": ["beam", "drone"], "field": [0, 1, 2], "default": "ph1" },
+        { "id": "M2", "pos": "Fore port", "size": "Medium", "families": ["beam", "drone"], "field": [9, 10, 11], "default": "ph1" },
+        { "id": "M3", "pos": "Dorsal rack", "size": "Light", "families": ["drone"], "field": [9, 10, 11, 0, 1, 2], "default": "drone" },
+        { "id": "M4", "pos": "Aft", "size": "Light", "families": ["beam", "drone"], "field": [3, 4, 5, 6, 7, 8], "default": "drone" }
+      ],
+      "internals": {
+        "sectors": [
+          [["DRN", 2, "weapon", "M3"], ["BRDG", 1, "control"], ["SENS", 1, "control"]],
+          [["PH-1", 4, "weapon", "M1"], ["TRAN", 2, "control"]],
+          [["WARP", 3, "power"], ["TRAC", 2, "control"]],
+          [["DRN", 2, "weapon", "M4"], ["IMP", 3, "power"], ["SHTL", 2, "control"]],
+          [["WARP", 3, "power"], ["BTTY", 1, "power"], ["MRNE", 4, "control"]],
+          [["PH-1", 4, "weapon", "M2"]]
+        ],
+        "core": [["HULL", 5, "hull"], ["ARMR", 2, "hull"]]
+      }
+    },
+    "sarn_light_cruiser": {
+      "name": "Amber Lattice", "cls": "Light Cruiser", "tonnage": 95, "faction": "sarn", "playable": true, "ai": true,
+      "note": "Patrol cruiser. Drone swarm and tractor web. 4 mounts.",
+      "mesh": "res://assets/meshes/hull_sarn_light_cruiser.obj",
+      "material": "res://assets/materials/mat_hull_sarn.tres",
+      "cargo_space": 26,
+      "damage_control": 2, "spare_parts": 18,
+      "budgets": { "space": 134, "power": 40, "mass": 134, "crew": 142 },
+      "base_load": { "space": 81, "mass": 92, "crew": 91, "power_draw": 18 },
+      "shield_per_facing": 18,
+      "max_speed": 22.8, "accel": 7.6, "turn_rate_deg": 33.6,
+      "mounts": [
+        { "id": "M1", "pos": "Fore spinal", "size": "Heavy", "families": ["torpedo", "lance"], "field": [11, 0], "default": "photon" },
+        { "id": "M2", "pos": "Fore starboard", "size": "Medium", "families": ["beam", "drone"], "field": [0, 1, 2], "default": "ph1" },
+        { "id": "M3", "pos": "Fore port", "size": "Medium", "families": ["beam", "drone"], "field": [9, 10, 11], "default": "ph1" },
+        { "id": "M4", "pos": "Aft", "size": "Light", "families": ["beam", "drone"], "field": [3, 4, 5, 6, 7, 8], "default": "drone" }
+      ],
+      "internals": {
+        "sectors": [
+          [["PHOT", 3, "weapon", "M1"], ["BRDG", 2, "control"], ["SENS", 2, "control"]],
+          [["PH-1", 4, "weapon", "M2"], ["TRAN", 3, "control"]],
+          [["WARP", 4, "power"], ["TRAC", 4, "control"]],
+          [["DRN", 2, "weapon", "M4"], ["IMP", 4, "power"], ["AUXP", 1, "power"], ["SHTL", 2, "control"]],
+          [["WARP", 4, "power"], ["BTTY", 2, "power"], ["MRNE", 4, "control"]],
+          [["PH-1", 4, "weapon", "M3"], ["LAB", 1, "control"]]
+        ],
+        "core": [["HULL", 7, "hull"], ["ARMR", 3, "hull"]]
+      }
+    },
+    "sarn_heavy_cruiser": {
+      "name": "Third Accord", "cls": "Heavy Cruiser", "tonnage": 125, "faction": "sarn", "playable": true, "ai": true,
+      "note": "Line cruiser. Drone swarm and tractor web. 5 mounts.",
+      "mesh": "res://assets/meshes/hull_sarn_heavy_cruiser.obj",
+      "material": "res://assets/materials/mat_hull_sarn.tres",
+      "cargo_space": 32,
+      "damage_control": 2, "spare_parts": 24,
+      "budgets": { "space": 160, "power": 46, "mass": 150, "crew": 168 },
+      "base_load": { "space": 99, "mass": 105, "crew": 108, "power_draw": 22 },
+      "shield_per_facing": 23,
+      "max_speed": 19.0, "accel": 6.4, "turn_rate_deg": 27.3,
+      "mounts": [
+        { "id": "M1", "pos": "Fore spinal", "size": "Heavy", "families": ["torpedo", "lance"], "field": [11, 0], "default": "photon" },
+        { "id": "M2", "pos": "Fore starboard", "size": "Medium", "families": ["beam", "drone"], "field": [0, 1, 2], "default": "ph1" },
+        { "id": "M3", "pos": "Fore port", "size": "Medium", "families": ["beam", "drone"], "field": [9, 10, 11], "default": "ph1" },
+        { "id": "M4", "pos": "Dorsal rack", "size": "Light", "families": ["drone"], "field": [9, 10, 11, 0, 1, 2], "default": "drone" },
+        { "id": "M5", "pos": "Aft", "size": "Light", "families": ["beam", "drone"], "field": [3, 4, 5, 6, 7, 8], "default": "drone" }
+      ],
+      "internals": {
+        "sectors": [
+          [["PHOT", 3, "weapon", "M1"], ["DRN", 2, "weapon", "M4"], ["BRDG", 2, "control"], ["SENS", 2, "control"]],
+          [["PH-1", 4, "weapon", "M2"], ["TRAN", 3, "control"]],
+          [["WARP", 5, "power"], ["TRAC", 4, "control"]],
+          [["DRN", 2, "weapon", "M5"], ["IMP", 5, "power"], ["AUXP", 2, "power"], ["SHTL", 3, "control"]],
+          [["WARP", 5, "power"], ["BTTY", 2, "power"], ["MRNE", 5, "control"], ["PRB", 1, "control"]],
+          [["PH-1", 4, "weapon", "M3"], ["LAB", 2, "control"]]
+        ],
+        "core": [["HULL", 11, "hull"], ["ARMR", 4, "hull"]]
+      }
+    },
+    "sarn_battlecruiser": {
+      "name": "Copper Assize", "cls": "Battlecruiser", "tonnage": 175, "faction": "sarn", "playable": true, "ai": true,
+      "note": "Heavy line hull. Drone swarm and tractor web. 6 mounts.",
+      "mesh": "res://assets/meshes/hull_sarn_battlecruiser.obj",
+      "material": "res://assets/materials/mat_hull_sarn.tres",
+      "cargo_space": 40,
+      "damage_control": 3, "spare_parts": 32,
+      "budgets": { "space": 206, "power": 60, "mass": 204, "crew": 220 },
+      "base_load": { "space": 127, "mass": 143, "crew": 143, "power_draw": 28 },
+      "shield_per_facing": 29,
+      "max_speed": 15.2, "accel": 4.8, "turn_rate_deg": 21.0,
+      "mounts": [
+        { "id": "M1", "pos": "Fore spinal", "size": "Heavy", "families": ["torpedo", "lance"], "field": [11, 0], "default": "photon" },
+        { "id": "M2", "pos": "Fore starboard", "size": "Medium", "families": ["beam", "drone"], "field": [0, 1, 2], "default": "ph1" },
+        { "id": "M3", "pos": "Fore port", "size": "Medium", "families": ["beam", "drone"], "field": [9, 10, 11], "default": "ph1" },
+        { "id": "M4", "pos": "Starboard waist", "size": "Medium", "families": ["beam", "drone"], "field": [2, 3, 4], "default": "drone" },
+        { "id": "M5", "pos": "Port waist", "size": "Medium", "families": ["beam", "drone"], "field": [7, 8, 9], "default": "drone" },
+        { "id": "M6", "pos": "Aft", "size": "Light", "families": ["beam", "drone"], "field": [4, 5, 6, 7], "default": "drone" }
+      ],
+      "internals": {
+        "sectors": [
+          [["PHOT", 4, "weapon", "M1"], ["BRDG", 2, "control"], ["SENS", 2, "control"]],
+          [["PH-1", 5, "weapon", "M2"], ["TRAN", 4, "control"]],
+          [["DRN", 3, "weapon", "M4"], ["WARP", 6, "power"], ["TRAC", 4, "control"]],
+          [["DRN", 3, "weapon", "M6"], ["IMP", 6, "power"], ["AUXP", 2, "power"], ["SHTL", 3, "control"]],
+          [["DRN", 3, "weapon", "M5"], ["WARP", 6, "power"], ["BTTY", 3, "power"], ["MRNE", 6, "control"], ["PRB", 1, "control"]],
+          [["PH-1", 5, "weapon", "M3"], ["LAB", 1, "control"]]
+        ],
+        "core": [["HULL", 14, "hull"], ["ARMR", 8, "hull"]]
+      }
+    },
+    "sarn_battleship": {
+      "name": "Grand Concord", "cls": "Battleship", "tonnage": 205, "faction": "sarn", "playable": true, "ai": true,
+      "note": "Battle line. Drone swarm and tractor web. 7 mounts.",
+      "mesh": "res://assets/meshes/hull_sarn_battleship.obj",
+      "material": "res://assets/materials/mat_hull_sarn.tres",
+      "cargo_space": 48,
+      "damage_control": 3, "spare_parts": 40,
+      "budgets": { "space": 252, "power": 74, "mass": 258, "crew": 272 },
+      "base_load": { "space": 158, "mass": 183, "crew": 177, "power_draw": 36 },
+      "shield_per_facing": 34,
+      "max_speed": 13.3, "accel": 4.0, "turn_rate_deg": 16.8,
+      "mounts": [
+        { "id": "M1", "pos": "Fore spinal", "size": "Heavy", "families": ["torpedo", "lance"], "field": [11, 0], "default": "photon" },
+        { "id": "M2", "pos": "Bow battery", "size": "Heavy", "families": ["torpedo", "lance"], "field": [10, 11, 0, 1], "default": "photon" },
+        { "id": "M3", "pos": "Fore starboard", "size": "Medium", "families": ["beam", "drone"], "field": [0, 1, 2], "default": "ph1" },
+        { "id": "M4", "pos": "Fore port", "size": "Medium", "families": ["beam", "drone"], "field": [9, 10, 11], "default": "ph1" },
+        { "id": "M5", "pos": "Starboard waist", "size": "Medium", "families": ["beam", "drone"], "field": [2, 3, 4], "default": "drone" },
+        { "id": "M6", "pos": "Port waist", "size": "Medium", "families": ["beam", "drone"], "field": [7, 8, 9], "default": "drone" },
+        { "id": "M7", "pos": "Aft", "size": "Light", "families": ["beam", "drone"], "field": [4, 5, 6, 7], "default": "drone" }
+      ],
+      "internals": {
+        "sectors": [
+          [["PHOT", 4, "weapon", "M1"], ["PHOT", 4, "weapon", "M2"], ["BRDG", 3, "control"], ["SENS", 3, "control"]],
+          [["PH-1", 5, "weapon", "M3"], ["TRAN", 5, "control"]],
+          [["DRN", 3, "weapon", "M5"], ["WARP", 7, "power"], ["TRAC", 6, "control"]],
+          [["DRN", 3, "weapon", "M7"], ["IMP", 7, "power"], ["AUXP", 3, "power"], ["SHTL", 5, "control"]],
+          [["DRN", 3, "weapon", "M6"], ["WARP", 7, "power"], ["BTTY", 3, "power"], ["MRNE", 8, "control"], ["PRB", 1, "control"]],
+          [["PH-1", 5, "weapon", "M4"], ["LAB", 2, "control"]]
+        ],
+        "core": [["HULL", 18, "hull"], ["ARMR", 10, "hull"]]
+      }
+    },
+    "sarn_dreadnought": {
+      "name": "First Decree", "cls": "Dreadnought", "tonnage": 240, "faction": "sarn", "playable": true, "ai": true,
+      "note": "Fleet flagship. Drone swarm and tractor web. 8 mounts.",
+      "mesh": "res://assets/meshes/hull_sarn_dreadnought.obj",
+      "material": "res://assets/materials/mat_hull_sarn.tres",
+      "cargo_space": 60,
+      "damage_control": 4, "spare_parts": 52,
+      "budgets": { "space": 307, "power": 88, "mass": 306, "crew": 332 },
+      "base_load": { "space": 196, "mass": 220, "crew": 219, "power_draw": 42 },
+      "shield_per_facing": 41,
+      "max_speed": 11.4, "accel": 3.6, "turn_rate_deg": 12.6,
+      "mounts": [
+        { "id": "M1", "pos": "Fore spinal", "size": "Heavy", "families": ["torpedo", "lance"], "field": [11, 0], "default": "photon" },
+        { "id": "M2", "pos": "Bow battery", "size": "Heavy", "families": ["torpedo", "lance"], "field": [10, 11, 0, 1], "default": "photon" },
+        { "id": "M3", "pos": "Fore starboard", "size": "Medium", "families": ["beam", "drone"], "field": [0, 1, 2], "default": "ph1" },
+        { "id": "M4", "pos": "Fore port", "size": "Medium", "families": ["beam", "drone"], "field": [9, 10, 11], "default": "ph1" },
+        { "id": "M5", "pos": "Starboard waist", "size": "Medium", "families": ["beam", "drone"], "field": [2, 3, 4], "default": "drone" },
+        { "id": "M6", "pos": "Port waist", "size": "Medium", "families": ["beam", "drone"], "field": [7, 8, 9], "default": "drone" },
+        { "id": "M7", "pos": "Dorsal rack", "size": "Light", "families": ["drone"], "field": [9, 10, 11, 0, 1, 2], "default": "drone" },
+        { "id": "M8", "pos": "Aft", "size": "Light", "families": ["beam", "drone"], "field": [4, 5, 6, 7], "default": "drone" }
+      ],
+      "internals": {
+        "sectors": [
+          [["PHOT", 5, "weapon", "M1"], ["PHOT", 5, "weapon", "M2"], ["DRN", 4, "weapon", "M7"], ["BRDG", 3, "control"], ["SENS", 3, "control"]],
+          [["PH-1", 6, "weapon", "M3"], ["TRAN", 6, "control"]],
+          [["DRN", 4, "weapon", "M5"], ["WARP", 8, "power"], ["TRAC", 6, "control"]],
+          [["DRN", 4, "weapon", "M8"], ["IMP", 8, "power"], ["AUXP", 4, "power"], ["SHTL", 6, "control"]],
+          [["DRN", 4, "weapon", "M6"], ["WARP", 8, "power"], ["BTTY", 4, "power"], ["MRNE", 10, "control"], ["PRB", 2, "control"]],
+          [["PH-1", 6, "weapon", "M4"], ["LAB", 2, "control"], ["RPR", 2, "control"]]
+        ],
+        "core": [["HULL", 23, "hull"], ["ARMR", 14, "hull"]]
+      }
+    },
+    "sarn_carrier": {
+      "name": "Nine Gates", "cls": "Carrier", "tonnage": 220, "faction": "sarn", "playable": true, "ai": true,
+      "note": "Drone carrier. Drone swarm and tractor web. 6 mounts.",
+      "mesh": "res://assets/meshes/hull_sarn_carrier.obj",
+      "material": "res://assets/materials/mat_hull_sarn.tres",
+      "cargo_space": 44,
+      "damage_control": 3, "spare_parts": 36,
+      "budgets": { "space": 248, "power": 62, "mass": 244, "crew": 250 },
+      "base_load": { "space": 158, "mass": 176, "crew": 168, "power_draw": 30 },
+      "shield_per_facing": 31,
+      "max_speed": 14.2, "accel": 4.4, "turn_rate_deg": 15.8,
+      "mounts": [
+        { "id": "M1", "pos": "Fore spinal", "size": "Heavy", "families": ["torpedo", "lance"], "field": [11, 0], "default": "photon" },
+        { "id": "M2", "pos": "Fore starboard", "size": "Medium", "families": ["beam", "drone"], "field": [0, 1, 2], "default": "ph1" },
+        { "id": "M3", "pos": "Fore port", "size": "Medium", "families": ["beam", "drone"], "field": [9, 10, 11], "default": "ph1" },
+        { "id": "M4", "pos": "Dorsal rack", "size": "Light", "families": ["drone"], "field": [8, 9, 10, 11, 0, 1, 2, 3], "default": "drone" },
+        { "id": "M5", "pos": "Ventral rack", "size": "Light", "families": ["drone"], "field": [9, 10, 11, 0, 1, 2], "default": "drone" },
+        { "id": "M6", "pos": "Aft", "size": "Light", "families": ["beam", "drone"], "field": [4, 5, 6, 7], "default": "drone" }
+      ],
+      "internals": {
+        "sectors": [
+          [["PHOT", 4, "weapon", "M1"], ["DRN", 3, "weapon", "M4"], ["DRN", 3, "weapon", "M5"], ["BRDG", 3, "control"], ["SENS", 3, "control"]],
+          [["PH-1", 5, "weapon", "M2"], ["TRAN", 4, "control"]],
+          [["WARP", 6, "power"], ["TRAC", 4, "control"]],
+          [["DRN", 3, "weapon", "M6"], ["IMP", 6, "power"], ["AUXP", 3, "power"], ["SHTL", 12, "control"], ["DRN", 4, "control"]],
+          [["WARP", 6, "power"], ["BTTY", 3, "power"], ["MRNE", 6, "control"], ["PRB", 1, "control"]],
+          [["PH-1", 5, "weapon", "M3"], ["LAB", 1, "control"]]
+        ],
+        "core": [["HULL", 18, "hull"], ["ARMR", 8, "hull"]]
+      }
+    },
+    "sarn_freighter": {
+      "name": "Tribute Line", "cls": "Freighter", "tonnage": 160, "faction": "sarn", "playable": true, "ai": true,
+      "note": "Bulk hauler. Drone swarm and tractor web. 2 mounts.",
+      "mesh": "res://assets/meshes/hull_sarn_freighter.obj",
+      "material": "res://assets/materials/mat_hull_sarn.tres",
+      "cargo_space": 140,
+      "damage_control": 2, "spare_parts": 30,
+      "budgets": { "space": 168, "power": 38, "mass": 170, "crew": 140 },
+      "base_load": { "space": 114, "mass": 129, "crew": 83, "power_draw": 17 },
+      "shield_per_facing": 18,
+      "max_speed": 14.2, "accel": 4.4, "turn_rate_deg": 18.9,
+      "mounts": [
+        { "id": "M1", "pos": "Dorsal", "size": "Light", "families": ["beam", "drone"], "field": [9, 10, 11, 0, 1, 2], "default": "drone" },
+        { "id": "M2", "pos": "Aft", "size": "Light", "families": ["beam", "drone"], "field": [3, 4, 5, 6, 7, 8], "default": "drone" }
+      ],
+      "internals": {
+        "sectors": [
+          [["DRN", 2, "weapon", "M1"], ["BRDG", 1, "control"], ["SENS", 1, "control"]],
+          [["TRAN", 2, "control"]],
+          [["WARP", 4, "power"], ["TRAC", 4, "control"], ["CARGO", 6, "hull"]],
+          [["DRN", 2, "weapon", "M2"], ["IMP", 4, "power"]],
+          [["WARP", 4, "power"], ["BTTY", 2, "power"], ["MRNE", 2, "control"], ["CARGO", 6, "hull"]],
+          []
+        ],
+        "core": [["HULL", 16, "hull"], ["ARMR", 2, "hull"]]
+      }
+    },
+    "sarn_tender": {
+      "name": "Keystone", "cls": "Tender", "tonnage": 140, "faction": "sarn", "playable": true, "ai": true,
+      "note": "Repair tender. Drone swarm and tractor web. 3 mounts.",
+      "mesh": "res://assets/meshes/hull_sarn_tender.obj",
+      "material": "res://assets/materials/mat_hull_sarn.tres",
+      "cargo_space": 70,
+      "damage_control": 4, "spare_parts": 60,
+      "budgets": { "space": 158, "power": 40, "mass": 152, "crew": 150 },
+      "base_load": { "space": 104, "mass": 109, "crew": 92, "power_draw": 18 },
+      "shield_per_facing": 20,
+      "max_speed": 17.1, "accel": 5.6, "turn_rate_deg": 25.2,
+      "mounts": [
+        { "id": "M1", "pos": "Fore", "size": "Medium", "families": ["beam", "drone"], "field": [10, 11, 0, 1], "default": "ph1" },
+        { "id": "M2", "pos": "Dorsal rack", "size": "Light", "families": ["drone"], "field": [9, 10, 11, 0, 1, 2], "default": "drone" },
+        { "id": "M3", "pos": "Aft", "size": "Light", "families": ["beam", "drone"], "field": [3, 4, 5, 6, 7, 8], "default": "drone" }
+      ],
+      "internals": {
+        "sectors": [
+          [["PH-1", 4, "weapon", "M1"], ["DRN", 2, "weapon", "M2"], ["BRDG", 1, "control"], ["SENS", 1, "control"]],
+          [["TRAN", 3, "control"]],
+          [["WARP", 4, "power"], ["TRAC", 6, "control"], ["CARGO", 3, "hull"]],
+          [["DRN", 2, "weapon", "M3"], ["IMP", 4, "power"], ["AUXP", 1, "power"], ["SHTL", 3, "control"]],
+          [["WARP", 3, "power"], ["BTTY", 2, "power"], ["MRNE", 3, "control"], ["CARGO", 3, "hull"]],
+          [["RPR", 6, "control"]]
+        ],
+        "core": [["HULL", 11, "hull"], ["ARMR", 3, "hull"]]
+      }
+    },
+    "helion_frigate": {
+      "name": "Dockhand", "cls": "Frigate", "tonnage": 45, "faction": "helion", "playable": true, "ai": true,
+      "note": "Picket and escort. Mixed mounts, wide holds. 3 mounts.",
+      "mesh": "res://assets/meshes/hull_helion_frigate.obj",
+      "material": "res://assets/materials/mat_hull_helion.tres",
+      "cargo_space": 21,
+      "damage_control": 1, "spare_parts": 11,
+      "budgets": { "space": 82, "power": 24, "mass": 78, "crew": 80 },
+      "base_load": { "space": 48, "mass": 53, "crew": 50, "power_draw": 11 },
+      "shield_per_facing": 10,
+      "max_speed": 27.0, "accel": 9.0, "turn_rate_deg": 41.8,
+      "mounts": [
+        { "id": "M1", "pos": "Fore starboard", "size": "Medium", "families": ["beam", "disruptor", "drone"], "field": [0, 1, 2], "default": "ph1" },
+        { "id": "M2", "pos": "Fore port", "size": "Medium", "families": ["beam", "disruptor", "drone"], "field": [9, 10, 11], "default": "ph1" },
+        { "id": "M3", "pos": "Dorsal", "size": "Light", "families": ["beam", "drone"], "field": [3, 4, 5, 6, 7, 8], "default": "ph3" }
+      ],
+      "internals": {
+        "sectors": [
+          [["BRDG", 1, "control"], ["SENS", 1, "control"]],
+          [["PH-1", 4, "weapon", "M1"], ["TRAN", 2, "control"]],
+          [["WARP", 2, "power"], ["TRAC", 1, "control"]],
+          [["PH-3", 2, "weapon", "M3"], ["IMP", 2, "power"]],
+          [["WARP", 2, "power"], ["BTTY", 1, "power"], ["MRNE", 2, "control"]],
+          [["PH-1", 4, "weapon", "M2"]]
+        ],
+        "core": [["HULL", 4, "hull"], ["ARMR", 2, "hull"]]
+      }
+    },
+    "helion_destroyer": {
+      "name": "Hard Bargain", "cls": "Destroyer", "tonnage": 70, "faction": "helion", "playable": true, "ai": true,
+      "note": "Line escort. Mixed mounts, wide holds. 4 mounts.",
+      "mesh": "res://assets/meshes/hull_helion_destroyer.obj",
+      "material": "res://assets/materials/mat_hull_helion.tres",
+      "cargo_space": 30,
+      "damage_control": 1, "spare_parts": 15,
+      "budgets": { "space": 108, "power": 29, "mass": 103, "crew": 103 },
+      "base_load": { "space": 63, "mass": 70, "crew": 65, "power_draw": 13 },
+      "shield_per_facing": 14,
+      "max_speed": 24.3, "accel": 7.9, "turn_rate_deg": 36.1,
+      "mounts": [
+        { "id": "M1", "pos": "Fore starboard", "size": "Medium", "families": ["beam", "disruptor", "drone"], "field": [0, 1, 2], "default": "ph1" },
+        { "id": "M2", "pos": "Fore port", "size": "Medium", "families": ["beam", "disruptor", "drone"], "field": [9, 10, 11], "default": "ph1" },
+        { "id": "M3", "pos": "Dorsal rack", "size": "Light", "families": ["beam", "drone"], "field": [9, 10, 11, 0, 1, 2], "default": "drone" },
+        { "id": "M4", "pos": "Aft", "size": "Light", "families": ["beam", "drone"], "field": [3, 4, 5, 6, 7, 8], "default": "ph3" }
+      ],
+      "internals": {
+        "sectors": [
+          [["DRN", 2, "weapon", "M3"], ["BRDG", 1, "control"], ["SENS", 1, "control"]],
+          [["PH-1", 4, "weapon", "M1"], ["TRAN", 2, "control"]],
+          [["WARP", 3, "power"], ["TRAC", 1, "control"]],
+          [["PH-3", 2, "weapon", "M4"], ["IMP", 3, "power"], ["SHTL", 1, "control"]],
+          [["WARP", 3, "power"], ["BTTY", 1, "power"], ["MRNE", 3, "control"]],
+          [["PH-1", 4, "weapon", "M2"]]
+        ],
+        "core": [["HULL", 7, "hull"], ["ARMR", 2, "hull"]]
+      }
+    },
+    "helion_light_cruiser": {
+      "name": "Ledger", "cls": "Light Cruiser", "tonnage": 95, "faction": "helion", "playable": true, "ai": true,
+      "note": "Patrol cruiser. Mixed mounts, wide holds. 4 mounts.",
+      "mesh": "res://assets/meshes/hull_helion_light_cruiser.obj",
+      "material": "res://assets/materials/mat_hull_helion.tres",
+      "cargo_space": 39,
+      "damage_control": 2, "spare_parts": 20,
+      "budgets": { "space": 138, "power": 37, "mass": 141, "crew": 135 },
+      "base_load": { "space": 81, "mass": 97, "crew": 86, "power_draw": 17 },
+      "shield_per_facing": 17,
+      "max_speed": 21.6, "accel": 6.8, "turn_rate_deg": 30.4,
+      "mounts": [
+        { "id": "M1", "pos": "Fore spinal", "size": "Heavy", "families": ["torpedo", "lance"], "field": [11, 0], "default": "photon" },
+        { "id": "M2", "pos": "Fore starboard", "size": "Medium", "families": ["beam", "disruptor", "drone"], "field": [0, 1, 2], "default": "ph1" },
+        { "id": "M3", "pos": "Fore port", "size": "Medium", "families": ["beam", "disruptor", "drone"], "field": [9, 10, 11], "default": "ph1" },
+        { "id": "M4", "pos": "Aft", "size": "Light", "families": ["beam", "drone"], "field": [3, 4, 5, 6, 7, 8], "default": "ph3" }
+      ],
+      "internals": {
+        "sectors": [
+          [["PHOT", 3, "weapon", "M1"], ["BRDG", 2, "control"], ["SENS", 2, "control"]],
+          [["PH-1", 4, "weapon", "M2"], ["TRAN", 3, "control"]],
+          [["WARP", 4, "power"], ["TRAC", 2, "control"]],
+          [["PH-3", 2, "weapon", "M4"], ["IMP", 4, "power"], ["AUXP", 1, "power"], ["SHTL", 1, "control"]],
+          [["WARP", 4, "power"], ["BTTY", 2, "power"], ["MRNE", 3, "control"]],
+          [["PH-1", 4, "weapon", "M3"], ["LAB", 1, "control"]]
+        ],
+        "core": [["HULL", 9, "hull"], ["ARMR", 2, "hull"]]
+      }
+    },
+    "helion_heavy_cruiser": {
+      "name": "Freeport", "cls": "Heavy Cruiser", "tonnage": 125, "faction": "helion", "playable": true, "ai": true,
+      "note": "Line cruiser. Mixed mounts, wide holds. 5 mounts.",
+      "mesh": "res://assets/meshes/hull_helion_heavy_cruiser.obj",
+      "material": "res://assets/materials/mat_hull_helion.tres",
+      "cargo_space": 48,
+      "damage_control": 2, "spare_parts": 26,
+      "budgets": { "space": 164, "power": 42, "mass": 158, "crew": 160 },
+      "base_load": { "space": 98, "mass": 111, "crew": 102, "power_draw": 20 },
+      "shield_per_facing": 22,
+      "max_speed": 18.0, "accel": 5.8, "turn_rate_deg": 24.7,
+      "mounts": [
+        { "id": "M1", "pos": "Fore spinal", "size": "Heavy", "families": ["torpedo", "lance"], "field": [11, 0], "default": "photon" },
+        { "id": "M2", "pos": "Fore starboard", "size": "Medium", "families": ["beam", "disruptor", "drone"], "field": [0, 1, 2], "default": "ph1" },
+        { "id": "M3", "pos": "Fore port", "size": "Medium", "families": ["beam", "disruptor", "drone"], "field": [9, 10, 11], "default": "ph1" },
+        { "id": "M4", "pos": "Dorsal rack", "size": "Light", "families": ["beam", "drone"], "field": [9, 10, 11, 0, 1, 2], "default": "drone" },
+        { "id": "M5", "pos": "Aft", "size": "Light", "families": ["beam", "drone"], "field": [3, 4, 5, 6, 7, 8], "default": "ph3" }
+      ],
+      "internals": {
+        "sectors": [
+          [["PHOT", 3, "weapon", "M1"], ["DRN", 2, "weapon", "M4"], ["BRDG", 2, "control"], ["SENS", 2, "control"]],
+          [["PH-1", 4, "weapon", "M2"], ["TRAN", 3, "control"]],
+          [["WARP", 5, "power"], ["TRAC", 2, "control"]],
+          [["PH-3", 2, "weapon", "M5"], ["IMP", 5, "power"], ["AUXP", 2, "power"], ["SHTL", 2, "control"]],
+          [["WARP", 5, "power"], ["BTTY", 2, "power"], ["MRNE", 4, "control"]],
+          [["PH-1", 4, "weapon", "M3"], ["LAB", 2, "control"]]
+        ],
+        "core": [["HULL", 13, "hull"], ["ARMR", 3, "hull"]]
+      }
+    },
+    "helion_battlecruiser": {
+      "name": "Strikebreaker", "cls": "Battlecruiser", "tonnage": 175, "faction": "helion", "playable": true, "ai": true,
+      "note": "Heavy line hull. Mixed mounts, wide holds. 6 mounts.",
+      "mesh": "res://assets/meshes/hull_helion_battlecruiser.obj",
+      "material": "res://assets/materials/mat_hull_helion.tres",
+      "cargo_space": 60,
+      "damage_control": 3, "spare_parts": 35,
+      "budgets": { "space": 212, "power": 55, "mass": 214, "crew": 209 },
+      "base_load": { "space": 127, "mass": 150, "crew": 136, "power_draw": 26 },
+      "shield_per_facing": 27,
+      "max_speed": 14.4, "accel": 4.3, "turn_rate_deg": 19.0,
+      "mounts": [
+        { "id": "M1", "pos": "Fore spinal", "size": "Heavy", "families": ["torpedo", "lance"], "field": [11, 0], "default": "photon" },
+        { "id": "M2", "pos": "Fore starboard", "size": "Medium", "families": ["beam", "disruptor", "drone"], "field": [0, 1, 2], "default": "ph1" },
+        { "id": "M3", "pos": "Fore port", "size": "Medium", "families": ["beam", "disruptor", "drone"], "field": [9, 10, 11], "default": "ph1" },
+        { "id": "M4", "pos": "Starboard waist", "size": "Medium", "families": ["beam", "disruptor", "drone"], "field": [2, 3, 4], "default": "disruptor" },
+        { "id": "M5", "pos": "Port waist", "size": "Medium", "families": ["beam", "disruptor", "drone"], "field": [7, 8, 9], "default": "disruptor" },
+        { "id": "M6", "pos": "Aft", "size": "Light", "families": ["beam", "drone"], "field": [4, 5, 6, 7], "default": "ph3" }
+      ],
+      "internals": {
+        "sectors": [
+          [["PHOT", 4, "weapon", "M1"], ["BRDG", 2, "control"], ["SENS", 2, "control"]],
+          [["PH-1", 5, "weapon", "M2"], ["TRAN", 4, "control"]],
+          [["DISR", 5, "weapon", "M4"], ["WARP", 6, "power"], ["TRAC", 2, "control"]],
+          [["PH-3", 3, "weapon", "M6"], ["IMP", 6, "power"], ["AUXP", 2, "power"], ["SHTL", 2, "control"]],
+          [["DISR", 5, "weapon", "M5"], ["WARP", 6, "power"], ["BTTY", 3, "power"], ["MRNE", 5, "control"]],
+          [["PH-1", 5, "weapon", "M3"], ["LAB", 1, "control"]]
+        ],
+        "core": [["HULL", 18, "hull"], ["ARMR", 6, "hull"]]
+      }
+    },
+    "helion_battleship": {
+      "name": "Charter Prime", "cls": "Battleship", "tonnage": 205, "faction": "helion", "playable": true, "ai": true,
+      "note": "Battle line. Mixed mounts, wide holds. 7 mounts.",
+      "mesh": "res://assets/meshes/hull_helion_battleship.obj",
+      "material": "res://assets/materials/mat_hull_helion.tres",
+      "cargo_space": 72,
+      "damage_control": 3, "spare_parts": 44,
+      "budgets": { "space": 259, "power": 68, "mass": 271, "crew": 258 },
+      "base_load": { "space": 158, "mass": 192, "crew": 168, "power_draw": 33 },
+      "shield_per_facing": 32,
+      "max_speed": 12.6, "accel": 3.6, "turn_rate_deg": 15.2,
+      "mounts": [
+        { "id": "M1", "pos": "Fore spinal", "size": "Heavy", "families": ["torpedo", "lance"], "field": [11, 0], "default": "photon" },
+        { "id": "M2", "pos": "Bow battery", "size": "Heavy", "families": ["torpedo", "lance"], "field": [10, 11, 0, 1], "default": "photon" },
+        { "id": "M3", "pos": "Fore starboard", "size": "Medium", "families": ["beam", "disruptor", "drone"], "field": [0, 1, 2], "default": "ph1" },
+        { "id": "M4", "pos": "Fore port", "size": "Medium", "families": ["beam", "disruptor", "drone"], "field": [9, 10, 11], "default": "ph1" },
+        { "id": "M5", "pos": "Starboard waist", "size": "Medium", "families": ["beam", "disruptor", "drone"], "field": [2, 3, 4], "default": "disruptor" },
+        { "id": "M6", "pos": "Port waist", "size": "Medium", "families": ["beam", "disruptor", "drone"], "field": [7, 8, 9], "default": "disruptor" },
+        { "id": "M7", "pos": "Aft", "size": "Light", "families": ["beam", "drone"], "field": [4, 5, 6, 7], "default": "ph3" }
+      ],
+      "internals": {
+        "sectors": [
+          [["PHOT", 4, "weapon", "M1"], ["PHOT", 4, "weapon", "M2"], ["BRDG", 3, "control"], ["SENS", 3, "control"]],
+          [["PH-1", 5, "weapon", "M3"], ["TRAN", 5, "control"]],
+          [["DISR", 5, "weapon", "M5"], ["WARP", 7, "power"], ["TRAC", 3, "control"]],
+          [["PH-3", 3, "weapon", "M7"], ["IMP", 7, "power"], ["AUXP", 3, "power"], ["SHTL", 3, "control"]],
+          [["DISR", 5, "weapon", "M6"], ["WARP", 7, "power"], ["BTTY", 3, "power"], ["MRNE", 6, "control"]],
+          [["PH-1", 5, "weapon", "M4"], ["LAB", 2, "control"]]
+        ],
+        "core": [["HULL", 22, "hull"], ["ARMR", 8, "hull"]]
+      }
+    },
+    "helion_dreadnought": {
+      "name": "Foundry", "cls": "Dreadnought", "tonnage": 240, "faction": "helion", "playable": true, "ai": true,
+      "note": "Fleet flagship. Mixed mounts, wide holds. 8 mounts.",
+      "mesh": "res://assets/meshes/hull_helion_dreadnought.obj",
+      "material": "res://assets/materials/mat_hull_helion.tres",
+      "cargo_space": 90,
+      "damage_control": 4, "spare_parts": 57,
+      "budgets": { "space": 315, "power": 81, "mass": 321, "crew": 315 },
+      "base_load": { "space": 195, "mass": 231, "crew": 208, "power_draw": 39 },
+      "shield_per_facing": 39,
+      "max_speed": 10.8, "accel": 3.2, "turn_rate_deg": 11.4,
+      "mounts": [
+        { "id": "M1", "pos": "Fore spinal", "size": "Heavy", "families": ["torpedo", "lance"], "field": [11, 0], "default": "photon" },
+        { "id": "M2", "pos": "Bow battery", "size": "Heavy", "families": ["torpedo", "lance"], "field": [10, 11, 0, 1], "default": "photon" },
+        { "id": "M3", "pos": "Fore starboard", "size": "Medium", "families": ["beam", "disruptor", "drone"], "field": [0, 1, 2], "default": "ph1" },
+        { "id": "M4", "pos": "Fore port", "size": "Medium", "families": ["beam", "disruptor", "drone"], "field": [9, 10, 11], "default": "ph1" },
+        { "id": "M5", "pos": "Starboard waist", "size": "Medium", "families": ["beam", "disruptor", "drone"], "field": [2, 3, 4], "default": "disruptor" },
+        { "id": "M6", "pos": "Port waist", "size": "Medium", "families": ["beam", "disruptor", "drone"], "field": [7, 8, 9], "default": "disruptor" },
+        { "id": "M7", "pos": "Dorsal rack", "size": "Light", "families": ["beam", "drone"], "field": [9, 10, 11, 0, 1, 2], "default": "drone" },
+        { "id": "M8", "pos": "Aft", "size": "Light", "families": ["beam", "drone"], "field": [4, 5, 6, 7], "default": "ph3" }
+      ],
+      "internals": {
+        "sectors": [
+          [["PHOT", 5, "weapon", "M1"], ["PHOT", 5, "weapon", "M2"], ["DRN", 4, "weapon", "M7"], ["BRDG", 3, "control"], ["SENS", 3, "control"]],
+          [["PH-1", 6, "weapon", "M3"], ["TRAN", 6, "control"]],
+          [["DISR", 6, "weapon", "M5"], ["WARP", 8, "power"], ["TRAC", 3, "control"]],
+          [["PH-3", 4, "weapon", "M8"], ["IMP", 8, "power"], ["AUXP", 4, "power"], ["SHTL", 4, "control"]],
+          [["DISR", 6, "weapon", "M6"], ["WARP", 8, "power"], ["BTTY", 4, "power"], ["MRNE", 8, "control"]],
+          [["PH-1", 6, "weapon", "M4"], ["LAB", 2, "control"], ["RPR", 2, "control"]]
+        ],
+        "core": [["HULL", 29, "hull"], ["ARMR", 11, "hull"]]
+      }
+    },
+    "helion_carrier": {
+      "name": "Drop Yard", "cls": "Carrier", "tonnage": 220, "faction": "helion", "playable": true, "ai": true,
+      "note": "Drone carrier. Mixed mounts, wide holds. 6 mounts.",
+      "mesh": "res://assets/meshes/hull_helion_carrier.obj",
+      "material": "res://assets/materials/mat_hull_helion.tres",
+      "cargo_space": 66,
+      "damage_control": 3, "spare_parts": 40,
+      "budgets": { "space": 255, "power": 57, "mass": 256, "crew": 238 },
+      "base_load": { "space": 158, "mass": 184, "crew": 159, "power_draw": 27 },
+      "shield_per_facing": 29,
+      "max_speed": 13.5, "accel": 4.0, "turn_rate_deg": 14.2,
+      "mounts": [
+        { "id": "M1", "pos": "Fore spinal", "size": "Heavy", "families": ["torpedo", "lance"], "field": [11, 0], "default": "photon" },
+        { "id": "M2", "pos": "Fore starboard", "size": "Medium", "families": ["beam", "disruptor", "drone"], "field": [0, 1, 2], "default": "ph1" },
+        { "id": "M3", "pos": "Fore port", "size": "Medium", "families": ["beam", "disruptor", "drone"], "field": [9, 10, 11], "default": "ph1" },
+        { "id": "M4", "pos": "Dorsal rack", "size": "Light", "families": ["beam", "drone"], "field": [8, 9, 10, 11, 0, 1, 2, 3], "default": "drone" },
+        { "id": "M5", "pos": "Ventral rack", "size": "Light", "families": ["beam", "drone"], "field": [9, 10, 11, 0, 1, 2], "default": "drone" },
+        { "id": "M6", "pos": "Aft", "size": "Light", "families": ["beam", "drone"], "field": [4, 5, 6, 7], "default": "ph3" }
+      ],
+      "internals": {
+        "sectors": [
+          [["PHOT", 4, "weapon", "M1"], ["DRN", 3, "weapon", "M4"], ["DRN", 3, "weapon", "M5"], ["BRDG", 3, "control"], ["SENS", 3, "control"]],
+          [["PH-1", 5, "weapon", "M2"], ["TRAN", 4, "control"]],
+          [["WARP", 6, "power"], ["TRAC", 2, "control"]],
+          [["PH-3", 3, "weapon", "M6"], ["IMP", 6, "power"], ["AUXP", 3, "power"], ["SHTL", 8, "control"], ["DRN", 4, "control"]],
+          [["WARP", 6, "power"], ["BTTY", 3, "power"], ["MRNE", 5, "control"]],
+          [["PH-1", 5, "weapon", "M3"], ["LAB", 1, "control"]]
+        ],
+        "core": [["HULL", 22, "hull"], ["ARMR", 6, "hull"]]
+      }
+    },
+    "helion_freighter": {
+      "name": "Deep Hold", "cls": "Freighter", "tonnage": 160, "faction": "helion", "playable": true, "ai": true,
+      "note": "Bulk hauler. Mixed mounts, wide holds. 2 mounts.",
+      "mesh": "res://assets/meshes/hull_helion_freighter.obj",
+      "material": "res://assets/materials/mat_hull_helion.tres",
+      "cargo_space": 210,
+      "damage_control": 2, "spare_parts": 33,
+      "budgets": { "space": 173, "power": 35, "mass": 179, "crew": 133 },
+      "base_load": { "space": 114, "mass": 136, "crew": 78, "power_draw": 15 },
+      "shield_per_facing": 17,
+      "max_speed": 13.5, "accel": 4.0, "turn_rate_deg": 17.1,
+      "mounts": [
+        { "id": "M1", "pos": "Dorsal", "size": "Light", "families": ["beam", "drone"], "field": [9, 10, 11, 0, 1, 2], "default": "ph3" },
+        { "id": "M2", "pos": "Aft", "size": "Light", "families": ["beam", "drone"], "field": [3, 4, 5, 6, 7, 8], "default": "ph3" }
+      ],
+      "internals": {
+        "sectors": [
+          [["PH-3", 2, "weapon", "M1"], ["BRDG", 1, "control"], ["SENS", 1, "control"]],
+          [["TRAN", 2, "control"]],
+          [["WARP", 4, "power"], ["TRAC", 2, "control"], ["CARGO", 9, "hull"]],
+          [["PH-3", 2, "weapon", "M2"], ["IMP", 4, "power"]],
+          [["WARP", 4, "power"], ["BTTY", 2, "power"], ["MRNE", 2, "control"], ["CARGO", 9, "hull"]],
+          []
+        ],
+        "core": [["HULL", 20, "hull"], ["ARMR", 2, "hull"]]
+      }
+    },
+    "helion_tender": {
+      "name": "Jury Rig", "cls": "Tender", "tonnage": 140, "faction": "helion", "playable": true, "ai": true,
+      "note": "Repair tender. Mixed mounts, wide holds. 3 mounts.",
+      "mesh": "res://assets/meshes/hull_helion_tender.obj",
+      "material": "res://assets/materials/mat_hull_helion.tres",
+      "cargo_space": 105,
+      "damage_control": 4, "spare_parts": 66,
+      "budgets": { "space": 162, "power": 37, "mass": 160, "crew": 143 },
+      "base_load": { "space": 104, "mass": 115, "crew": 87, "power_draw": 17 },
+      "shield_per_facing": 19,
+      "max_speed": 16.2, "accel": 5.0, "turn_rate_deg": 22.8,
+      "mounts": [
+        { "id": "M1", "pos": "Fore", "size": "Medium", "families": ["beam", "disruptor", "drone"], "field": [10, 11, 0, 1], "default": "ph1" },
+        { "id": "M2", "pos": "Dorsal rack", "size": "Light", "families": ["beam", "drone"], "field": [9, 10, 11, 0, 1, 2], "default": "drone" },
+        { "id": "M3", "pos": "Aft", "size": "Light", "families": ["beam", "drone"], "field": [3, 4, 5, 6, 7, 8], "default": "ph3" }
+      ],
+      "internals": {
+        "sectors": [
+          [["PH-1", 4, "weapon", "M1"], ["DRN", 2, "weapon", "M2"], ["BRDG", 1, "control"], ["SENS", 1, "control"]],
+          [["TRAN", 3, "control"]],
+          [["WARP", 4, "power"], ["TRAC", 3, "control"], ["CARGO", 5, "hull"]],
+          [["PH-3", 2, "weapon", "M3"], ["IMP", 4, "power"], ["AUXP", 1, "power"], ["SHTL", 2, "control"]],
+          [["WARP", 3, "power"], ["BTTY", 2, "power"], ["MRNE", 2, "control"], ["CARGO", 4, "hull"]],
+          [["RPR", 6, "control"]]
+        ],
+        "core": [["HULL", 13, "hull"], ["ARMR", 2, "hull"]]
+      }
+    },
+    "bloom_frigate": {
+      "name": "Tendril", "cls": "Frigate", "tonnage": 45, "faction": "bloom", "playable": true, "ai": true,
+      "note": "Picket and escort. Spore racks, regrowing hull. 3 mounts.",
+      "mesh": "res://assets/meshes/hull_bloom_frigate.obj",
+      "material": "res://assets/materials/mat_hull_bloom.tres",
+      "cargo_space": 11,
+      "damage_control": 2, "spare_parts": 10,
+      "budgets": { "space": 76, "power": 26, "mass": 78, "crew": 76 },
+      "base_load": { "space": 44, "mass": 53, "crew": 46, "power_draw": 12 },
+      "shield_per_facing": 13,
+      "max_speed": 27.6, "accel": 9.5, "turn_rate_deg": 39.6,
+      "mounts": [
+        { "id": "M1", "pos": "Fore starboard", "size": "Medium", "families": ["beam"], "field": [0, 1, 2], "default": "ph1" },
+        { "id": "M2", "pos": "Fore port", "size": "Medium", "families": ["beam"], "field": [9, 10, 11], "default": "ph1" },
+        { "id": "M3", "pos": "Dorsal", "size": "Light", "families": ["beam", "drone"], "field": [3, 4, 5, 6, 7, 8], "default": "drone" }
+      ],
+      "internals": {
+        "sectors": [
+          [["BRDG", 1, "control"], ["SENS", 1, "control"]],
+          [["PH-1", 4, "weapon", "M1"], ["TRAN", 1, "control"]],
+          [["WARP", 2, "power"], ["TRAC", 1, "control"]],
+          [["DRN", 2, "weapon", "M3"], ["IMP", 2, "power"]],
+          [["WARP", 2, "power"], ["BTTY", 1, "power"], ["MRNE", 4, "control"]],
+          [["PH-1", 4, "weapon", "M2"]]
+        ],
+        "core": [["HULL", 5, "hull"], ["ARMR", 3, "hull"]]
+      }
+    },
+    "bloom_destroyer": {
+      "name": "Sporefall", "cls": "Destroyer", "tonnage": 70, "faction": "bloom", "playable": true, "ai": true,
+      "note": "Line escort. Spore racks, regrowing hull. 4 mounts.",
+      "mesh": "res://assets/meshes/hull_bloom_destroyer.obj",
+      "material": "res://assets/materials/mat_hull_bloom.tres",
+      "cargo_space": 16,
+      "damage_control": 2, "spare_parts": 14,
+      "budgets": { "space": 100, "power": 32, "mass": 103, "crew": 97 },
+      "base_load": { "space": 58, "mass": 70, "crew": 59, "power_draw": 15 },
+      "shield_per_facing": 17,
+      "max_speed": 24.8, "accel": 8.4, "turn_rate_deg": 34.2,
+      "mounts": [
+        { "id": "M1", "pos": "Fore starboard", "size": "Medium", "families": ["beam"], "field": [0, 1, 2], "default": "ph1" },
+        { "id": "M2", "pos": "Fore port", "size": "Medium", "families": ["beam"], "field": [9, 10, 11], "default": "ph1" },
+        { "id": "M3", "pos": "Dorsal rack", "size": "Light", "families": ["drone"], "field": [9, 10, 11, 0, 1, 2], "default": "drone" },
+        { "id": "M4", "pos": "Aft", "size": "Light", "families": ["beam", "drone"], "field": [3, 4, 5, 6, 7, 8], "default": "drone" }
+      ],
+      "internals": {
+        "sectors": [
+          [["DRN", 2, "weapon", "M3"], ["BRDG", 1, "control"], ["SENS", 1, "control"]],
+          [["PH-1", 4, "weapon", "M1"], ["TRAN", 1, "control"]],
+          [["WARP", 3, "power"], ["TRAC", 1, "control"]],
+          [["DRN", 2, "weapon", "M4"], ["IMP", 3, "power"], ["SHTL", 1, "control"]],
+          [["WARP", 3, "power"], ["BTTY", 1, "power"], ["MRNE", 5, "control"]],
+          [["PH-1", 4, "weapon", "M2"]]
+        ],
+        "core": [["HULL", 8, "hull"], ["ARMR", 3, "hull"]]
+      }
+    },
+    "bloom_light_cruiser": {
+      "name": "Bloomlight", "cls": "Light Cruiser", "tonnage": 95, "faction": "bloom", "playable": true, "ai": true,
+      "note": "Patrol cruiser. Spore racks, regrowing hull. 4 mounts.",
+      "mesh": "res://assets/meshes/hull_bloom_light_cruiser.obj",
+      "material": "res://assets/materials/mat_hull_bloom.tres",
+      "cargo_space": 21,
+      "damage_control": 3, "spare_parts": 18,
+      "budgets": { "space": 128, "power": 40, "mass": 141, "crew": 128 },
+      "base_load": { "space": 76, "mass": 97, "crew": 79, "power_draw": 18 },
+      "shield_per_facing": 21,
+      "max_speed": 22.1, "accel": 7.2, "turn_rate_deg": 28.8,
+      "mounts": [
+        { "id": "M1", "pos": "Fore spinal", "size": "Heavy", "families": ["torpedo"], "field": [11, 0], "default": "photon" },
+        { "id": "M2", "pos": "Fore starboard", "size": "Medium", "families": ["beam"], "field": [0, 1, 2], "default": "ph1" },
+        { "id": "M3", "pos": "Fore port", "size": "Medium", "families": ["beam"], "field": [9, 10, 11], "default": "ph1" },
+        { "id": "M4", "pos": "Aft", "size": "Light", "families": ["beam", "drone"], "field": [3, 4, 5, 6, 7, 8], "default": "drone" }
+      ],
+      "internals": {
+        "sectors": [
+          [["PHOT", 3, "weapon", "M1"], ["BRDG", 2, "control"], ["SENS", 2, "control"]],
+          [["PH-1", 4, "weapon", "M2"], ["TRAN", 2, "control"]],
+          [["WARP", 4, "power"], ["TRAC", 2, "control"]],
+          [["DRN", 2, "weapon", "M4"], ["IMP", 4, "power"], ["AUXP", 1, "power"], ["SHTL", 1, "control"]],
+          [["WARP", 4, "power"], ["BTTY", 2, "power"], ["MRNE", 5, "control"]],
+          [["PH-1", 4, "weapon", "M3"]]
+        ],
+        "core": [["HULL", 10, "hull"], ["ARMR", 4, "hull"]]
+      }
+    },
+    "bloom_heavy_cruiser": {
+      "name": "Rotwake", "cls": "Heavy Cruiser", "tonnage": 125, "faction": "bloom", "playable": true, "ai": true,
+      "note": "Line cruiser. Spore racks, regrowing hull. 5 mounts.",
+      "mesh": "res://assets/meshes/hull_bloom_heavy_cruiser.obj",
+      "material": "res://assets/materials/mat_hull_bloom.tres",
+      "cargo_space": 26,
+      "damage_control": 3, "spare_parts": 24,
+      "budgets": { "space": 152, "power": 46, "mass": 158, "crew": 151 },
+      "base_load": { "space": 91, "mass": 111, "crew": 93, "power_draw": 22 },
+      "shield_per_facing": 27,
+      "max_speed": 18.4, "accel": 6.1, "turn_rate_deg": 23.4,
+      "mounts": [
+        { "id": "M1", "pos": "Fore spinal", "size": "Heavy", "families": ["torpedo"], "field": [11, 0], "default": "photon" },
+        { "id": "M2", "pos": "Fore starboard", "size": "Medium", "families": ["beam"], "field": [0, 1, 2], "default": "ph1" },
+        { "id": "M3", "pos": "Fore port", "size": "Medium", "families": ["beam"], "field": [9, 10, 11], "default": "ph1" },
+        { "id": "M4", "pos": "Dorsal rack", "size": "Light", "families": ["drone"], "field": [9, 10, 11, 0, 1, 2], "default": "drone" },
+        { "id": "M5", "pos": "Aft", "size": "Light", "families": ["beam", "drone"], "field": [3, 4, 5, 6, 7, 8], "default": "drone" }
+      ],
+      "internals": {
+        "sectors": [
+          [["PHOT", 3, "weapon", "M1"], ["DRN", 2, "weapon", "M4"], ["BRDG", 2, "control"], ["SENS", 2, "control"]],
+          [["PH-1", 4, "weapon", "M2"], ["TRAN", 2, "control"]],
+          [["WARP", 5, "power"], ["TRAC", 2, "control"]],
+          [["DRN", 2, "weapon", "M5"], ["IMP", 5, "power"], ["AUXP", 2, "power"], ["SHTL", 2, "control"]],
+          [["WARP", 5, "power"], ["BTTY", 2, "power"], ["MRNE", 6, "control"]],
+          [["PH-1", 4, "weapon", "M3"]]
+        ],
+        "core": [["HULL", 16, "hull"], ["ARMR", 5, "hull"]]
+      }
+    },
+    "bloom_battlecruiser": {
+      "name": "Pale Thicket", "cls": "Battlecruiser", "tonnage": 175, "faction": "bloom", "playable": true, "ai": true,
+      "note": "Heavy line hull. Spore racks, regrowing hull. 6 mounts.",
+      "mesh": "res://assets/meshes/hull_bloom_battlecruiser.obj",
+      "material": "res://assets/materials/mat_hull_bloom.tres",
+      "cargo_space": 32,
+      "damage_control": 5, "spare_parts": 32,
+      "budgets": { "space": 196, "power": 60, "mass": 214, "crew": 198 },
+      "base_load": { "space": 118, "mass": 150, "crew": 124, "power_draw": 28 },
+      "shield_per_facing": 34,
+      "max_speed": 14.7, "accel": 4.6, "turn_rate_deg": 18.0,
+      "mounts": [
+        { "id": "M1", "pos": "Fore spinal", "size": "Heavy", "families": ["torpedo"], "field": [11, 0], "default": "photon" },
+        { "id": "M2", "pos": "Fore starboard", "size": "Medium", "families": ["beam"], "field": [0, 1, 2], "default": "ph1" },
+        { "id": "M3", "pos": "Fore port", "size": "Medium", "families": ["beam"], "field": [9, 10, 11], "default": "ph1" },
+        { "id": "M4", "pos": "Starboard waist", "size": "Medium", "families": ["beam"], "field": [2, 3, 4], "default": "ph1" },
+        { "id": "M5", "pos": "Port waist", "size": "Medium", "families": ["beam"], "field": [7, 8, 9], "default": "ph1" },
+        { "id": "M6", "pos": "Aft", "size": "Light", "families": ["beam", "drone"], "field": [4, 5, 6, 7], "default": "drone" }
+      ],
+      "internals": {
+        "sectors": [
+          [["PHOT", 4, "weapon", "M1"], ["BRDG", 2, "control"], ["SENS", 2, "control"]],
+          [["PH-1", 5, "weapon", "M2"], ["TRAN", 2, "control"]],
+          [["PH-1", 5, "weapon", "M4"], ["WARP", 6, "power"], ["TRAC", 2, "control"]],
+          [["DRN", 3, "weapon", "M6"], ["IMP", 6, "power"], ["AUXP", 2, "power"], ["SHTL", 2, "control"]],
+          [["PH-1", 5, "weapon", "M5"], ["WARP", 6, "power"], ["BTTY", 3, "power"], ["MRNE", 8, "control"]],
+          [["PH-1", 5, "weapon", "M3"]]
+        ],
+        "core": [["HULL", 21, "hull"], ["ARMR", 10, "hull"]]
+      }
+    },
+    "bloom_battleship": {
+      "name": "Mother Lobe", "cls": "Battleship", "tonnage": 205, "faction": "bloom", "playable": true, "ai": true,
+      "note": "Battle line. Spore racks, regrowing hull. 7 mounts.",
+      "mesh": "res://assets/meshes/hull_bloom_battleship.obj",
+      "material": "res://assets/materials/mat_hull_bloom.tres",
+      "cargo_space": 38,
+      "damage_control": 5, "spare_parts": 40,
+      "budgets": { "space": 240, "power": 74, "mass": 271, "crew": 245 },
+      "base_load": { "space": 146, "mass": 192, "crew": 153, "power_draw": 36 },
+      "shield_per_facing": 40,
+      "max_speed": 12.9, "accel": 3.8, "turn_rate_deg": 14.4,
+      "mounts": [
+        { "id": "M1", "pos": "Fore spinal", "size": "Heavy", "families": ["torpedo"], "field": [11, 0], "default": "photon" },
+        { "id": "M2", "pos": "Bow battery", "size": "Heavy", "families": ["torpedo"], "field": [10, 11, 0, 1], "default": "photon" },
+        { "id": "M3", "pos": "Fore starboard", "size": "Medium", "families": ["beam"], "field": [0, 1, 2], "default": "ph1" },
+        { "id": "M4", "pos": "Fore port", "size": "Medium", "families": ["beam"], "field": [9, 10, 11], "default": "ph1" },
+        { "id": "M5", "pos": "Starboard waist", "size": "Medium", "families": ["beam"], "field": [2, 3, 4], "default": "ph1" },
+        { "id": "M6", "pos": "Port waist", "size": "Medium", "families": ["beam"], "field": [7, 8, 9], "default": "ph1" },
+        { "id": "M7", "pos": "Aft", "size": "Light", "families": ["beam", "drone"], "field": [4, 5, 6, 7], "default": "drone" }
+      ],
+      "internals": {
+        "sectors": [
+          [["PHOT", 4, "weapon", "M1"], ["PHOT", 4, "weapon", "M2"], ["BRDG", 3, "control"], ["SENS", 2, "control"]],
+          [["PH-1", 5, "weapon", "M3"], ["TRAN", 3, "control"]],
+          [["PH-1", 5, "weapon", "M5"], ["WARP", 7, "power"], ["TRAC", 3, "control"]],
+          [["DRN", 3, "weapon", "M7"], ["IMP", 7, "power"], ["AUXP", 3, "power"], ["SHTL", 3, "control"]],
+          [["PH-1", 5, "weapon", "M6"], ["WARP", 7, "power"], ["BTTY", 3, "power"], ["MRNE", 10, "control"]],
+          [["PH-1", 5, "weapon", "M4"]]
+        ],
+        "core": [["HULL", 26, "hull"], ["ARMR", 13, "hull"]]
+      }
+    },
+    "bloom_dreadnought": {
+      "name": "Deep Bloom", "cls": "Dreadnought", "tonnage": 240, "faction": "bloom", "playable": true, "ai": true,
+      "note": "Fleet flagship. Spore racks, regrowing hull. 8 mounts.",
+      "mesh": "res://assets/meshes/hull_bloom_dreadnought.obj",
+      "material": "res://assets/materials/mat_hull_bloom.tres",
+      "cargo_space": 48,
+      "damage_control": 6, "spare_parts": 52,
+      "budgets": { "space": 292, "power": 88, "mass": 321, "crew": 299 },
+      "base_load": { "space": 181, "mass": 231, "crew": 189, "power_draw": 42 },
+      "shield_per_facing": 48,
+      "max_speed": 11.0, "accel": 3.4, "turn_rate_deg": 10.8,
+      "mounts": [
+        { "id": "M1", "pos": "Fore spinal", "size": "Heavy", "families": ["torpedo"], "field": [11, 0], "default": "photon" },
+        { "id": "M2", "pos": "Bow battery", "size": "Heavy", "families": ["torpedo"], "field": [10, 11, 0, 1], "default": "photon" },
+        { "id": "M3", "pos": "Fore starboard", "size": "Medium", "families": ["beam"], "field": [0, 1, 2], "default": "ph1" },
+        { "id": "M4", "pos": "Fore port", "size": "Medium", "families": ["beam"], "field": [9, 10, 11], "default": "ph1" },
+        { "id": "M5", "pos": "Starboard waist", "size": "Medium", "families": ["beam"], "field": [2, 3, 4], "default": "ph1" },
+        { "id": "M6", "pos": "Port waist", "size": "Medium", "families": ["beam"], "field": [7, 8, 9], "default": "ph1" },
+        { "id": "M7", "pos": "Dorsal rack", "size": "Light", "families": ["drone"], "field": [9, 10, 11, 0, 1, 2], "default": "drone" },
+        { "id": "M8", "pos": "Aft", "size": "Light", "families": ["beam", "drone"], "field": [4, 5, 6, 7], "default": "drone" }
+      ],
+      "internals": {
+        "sectors": [
+          [["PHOT", 5, "weapon", "M1"], ["PHOT", 5, "weapon", "M2"], ["DRN", 4, "weapon", "M7"], ["BRDG", 3, "control"], ["SENS", 2, "control"]],
+          [["PH-1", 6, "weapon", "M3"], ["TRAN", 3, "control"]],
+          [["PH-1", 6, "weapon", "M5"], ["WARP", 8, "power"], ["TRAC", 3, "control"]],
+          [["DRN", 4, "weapon", "M8"], ["IMP", 8, "power"], ["AUXP", 4, "power"], ["SHTL", 4, "control"]],
+          [["PH-1", 6, "weapon", "M6"], ["WARP", 8, "power"], ["BTTY", 4, "power"], ["MRNE", 13, "control"]],
+          [["PH-1", 6, "weapon", "M4"], ["RPR", 1, "control"]]
+        ],
+        "core": [["HULL", 34, "hull"], ["ARMR", 18, "hull"]]
+      }
+    },
+    "bloom_carrier": {
+      "name": "Seedhold", "cls": "Carrier", "tonnage": 220, "faction": "bloom", "playable": true, "ai": true,
+      "note": "Drone carrier. Spore racks, regrowing hull. 6 mounts.",
+      "mesh": "res://assets/meshes/hull_bloom_carrier.obj",
+      "material": "res://assets/materials/mat_hull_bloom.tres",
+      "cargo_space": 35,
+      "damage_control": 5, "spare_parts": 36,
+      "budgets": { "space": 236, "power": 62, "mass": 256, "crew": 225 },
+      "base_load": { "space": 146, "mass": 184, "crew": 145, "power_draw": 30 },
+      "shield_per_facing": 36,
+      "max_speed": 13.8, "accel": 4.2, "turn_rate_deg": 13.5,
+      "mounts": [
+        { "id": "M1", "pos": "Fore spinal", "size": "Heavy", "families": ["torpedo"], "field": [11, 0], "default": "photon" },
+        { "id": "M2", "pos": "Fore starboard", "size": "Medium", "families": ["beam"], "field": [0, 1, 2], "default": "ph1" },
+        { "id": "M3", "pos": "Fore port", "size": "Medium", "families": ["beam"], "field": [9, 10, 11], "default": "ph1" },
+        { "id": "M4", "pos": "Dorsal rack", "size": "Light", "families": ["drone"], "field": [8, 9, 10, 11, 0, 1, 2, 3], "default": "drone" },
+        { "id": "M5", "pos": "Ventral rack", "size": "Light", "families": ["drone"], "field": [9, 10, 11, 0, 1, 2], "default": "drone" },
+        { "id": "M6", "pos": "Aft", "size": "Light", "families": ["beam", "drone"], "field": [4, 5, 6, 7], "default": "drone" }
+      ],
+      "internals": {
+        "sectors": [
+          [["PHOT", 4, "weapon", "M1"], ["DRN", 3, "weapon", "M4"], ["DRN", 3, "weapon", "M5"], ["BRDG", 3, "control"], ["SENS", 2, "control"]],
+          [["PH-1", 5, "weapon", "M2"], ["TRAN", 2, "control"]],
+          [["WARP", 6, "power"], ["TRAC", 2, "control"]],
+          [["DRN", 3, "weapon", "M6"], ["IMP", 6, "power"], ["AUXP", 3, "power"], ["SHTL", 8, "control"], ["DRN", 4, "control"]],
+          [["WARP", 6, "power"], ["BTTY", 3, "power"], ["MRNE", 8, "control"]],
+          [["PH-1", 5, "weapon", "M3"]]
+        ],
+        "core": [["HULL", 26, "hull"], ["ARMR", 10, "hull"]]
+      }
+    },
+    "bloom_freighter": {
+      "name": "Full Crop", "cls": "Freighter", "tonnage": 160, "faction": "bloom", "playable": true, "ai": true,
+      "note": "Bulk hauler. Spore racks, regrowing hull. 2 mounts.",
+      "mesh": "res://assets/meshes/hull_bloom_freighter.obj",
+      "material": "res://assets/materials/mat_hull_bloom.tres",
+      "cargo_space": 112,
+      "damage_control": 3, "spare_parts": 30,
+      "budgets": { "space": 160, "power": 38, "mass": 179, "crew": 126 },
+      "base_load": { "space": 106, "mass": 136, "crew": 71, "power_draw": 17 },
+      "shield_per_facing": 21,
+      "max_speed": 13.8, "accel": 4.2, "turn_rate_deg": 16.2,
+      "mounts": [
+        { "id": "M1", "pos": "Dorsal", "size": "Light", "families": ["beam", "drone"], "field": [9, 10, 11, 0, 1, 2], "default": "drone" },
+        { "id": "M2", "pos": "Aft", "size": "Light", "families": ["beam", "drone"], "field": [3, 4, 5, 6, 7, 8], "default": "drone" }
+      ],
+      "internals": {
+        "sectors": [
+          [["DRN", 2, "weapon", "M1"], ["BRDG", 1, "control"], ["SENS", 1, "control"]],
+          [["TRAN", 1, "control"]],
+          [["WARP", 4, "power"], ["TRAC", 2, "control"], ["CARGO", 6, "hull"]],
+          [["DRN", 2, "weapon", "M2"], ["IMP", 4, "power"]],
+          [["WARP", 4, "power"], ["BTTY", 2, "power"], ["MRNE", 3, "control"], ["CARGO", 6, "hull"]],
+          []
+        ],
+        "core": [["HULL", 23, "hull"], ["ARMR", 3, "hull"]]
+      }
+    },
+    "bloom_tender": {
+      "name": "Scar Tissue", "cls": "Tender", "tonnage": 140, "faction": "bloom", "playable": true, "ai": true,
+      "note": "Repair tender. Spore racks, regrowing hull. 3 mounts.",
+      "mesh": "res://assets/meshes/hull_bloom_tender.obj",
+      "material": "res://assets/materials/mat_hull_bloom.tres",
+      "cargo_space": 56,
+      "damage_control": 6, "spare_parts": 60,
+      "budgets": { "space": 150, "power": 40, "mass": 160, "crew": 135 },
+      "base_load": { "space": 96, "mass": 115, "crew": 79, "power_draw": 18 },
+      "shield_per_facing": 23,
+      "max_speed": 16.6, "accel": 5.3, "turn_rate_deg": 21.6,
+      "mounts": [
+        { "id": "M1", "pos": "Fore", "size": "Medium", "families": ["beam"], "field": [10, 11, 0, 1], "default": "ph1" },
+        { "id": "M2", "pos": "Dorsal rack", "size": "Light", "families": ["drone"], "field": [9, 10, 11, 0, 1, 2], "default": "drone" },
+        { "id": "M3", "pos": "Aft", "size": "Light", "families": ["beam", "drone"], "field": [3, 4, 5, 6, 7, 8], "default": "drone" }
+      ],
+      "internals": {
+        "sectors": [
+          [["PH-1", 4, "weapon", "M1"], ["DRN", 2, "weapon", "M2"], ["BRDG", 1, "control"], ["SENS", 1, "control"]],
+          [["TRAN", 2, "control"]],
+          [["WARP", 4, "power"], ["TRAC", 3, "control"], ["CARGO", 3, "hull"]],
+          [["DRN", 2, "weapon", "M3"], ["IMP", 4, "power"], ["AUXP", 1, "power"], ["SHTL", 2, "control"]],
+          [["WARP", 3, "power"], ["BTTY", 2, "power"], ["MRNE", 4, "control"], ["CARGO", 3, "hull"]],
+          [["RPR", 3, "control"]]
+        ],
+        "core": [["HULL", 16, "hull"], ["ARMR", 4, "hull"]]
+      }
+    }
+  }
+}

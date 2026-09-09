@@ -192,10 +192,18 @@ def disc(r, h, dome):
         (r * 0.5, h * 0.5 + dome * 0.8), (r * 0.25, h * 0.5 + dome),
         (0.0, h * 0.5 + dome),
     ]
-    # Eighteen segments, not twenty four. A saucer is read from directly above
-    # at about forty pixels, where the two are indistinguishable, and the
-    # difference is a hundred and twenty triangles on every Terran hull.
-    return lathe(prof, 18)
+    # Thirty six segments, the count the diorama lathed this profile at, so the
+    # sentence above is true of the shape and not only of the profile.
+    #
+    # This was eighteen, on the argument that a hull is identified from above at
+    # about forty pixels and the two are indistinguishable there. That argument
+    # is sound about the tactical camera and wrong about everything else the
+    # standard graphic set feeds (CLAUDE.md 3.2): the schematic is drawn at 256
+    # pixels, where an eighteen sided saucer reads as an octagon, and a saucer
+    # is the one shape a Terran hull is recognised by. It costs about three
+    # hundred triangles on the ten Terran hulls and nothing anywhere else,
+    # because this is the only dialect that lathes a disc.
+    return lathe(prof, 36)
 
 
 def extrude(points, thick):

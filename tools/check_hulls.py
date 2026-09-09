@@ -10,24 +10,9 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from shiplib import one_piece  # noqa: E402
+from shiplib import one_piece, read_obj  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-
-def read_obj(path):
-    verts, faces = [], []
-    with open(path) as f:
-        for line in f:
-            if line.startswith("v "):
-                verts.append(tuple(float(t) for t in line.split()[1:4]))
-            elif line.startswith("f "):
-                corners = []
-                for tok in line.split()[1:]:
-                    corners.append(tuple(int(t) if t else 0 for t in tok.split("/")))
-                for i in range(1, len(corners) - 1):
-                    faces.append((corners[0], corners[i], corners[i + 1]))
-    return verts, faces
 
 
 def main():
