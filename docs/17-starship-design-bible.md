@@ -459,7 +459,7 @@ pairs, stacked or crossed. The roster page keys each class to one combination, a
 hull picks its own rather than reusing a neighbour's.
 
 **The Vaelith and Sarn plans change with class the same way.** A Vaelith loop is round,
-oval, a horseshoe open aft, twin loops sharing the core, or concentric; the head is a
+oval, a horseshoe open aft, an egg fuller at the stern, or concentric, and never two loops side by side; the head is a
 beak, a spade or a lance; the capital ships add flat wings past the loop. A Sarn body is a
 cut diamond, a many faceted hull, a long spindle, a wide flat diamond, a twenty sided gem
 or two stacked; the ring sits aft, round the waist as a belt, over the stern as an arch,
